@@ -1,0 +1,31 @@
+{
+  "name": "video-conversion-studio",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx vite",
+    "typecheck": "npx vue-tsc --noEmit",
+    "build": "npm run typecheck && npx vite build",
+    "preview": "npx vite preview",
+    "ffmpeg:assets": "node scripts/copy-ffmpeg-core.cjs",
+    "postinstall": "node scripts/copy-ffmpeg-core.cjs"
+  },
+  "dependencies": {
+    "@ffmpeg/core": "^0.12.2",
+    "@ffmpeg/ffmpeg": "^0.12.2",
+    "@ffmpeg/util": "^0.12.2",
+    "@mdi/font": "^7.4.47",
+    "vue": "^3.5.25",
+    "vuetify": "^3.10.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vue/tsconfig": "^0.8.1",
+    "sass": "^1.94.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vue-tsc": "^3.1.5"
+  }
+}
