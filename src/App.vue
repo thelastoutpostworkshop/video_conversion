@@ -1155,6 +1155,7 @@ const {
   previewFrameSeconds,
   clearPreviewFrame,
   clearPreviewDebounce,
+  schedulePreviewFrameRefresh,
 } = usePreviewFrame({
   sourceFile,
   isVideoSource,
@@ -1362,6 +1363,10 @@ watch(sourceFile, (file) => {
   }
 
   outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
+
+  if (isVideoSource.value && isVideoOutput.value) {
+    schedulePreviewFrameRefresh(50);
+  }
 });
 
 watch(sourceMetadata, (metadata) => {
