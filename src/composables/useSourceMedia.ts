@@ -1,5 +1,6 @@
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import type { VideoMetadataResult } from "@/services/MediaProcessingService";
+import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 
 const videoExtensions = [
   ".avi",
@@ -13,6 +14,7 @@ const videoExtensions = [
 
 export const useSourceMedia = () => {
   const sourceFile = ref<File | null>(null);
+  let metadataProbeAbortController: AbortController | null = null;
 
   const sourceMetadata = ref<VideoMetadataResult | null>(null);
   const sourceMetadataLoading = ref(false);
@@ -79,30 +81,79 @@ export const useSourceMedia = () => {
     });
   };
 
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error && error.message ? error.message : fallback;
+
+  const cancelMetadataProbe = () => {
+    if (metadataProbeAbortController) {
+      metadataProbeAbortController.abort();
+      metadataProbeAbortController = null;
+    }
+  };
+
   const loadSourceMetadata = async () => {
     const file = sourceFile.value;
+    cancelMetadataProbe();
     if (!file || !isVideoSource.value) {
       sourceMetadata.value = null;
       sourceMetadataError.value = null;
       sourceMetadataLoading.value = false;
       return;
     }
+
+    const probeAbortController = new AbortController();
+    metadataProbeAbortController = probeAbortController;
+    const isCurrentRequest = () =>
+      sourceFile.value === file &&
+      metadataProbeAbortController === probeAbortController &&
+      !probeAbortController.signal.aborted;
+
     sourceMetadataLoading.value = true;
     sourceMetadataError.value = null;
     try {
-      const metadata = await readVideoMetadata(file);
-      if (sourceFile.value !== file) {
+      let metadata: VideoMetadataResult | null = null;
+      try {
+        metadata = await readVideoMetadata(file);
+      } catch (browserError) {
+        if (!isCurrentRequest()) {
+          return;
+        }
+        try {
+          metadata = await mediaProcessingService.probeVideoMetadata(
+            file,
+            undefined,
+            probeAbortController.signal
+          );
+        } catch (ffmpegError) {
+          const browserMessage = getErrorMessage(
+            browserError,
+            "Failed to read video metadata."
+          );
+          const ffmpegMessage = getErrorMessage(
+            ffmpegError,
+            "Failed to probe video metadata with FFmpeg."
+          );
+          throw new Error(`${browserMessage} FFmpeg fallback failed: ${ffmpegMessage}`);
+        }
+      }
+
+      if (!metadata || !isCurrentRequest()) {
         return;
       }
       sourceMetadata.value = metadata;
     } catch (error) {
-      if (sourceFile.value !== file) {
+      if (sourceFile.value !== file || probeAbortController.signal.aborted) {
         return;
       }
       sourceMetadata.value = null;
-      sourceMetadataError.value =
-        error instanceof Error ? error.message : "Failed to read source metadata.";
+      sourceMetadataError.value = getErrorMessage(
+        error,
+        "Failed to read source metadata."
+      );
     } finally {
+      if (metadataProbeAbortController === probeAbortController) {
+        metadataProbeAbortController = null;
+      }
       if (sourceFile.value === file) {
         sourceMetadataLoading.value = false;
       }
@@ -111,6 +162,10 @@ export const useSourceMedia = () => {
 
   watch(sourceFile, () => {
     void loadSourceMetadata();
+  });
+
+  onBeforeUnmount(() => {
+    cancelMetadataProbe();
   });
 
   return {

@@ -455,6 +455,9 @@ export class MediaProcessingService {
     const safeInputName = `${jobId}-${file.name}`;
     const probeOutputName = `${jobId}-probe-frame.png`;
     const logs: string[] = [];
+    const inputExtension = getFileExtension(file.name);
+    const forceMjpegInput =
+      inputExtension === "mjpeg" || inputExtension === "mjpg";
 
     const handleLog = (log: { message?: string; type?: string }) => {
       const message = log.message?.trim();
@@ -503,10 +506,12 @@ export class MediaProcessingService {
     try {
       const writeOptions = signal ? { signal } : undefined;
       await race(ffmpeg.writeFile(safeInputName, await fetchFile(file), writeOptions));
+      const inputArgs = forceMjpegInput
+        ? ["-f", "mjpeg", "-i", safeInputName]
+        : ["-i", safeInputName];
       const probeArgs = [
         "-hide_banner",
-        "-i",
-        safeInputName,
+        ...inputArgs,
         "-map",
         "0:v:0",
         "-frames:v",
