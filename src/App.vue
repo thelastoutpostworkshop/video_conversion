@@ -439,32 +439,16 @@ import type {
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
+import {
+  BOARD_PRESETS,
+  type TargetProfileBase,
+  type VideoOutputFormat,
+} from "@/config/boardPresets";
 
-type OutputFormat = "gif" | "mjpeg" | "avi" | "mp3";
-type VideoOutputFormat = Exclude<OutputFormat, "mp3">;
+type OutputFormat = VideoOutputFormat | "mp3";
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
-
-interface TargetProfileBase {
-  width: number;
-  height: number;
-  orientation: VideoOrientation;
-  scaleMode: VideoScaleMode;
-  fps: number | null;
-  quality: number | null;
-  outputFormat: VideoOutputFormat;
-}
-
-interface BoardPreset extends TargetProfileBase {
-  id: string;
-  name: string;
-  bundle: string;
-  decodePipeline: string;
-  maxFps: number;
-  maxBitrateKbps: number;
-  notes: string;
-}
 
 interface CustomTargetProfile extends TargetProfileBase {
   id: string;
@@ -502,89 +486,6 @@ const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
   { title: "Custom target profile", value: "custom" },
 ];
 
-const boardPresets: BoardPreset[] = [
-  {
-    id: "esp32-st7789-240",
-    name: "ESP32-S3 + ST7789 240x240",
-    bundle: "Round/square TFT board package",
-    width: 240,
-    height: 240,
-    orientation: "none",
-    scaleMode: "fit",
-    fps: 15,
-    quality: 7,
-    outputFormat: "mjpeg",
-    decodePipeline: "MJPEG + RGB565",
-    maxFps: 20,
-    maxBitrateKbps: 2200,
-    notes: "Balanced for SPI displays with limited RAM.",
-  },
-  {
-    id: "esp32-ili9341-320x240",
-    name: "ESP32 + ILI9341 320x240",
-    bundle: "2.8-inch TFT board package",
-    width: 320,
-    height: 240,
-    orientation: "none",
-    scaleMode: "fit",
-    fps: 20,
-    quality: 6,
-    outputFormat: "avi",
-    decodePipeline: "AVI (MJPEG) + RGB565",
-    maxFps: 24,
-    maxBitrateKbps: 2800,
-    notes: "Good default for common ESP32 TFT dev boards.",
-  },
-  {
-    id: "lilygo-t-display-s3",
-    name: "LILYGO T-Display-S3 170x320",
-    bundle: "Integrated ESP32-S3 display board",
-    width: 170,
-    height: 320,
-    orientation: "none",
-    scaleMode: "fit",
-    fps: 18,
-    quality: 7,
-    outputFormat: "mjpeg",
-    decodePipeline: "MJPEG + ST7789 driver",
-    maxFps: 24,
-    maxBitrateKbps: 2400,
-    notes: "Portrait profile tuned for 170x320 panel.",
-  },
-  {
-    id: "m5stack-core2",
-    name: "M5Stack Core2 320x240",
-    bundle: "Integrated ESP32 display board",
-    width: 320,
-    height: 240,
-    orientation: "none",
-    scaleMode: "fit",
-    fps: 20,
-    quality: 6,
-    outputFormat: "avi",
-    decodePipeline: "AVI (MJPEG) + LVGL playback",
-    maxFps: 24,
-    maxBitrateKbps: 3000,
-    notes: "Matches 320x240 LCD and common playback stacks.",
-  },
-  {
-    id: "esp32-st7789-135x240",
-    name: "ESP32 + ST7789 135x240",
-    bundle: "Narrow portrait TFT board package",
-    width: 135,
-    height: 240,
-    orientation: "none",
-    scaleMode: "fit",
-    fps: 12,
-    quality: 8,
-    outputFormat: "mjpeg",
-    decodePipeline: "MJPEG + RGB565",
-    maxFps: 16,
-    maxBitrateKbps: 1500,
-    notes: "Conservative defaults for small SPI displays.",
-  },
-];
-
 const customTargetStorageKey = "video-conversion.custom-target-profiles.v1";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
@@ -620,7 +521,7 @@ const endSeconds = ref<number | null>(null);
 const previewFrameSeconds = ref<number | null>(0);
 const mp3Bitrate = ref<number | null>(128);
 const targetSetupMode = ref<TargetSetupMode>("preset");
-const selectedBoardPresetId = ref<string>(boardPresets[0]?.id ?? "");
+const selectedBoardPresetId = ref<string>(BOARD_PRESETS[0]?.id ?? "");
 const customProfiles = ref<CustomTargetProfile[]>([]);
 const selectedCustomProfileId = ref<string | null>(null);
 const customProfileName = ref("");
@@ -642,7 +543,7 @@ let convertAbortController: AbortController | null = null;
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
 const boardPresetItems = computed(() =>
-  boardPresets.map((preset) => ({
+  BOARD_PRESETS.map((preset) => ({
     title: `${preset.name} (${preset.width}x${preset.height})`,
     value: preset.id,
   }))
@@ -656,7 +557,7 @@ const customProfileItems = computed(() =>
 );
 
 const selectedBoardPreset = computed(() =>
-  boardPresets.find((preset) => preset.id === selectedBoardPresetId.value) ?? null
+  BOARD_PRESETS.find((preset) => preset.id === selectedBoardPresetId.value) ?? null
 );
 
 const selectedCustomProfile = computed(() =>
