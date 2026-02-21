@@ -217,6 +217,57 @@ const pickJobId = (): string => {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
+const getFileExtension = (name: string): string | null => {
+  const dotIndex = name.lastIndexOf(".");
+  if (dotIndex < 0 || dotIndex === name.length - 1) {
+    return null;
+  }
+  return name.slice(dotIndex + 1).toLowerCase();
+};
+
+const describeUnknownError = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (typeof error === "number") {
+    return `FFmpeg exited with code ${error}.`;
+  }
+  if (error && typeof error === "object") {
+    const maybeMessage = (error as { message?: unknown }).message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return "Media conversion failed.";
+};
+
+const pickFailureLogLine = (logs: string[]): string | null => {
+  const patterns = [
+    /error/i,
+    /failed/i,
+    /invalid/i,
+    /unsupported/i,
+    /cannot/i,
+    /no such/i,
+    /not found/i,
+  ];
+  for (let index = logs.length - 1; index >= 0; index -= 1) {
+    const line = logs[index] ?? "";
+    if (patterns.some((pattern) => pattern.test(line))) {
+      return line;
+    }
+  }
+  return logs.length > 0 ? logs[logs.length - 1] ?? null : null;
+};
+
 export class MediaProcessingService {
   private ffmpeg: FFmpeg | null = null;
   private loadingPromise: Promise<void> | null = null;
@@ -256,8 +307,15 @@ export class MediaProcessingService {
     const ffmpeg = this.ffmpeg;
 
     const jobId = pickJobId();
-    const safeInputName = `${jobId}-${file.name}`;
+    const inputExt = getFileExtension(file.name);
+    const safeInputName = inputExt
+      ? `${jobId}-input.${inputExt}`
+      : `${jobId}-input.bin`;
     const outputName = `${jobId}-output.${outputExt}`;
+    const recentLogLines: string[] = [];
+    const inputExtension = getFileExtension(file.name);
+    const forceMjpegInput =
+      inputExtension === "mjpeg" || inputExtension === "mjpg";
 
     const handleProgress = (progress: { progress?: number }) => {
       if (!onProgress || typeof progress.progress !== "number") {
@@ -267,6 +325,13 @@ export class MediaProcessingService {
       onProgress(percent);
     };
     const handleLog = (log: { message?: string; type?: string }) => {
+      const line = log.message?.trim();
+      if (line) {
+        recentLogLines.push(line);
+        if (recentLogLines.length > 80) {
+          recentLogLines.shift();
+        }
+      }
       if (!onLog) {
         return;
       }
@@ -323,18 +388,37 @@ export class MediaProcessingService {
     try {
       const writeOptions = signal ? { signal } : undefined;
       await race(ffmpeg.writeFile(safeInputName, await fetchFile(file), writeOptions));
-      const execArgs = ["-y", "-i", safeInputName, ...args, outputName];
+      const inputArgs = forceMjpegInput
+        ? ["-f", "mjpeg", "-i", safeInputName]
+        : ["-i", safeInputName];
+      const execArgs = ["-y", ...inputArgs, ...args, outputName];
       if (onLog) {
-        onLog(`[app] exec ${execArgs.join(" ")}`);
+        const displayInputArgs = forceMjpegInput
+          ? ["-f", "mjpeg", "-i", file.name]
+          : ["-i", file.name];
+        const displayArgs = ["-y", ...displayInputArgs, ...args, `output.${outputExt}`];
+        onLog(`[app] exec ${displayArgs.join(" ")}`);
       }
-      await race(ffmpeg.exec(execArgs, undefined, writeOptions));
-      const data = await race(ffmpeg.readFile(outputName));
-      const payload =
-        typeof data === "string" ? new TextEncoder().encode(data) : data;
-      return {
-        data: payload instanceof Uint8Array ? payload : new Uint8Array(payload),
-        outputName,
-      };
+      try {
+        await race(ffmpeg.exec(execArgs, undefined, writeOptions));
+        const data = await race(ffmpeg.readFile(outputName));
+        const payload =
+          typeof data === "string" ? new TextEncoder().encode(data) : data;
+        return {
+          data: payload instanceof Uint8Array ? payload : new Uint8Array(payload),
+          outputName,
+        };
+      } catch (error) {
+        const message = describeUnknownError(error);
+        if (message.toLowerCase().includes("cancelled")) {
+          throw error;
+        }
+        const failureLog = pickFailureLogLine(recentLogLines);
+        if (failureLog && !message.includes(failureLog)) {
+          throw new Error(`${message} ${failureLog}`);
+        }
+        throw new Error(message);
+      }
     } finally {
       if (signal && abortHandler) {
         signal.removeEventListener("abort", abortHandler);
