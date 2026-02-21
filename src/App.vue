@@ -329,7 +329,19 @@
                       </v-card-text>
                     </v-card>
 
-                    <div class="mt-2">
+                    <div class="d-flex align-center mt-2 mb-2">
+                      <v-chip
+                        v-if="hasBoardSelection"
+                        color="info"
+                        variant="tonal"
+                        size="small"
+                        prepend-icon="mdi-monitor-dashboard"
+                      >
+                        {{ workspaceBoardSummary }}
+                      </v-chip>
+                    </div>
+
+                    <div>
                     <PreviewFrameSurface
                       :preview-frame-url="previewFrameUrl"
                       :preview-frame-busy="previewFrameBusy"
