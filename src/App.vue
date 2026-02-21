@@ -16,6 +16,7 @@
             :prepend-icon="item.icon"
             :title="item.title"
             :active="activeNavigation === item.id"
+            :disabled="isNavigationItemDisabled(item.id)"
             color="primary"
             rounded="lg"
             @click="navigateToView(item.id)"
@@ -107,7 +108,7 @@
                   >
                     <v-card
                       class="board-catalog-item flex-grow-1"
-                      :class="{ 'board-catalog-item--selected': selectedBoardPresetId === preset.id }"
+                      :class="{ 'board-catalog-item--selected': isPresetSelected(preset.id) }"
                       variant="tonal"
                     >
                       <v-img
@@ -147,11 +148,11 @@
                           variant="flat"
                           @click="selectBoardFromCatalog(preset.id)"
                         >
-                          {{ selectedBoardPresetId === preset.id ? "Use selected board" : "Use this board" }}
+                          {{ isPresetSelected(preset.id) ? "Use selected board" : "Use this board" }}
                         </v-btn>
                         <v-spacer />
                         <v-chip
-                          v-if="selectedBoardPresetId === preset.id"
+                          v-if="isPresetSelected(preset.id)"
                           size="small"
                           color="success"
                           variant="tonal"
@@ -162,6 +163,71 @@
                     </v-card>
                   </v-col>
                 </v-row>
+
+                <v-divider class="my-4" />
+
+                <v-card variant="tonal" class="board-catalog-custom">
+                  <v-card-title class="text-subtitle-1">
+                    Use custom board size
+                  </v-card-title>
+                  <v-card-text>
+                    <div class="text-caption text-medium-emphasis mb-3">
+                      Enter your screen dimensions to create a custom board target.
+                    </div>
+                    <v-row dense>
+                      <v-col cols="12" sm="4">
+                        <v-text-field
+                          :model-value="customBoardWidth"
+                          label="Screen width"
+                          type="number"
+                          density="comfortable"
+                          hide-details="auto"
+                          :disabled="processing"
+                          @update:model-value="(value) => (customBoardWidth = toPositiveNullable(value))"
+                        />
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-text-field
+                          :model-value="customBoardHeight"
+                          label="Screen height"
+                          type="number"
+                          density="comfortable"
+                          hide-details="auto"
+                          :disabled="processing"
+                          @update:model-value="(value) => (customBoardHeight = toPositiveNullable(value))"
+                        />
+                      </v-col>
+                      <v-col cols="12" sm="4" class="d-flex align-center justify-sm-end">
+                        <v-btn
+                          color="primary"
+                          variant="flat"
+                          :disabled="processing"
+                          @click="selectCustomBoard"
+                        >
+                          Use custom board
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+                    <v-alert
+                      v-if="customBoardValidationMessage"
+                      type="warning"
+                      variant="tonal"
+                      density="compact"
+                      class="mt-2"
+                    >
+                      {{ customBoardValidationMessage }}
+                    </v-alert>
+                    <v-chip
+                      v-if="isCustomBoardSelected"
+                      color="success"
+                      variant="tonal"
+                      size="small"
+                      class="mt-2"
+                    >
+                      Custom board selected ({{ width }}x{{ height }})
+                    </v-chip>
+                  </v-card-text>
+                </v-card>
               </v-card-text>
             </v-card>
 
@@ -179,16 +245,15 @@
 
               <v-card-text>
                 <section class="workspace-section">
-                  <div id="section-target" class="app-nav-target" />
-                  <div class="step-heading mb-2">
-                    <div class="text-subtitle-1 font-weight-medium">
-                      Development board
-                    </div>
-                    <div class="text-caption text-medium-emphasis">
-                      Select a board preset or custom target size before configuring conversion details.
-                    </div>
-                  </div>
-                  <div class="d-flex justify-end mb-2">
+                  <div class="d-flex flex-wrap align-center ga-2 mb-3">
+                    <v-chip
+                      color="info"
+                      variant="tonal"
+                      prepend-icon="mdi-monitor-dashboard"
+                    >
+                      {{ workspaceBoardSummary }}
+                    </v-chip>
+                    <v-spacer />
                     <v-btn
                       size="small"
                       variant="tonal"
@@ -196,82 +261,9 @@
                       :disabled="processing"
                       @click="navigateToView('boards')"
                     >
-                      Browse board catalog
+                      Change board
                     </v-btn>
                   </div>
-
-                  <v-row v-if="isVideoOutput" dense class="section-target-grid">
-                    <v-col cols="12" sm="6" md="3">
-                      <v-select
-                        v-model="targetSetupMode"
-                        :items="targetSetupModeItems"
-                        item-title="title"
-                        item-value="value"
-                        label="Target setup"
-                        density="compact"
-                        hide-details="auto"
-                        :disabled="processing"
-                      />
-                    </v-col>
-                    <v-col cols="12" sm="6" md="5">
-                      <v-select
-                        v-if="targetSetupMode === 'preset'"
-                        v-model="selectedBoardPresetId"
-                        :items="boardPresetItems"
-                        item-title="title"
-                        item-value="value"
-                        label="Development board"
-                        density="compact"
-                        hide-details="auto"
-                        :disabled="processing"
-                      />
-                      <v-sheet
-                        v-else
-                        rounded="lg"
-                        border
-                        class="d-flex align-center h-100 px-3 py-2 target-custom-hint"
-                      >
-                        <div class="text-caption text-medium-emphasis">
-                          Custom target selected. Choose the screen dimensions below.
-                        </div>
-                      </v-sheet>
-                    </v-col>
-                    <v-col cols="6" md="2">
-                      <v-text-field
-                        :model-value="width"
-                        label="Screen width"
-                        type="number"
-                        density="compact"
-                        hide-details="auto"
-                        :readonly="targetSetupMode === 'preset'"
-                        :disabled="processing"
-                        @update:model-value="(value) => (width = toPositiveNullable(value))"
-                      />
-                    </v-col>
-                    <v-col cols="6" md="2">
-                      <v-text-field
-                        :model-value="height"
-                        label="Screen height"
-                        type="number"
-                        density="compact"
-                        hide-details="auto"
-                        :readonly="targetSetupMode === 'preset'"
-                        :disabled="processing"
-                        @update:model-value="(value) => (height = toPositiveNullable(value))"
-                      />
-                    </v-col>
-                    <v-col cols="12" v-if="targetSetupMode === 'preset' && selectedBoardPresetDetails">
-                      <div class="text-caption text-info target-preset-note">
-                        {{ selectedBoardPresetDetails }}
-                      </div>
-                    </v-col>
-                  </v-row>
-                  <v-alert v-else type="info" variant="tonal" class="mt-2">
-                    Development board presets are available for video output formats.
-                  </v-alert>
-                </section>
-
-                <section class="workspace-section mt-4">
                   <div id="section-source" class="app-nav-target" />
                   <div class="step-heading mb-2">
                     <div class="text-subtitle-1 font-weight-medium">
@@ -693,6 +685,13 @@ type AppNavigationId = "boards" | "workspace" | "logs";
 type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
 
+interface PersistedBoardSelection {
+  mode: TargetSetupMode;
+  presetId?: string;
+  width?: number;
+  height?: number;
+}
+
 interface PersistedConversionPreferences {
   outputFormat: OutputFormat;
   orientation: VideoOrientation;
@@ -717,11 +716,6 @@ const orientationItems: Array<{ title: string; value: VideoOrientation }> = [
   { title: "Rotate 90 clockwise", value: "cw90" },
   { title: "Rotate 90 counter-clockwise", value: "ccw90" },
   { title: "Rotate 180", value: "flip180" },
-];
-
-const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
-  { title: "Development board preset", value: "preset" },
-  { title: "Custom target size", value: "custom" },
 ];
 
 const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string }> = [
@@ -771,8 +765,8 @@ const outputFileUrl = ref<string | null>(null);
 const outputFormat = ref<OutputFormat>("gif");
 const outputFileName = ref("");
 const outputSizeMode = ref<OutputSizeMode>("custom");
-const width = ref<number | null>(320);
-const height = ref<number | null>(240);
+const width = ref<number | null>(null);
+const height = ref<number | null>(null);
 const scaleMode = ref<VideoScaleMode>("fit");
 const orientation = ref<VideoOrientation>("none");
 const fps = ref<number | null>(20);
@@ -784,7 +778,10 @@ const endTimeInput = ref("");
 const isTrimRangeDragging = ref(false);
 const mp3Bitrate = ref<number | null>(128);
 const targetSetupMode = ref<TargetSetupMode>("preset");
-const selectedBoardPresetId = ref<string>(BOARD_PRESETS[0]?.id ?? "");
+const selectedBoardPresetId = ref<string>("");
+const customBoardWidth = ref<number | null>(null);
+const customBoardHeight = ref<number | null>(null);
+const customBoardValidationMessage = ref<string | null>(null);
 const boardCatalogQuery = ref("");
 const drawerOpen = ref(true);
 const activeNavigation = ref<AppNavigationId>("boards");
@@ -811,16 +808,37 @@ let convertAbortController: AbortController | null = null;
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
-const boardPresetItems = computed(() =>
-  BOARD_PRESETS.map((preset) => ({
-    title: `${preset.name} (${preset.width}x${preset.height})`,
-    value: preset.id,
-  }))
-);
-
 const selectedBoardPreset = computed(() =>
   BOARD_PRESETS.find((preset) => preset.id === selectedBoardPresetId.value) ?? null
 );
+
+const hasCustomBoardDimensions = computed(
+  () =>
+    typeof width.value === "number" &&
+    width.value > 0 &&
+    typeof height.value === "number" &&
+    height.value > 0
+);
+
+const isCustomBoardSelected = computed(
+  () => targetSetupMode.value === "custom" && hasCustomBoardDimensions.value
+);
+
+const hasBoardSelection = computed(
+  () =>
+    (targetSetupMode.value === "preset" && selectedBoardPreset.value !== null) ||
+    isCustomBoardSelected.value
+);
+
+const workspaceBoardSummary = computed(() => {
+  if (targetSetupMode.value === "preset" && selectedBoardPreset.value) {
+    return `${selectedBoardPreset.value.name} (${selectedBoardPreset.value.width}x${selectedBoardPreset.value.height})`;
+  }
+  if (isCustomBoardSelected.value && width.value && height.value) {
+    return `Custom board (${Math.round(width.value)}x${Math.round(height.value)})`;
+  }
+  return "No board selected";
+});
 
 const boardCatalogFiltered = computed(() => {
   const query = boardCatalogQuery.value.trim().toLowerCase();
@@ -877,6 +895,9 @@ const toPublicAssetPath = (assetPath: string): string => {
   const baseUrl = import.meta.env.BASE_URL ?? "/";
   return baseUrl.endsWith("/") ? `${baseUrl}${normalized}` : `${baseUrl}/${normalized}`;
 };
+
+const isPresetSelected = (presetId: string) =>
+  targetSetupMode.value === "preset" && selectedBoardPresetId.value === presetId;
 
 const formatDurationClock = (
   rawSeconds: number | null | undefined,
@@ -1096,6 +1117,9 @@ const trimValidationMessage = computed(() => {
 });
 
 const canConvert = computed(() => {
+  if (!hasBoardSelection.value) {
+    return false;
+  }
   if (!sourceFile.value || processing.value || previewFrameBusy.value) {
     return false;
   }
@@ -1109,14 +1133,6 @@ const canConvert = computed(() => {
     return Boolean(width.value && width.value > 0 && height.value && height.value > 0);
   }
   return true;
-});
-
-const selectedBoardPresetDetails = computed(() => {
-  const preset = selectedBoardPreset.value;
-  if (!preset) {
-    return "";
-  }
-  return `${preset.bundle}. ${preset.notes}`;
 });
 
 const previewTargetDimensions = computed<{ width: number; height: number } | null>(() => {
@@ -1179,7 +1195,14 @@ const toggleTheme = () => {
   theme.change(nextTheme);
 };
 
+const isNavigationItemDisabled = (viewId: AppNavigationId) =>
+  viewId === "workspace" && !hasBoardSelection.value;
+
 const navigateToView = (viewId: AppNavigationId) => {
+  if (viewId === "workspace" && !hasBoardSelection.value) {
+    activeNavigation.value = "boards";
+    return;
+  }
   activeNavigation.value = viewId;
   if (mdAndDown.value) {
     drawerOpen.value = false;
@@ -1260,18 +1283,35 @@ const loadPersistedConversionPreferences = (): PersistedConversionPreferences | 
   }
 };
 
-const persistBoardSelection = (boardId: string) => {
+const persistBoardSelection = () => {
   if (typeof window === "undefined") {
     return;
   }
   try {
-    window.localStorage.setItem(boardSelectionStorageKey, boardId);
+    if (targetSetupMode.value === "preset" && selectedBoardPreset.value) {
+      const payload: PersistedBoardSelection = {
+        mode: "preset",
+        presetId: selectedBoardPreset.value.id,
+      };
+      window.localStorage.setItem(boardSelectionStorageKey, JSON.stringify(payload));
+      return;
+    }
+    if (targetSetupMode.value === "custom" && hasCustomBoardDimensions.value) {
+      const payload: PersistedBoardSelection = {
+        mode: "custom",
+        width: Math.max(1, Math.round(width.value ?? 1)),
+        height: Math.max(1, Math.round(height.value ?? 1)),
+      };
+      window.localStorage.setItem(boardSelectionStorageKey, JSON.stringify(payload));
+      return;
+    }
+    window.localStorage.removeItem(boardSelectionStorageKey);
   } catch {
     // Ignore storage errors.
   }
 };
 
-const loadPersistedBoardSelection = (): string | null => {
+const loadPersistedBoardSelection = (): PersistedBoardSelection | null => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -1280,8 +1320,37 @@ const loadPersistedBoardSelection = (): string | null => {
     if (!raw) {
       return null;
     }
-    return BOARD_PRESETS.some((preset) => preset.id === raw) ? raw : null;
+
+    const parsed = JSON.parse(raw) as PersistedBoardSelection;
+    if (parsed.mode === "preset" && typeof parsed.presetId === "string") {
+      if (BOARD_PRESETS.some((preset) => preset.id === parsed.presetId)) {
+        return { mode: "preset", presetId: parsed.presetId };
+      }
+      return null;
+    }
+
+    if (
+      parsed.mode === "custom" &&
+      typeof parsed.width === "number" &&
+      Number.isFinite(parsed.width) &&
+      parsed.width > 0 &&
+      typeof parsed.height === "number" &&
+      Number.isFinite(parsed.height) &&
+      parsed.height > 0
+    ) {
+      return {
+        mode: "custom",
+        width: Math.round(parsed.width),
+        height: Math.round(parsed.height),
+      };
+    }
+    return null;
   } catch {
+    // Backward compatibility: older versions stored a plain preset id string.
+    const raw = window.localStorage.getItem(boardSelectionStorageKey);
+    if (raw && BOARD_PRESETS.some((preset) => preset.id === raw)) {
+      return { mode: "preset", presetId: raw };
+    }
     return null;
   }
 };
@@ -1323,13 +1392,14 @@ const applySelectedBoardPreset = (
 };
 
 const selectBoardFromCatalog = (presetId: string) => {
+  customBoardValidationMessage.value = null;
   targetSetupMode.value = "preset";
-  persistBoardSelection(presetId);
   if (selectedBoardPresetId.value !== presetId) {
     selectedBoardPresetId.value = presetId;
   } else {
     applySelectedBoardPreset();
   }
+  persistBoardSelection();
   activeNavigation.value = "workspace";
   if (mdAndDown.value) {
     drawerOpen.value = false;
@@ -1337,19 +1407,31 @@ const selectBoardFromCatalog = (presetId: string) => {
 };
 
 const applySizingDefaults = () => {
-  if (outputSizeMode.value !== "custom") {
-    return;
-  }
-  if (targetSetupMode.value === "preset") {
+  if (targetSetupMode.value === "preset" && selectedBoardPreset.value) {
     applySelectedBoardPreset({ setOutputFormat: false, writeLog: false });
+  }
+};
+
+const selectCustomBoard = () => {
+  if (
+    typeof customBoardWidth.value !== "number" ||
+    customBoardWidth.value <= 0 ||
+    typeof customBoardHeight.value !== "number" ||
+    customBoardHeight.value <= 0
+  ) {
+    customBoardValidationMessage.value = "Set valid width and height for your custom board.";
     return;
   }
-  if (
-    sourceMetadata.value &&
-    (!width.value || width.value <= 0 || !height.value || height.value <= 0)
-  ) {
-    width.value = sourceMetadata.value.width;
-    height.value = sourceMetadata.value.height;
+
+  customBoardValidationMessage.value = null;
+  targetSetupMode.value = "custom";
+  width.value = Math.max(1, Math.round(customBoardWidth.value));
+  height.value = Math.max(1, Math.round(customBoardHeight.value));
+  persistBoardSelection();
+  appendLog(`[app] Using custom board target ${width.value}x${height.value}.`);
+  activeNavigation.value = "workspace";
+  if (mdAndDown.value) {
+    drawerOpen.value = false;
   }
 };
 
@@ -1792,13 +1874,6 @@ watch(sourceFile, (file) => {
   }
 });
 
-watch(sourceMetadata, (metadata) => {
-  if (!metadata) {
-    return;
-  }
-  applySizingDefaults();
-});
-
 watch(outputFormat, (format) => {
   clearOutput();
   if (!sourceFile.value) {
@@ -1812,33 +1887,58 @@ watch(targetSetupMode, (mode) => {
   if (mode === "preset") {
     applySelectedBoardPreset();
   }
+  persistBoardSelection();
 });
 
-watch(selectedBoardPresetId, (nextBoardId) => {
-  persistBoardSelection(nextBoardId);
+watch(selectedBoardPresetId, () => {
   if (targetSetupMode.value === "preset") {
     applySelectedBoardPreset();
   }
+  persistBoardSelection();
 });
 
-watch(outputSizeMode, (mode) => {
-  if (mode !== "custom") {
+watch([width, height], () => {
+  if (targetSetupMode.value !== "custom") {
     return;
   }
-  applySizingDefaults();
+  persistBoardSelection();
 });
 
-watch(isVideoOutput, (nextIsVideoOutput) => {
-  if (!nextIsVideoOutput) {
-    return;
+watch([customBoardWidth, customBoardHeight], () => {
+  if (
+    customBoardValidationMessage.value &&
+    typeof customBoardWidth.value === "number" &&
+    customBoardWidth.value > 0 &&
+    typeof customBoardHeight.value === "number" &&
+    customBoardHeight.value > 0
+  ) {
+    customBoardValidationMessage.value = null;
   }
-  applySizingDefaults();
+});
+
+watch(hasBoardSelection, (isReady) => {
+  if (!isReady && activeNavigation.value === "workspace") {
+    activeNavigation.value = "boards";
+  }
 });
 
 onMounted(() => {
-  const persistedBoardId = loadPersistedBoardSelection();
-  if (persistedBoardId) {
-    selectedBoardPresetId.value = persistedBoardId;
+  const persistedBoardSelection = loadPersistedBoardSelection();
+  if (persistedBoardSelection?.mode === "preset" && persistedBoardSelection.presetId) {
+    targetSetupMode.value = "preset";
+    selectedBoardPresetId.value = persistedBoardSelection.presetId;
+    activeNavigation.value = "workspace";
+  }
+  if (
+    persistedBoardSelection?.mode === "custom" &&
+    typeof persistedBoardSelection.width === "number" &&
+    typeof persistedBoardSelection.height === "number"
+  ) {
+    targetSetupMode.value = "custom";
+    width.value = Math.max(1, Math.round(persistedBoardSelection.width));
+    height.value = Math.max(1, Math.round(persistedBoardSelection.height));
+    customBoardWidth.value = width.value;
+    customBoardHeight.value = height.value;
     activeNavigation.value = "workspace";
   }
   applySizingDefaults();
