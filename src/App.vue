@@ -130,14 +130,6 @@
                         {{ preset.name }}
                       </v-card-title>
                       <v-card-text class="pt-2">
-                        <div class="text-caption text-medium-emphasis">
-                          Resolution: {{ preset.width }}x{{ preset.height }}
-                        </div>
-                        <div class="text-caption text-medium-emphasis">
-                          Defaults:
-                          {{ preset.fps === null ? "Auto FPS" : `${preset.fps} FPS` }},
-                          {{ preset.quality === null ? "Default quality" : `Quality ${preset.quality}` }}
-                        </div>
                         <div class="text-caption text-medium-emphasis mt-1">
                           {{ preset.notes }}
                         </div>
