@@ -20,6 +20,20 @@ export const useSourceMedia = () => {
   const sourceMetadataLoading = ref(false);
   const sourceMetadataError = ref<string | null>(null);
 
+  const formatDurationClock = (rawSeconds: number) => {
+    const normalized = Math.max(0, Math.round(rawSeconds * 10) / 10);
+    const totalSeconds = Math.floor(normalized);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secondsValue = normalized - hours * 3600 - minutes * 60;
+    const minutesLabel = String(minutes).padStart(2, "0");
+    const secondsLabel = secondsValue.toFixed(1).padStart(4, "0");
+    if (hours > 0) {
+      return `${hours}:${minutesLabel}:${secondsLabel}`;
+    }
+    return `${minutesLabel}:${secondsLabel}`;
+  };
+
   const isVideoSource = computed(() => {
     if (!sourceFile.value) {
       return false;
@@ -43,7 +57,7 @@ export const useSourceMedia = () => {
     }
     const duration = sourceMetadata.value.durationSeconds;
     const durationLabel =
-      typeof duration === "number" ? `${duration.toFixed(2)} s` : "unknown duration";
+      typeof duration === "number" ? formatDurationClock(duration) : "unknown duration";
     return `${sourceMetadata.value.width}x${sourceMetadata.value.height}, ${durationLabel}`;
   });
 

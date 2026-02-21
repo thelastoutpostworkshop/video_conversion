@@ -230,7 +230,11 @@
                           base-color="grey-darken-3"
                           thumb-label
                           hide-details
-                        />
+                        >
+                          <template #thumb-label="{ modelValue }">
+                            {{ formatDurationClock(Number(modelValue), { includeTenths: true }) }}
+                          </template>
+                        </v-slider>
                       </v-card-text>
                     </v-card>
 
@@ -323,27 +327,36 @@
                             />
                           </v-col>
                           <v-col cols="12">
+                            <div class="text-caption text-medium-emphasis mb-2">
+                              {{ trimInputHelpText }}
+                            </div>
+                          </v-col>
+                          <v-col cols="12">
                             <v-text-field
-                              :model-value="startSeconds"
-                              label="Start seconds"
-                              type="number"
+                              v-model="startTimeInput"
+                              label="Start time"
+                              placeholder="hh:mm:ss or seconds"
                               density="comfortable"
                               :disabled="processing"
-                              @update:model-value="
-                                (value) => (startSeconds = toNonNegativeNullable(value))
+                              :error="startTimeInputInvalid"
+                              :error-messages="
+                                startTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
                               "
+                              @blur="commitStartTimeInput"
                             />
                           </v-col>
                           <v-col cols="12">
                             <v-text-field
-                              :model-value="endSeconds"
-                              label="End seconds"
-                              type="number"
+                              v-model="endTimeInput"
+                              label="End time"
+                              placeholder="hh:mm:ss or seconds"
                               density="comfortable"
                               :disabled="processing"
-                              @update:model-value="
-                                (value) => (endSeconds = toNonNegativeNullable(value))
+                              :error="endTimeInputInvalid"
+                              :error-messages="
+                                endTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
                               "
+                              @blur="commitEndTimeInput"
                             />
                           </v-col>
                         </v-row>
@@ -364,12 +377,12 @@
                         </v-row>
 
                         <v-alert
-                          v-if="hasRangeError"
+                          v-if="hasTrimInputError || hasRangeError"
                           type="warning"
                           variant="tonal"
                           class="mt-2"
                         >
-                          End seconds must be greater than start seconds.
+                          {{ trimValidationMessage }}
                         </v-alert>
                       </v-card-text>
                     </v-card>
@@ -606,6 +619,8 @@ const fps = ref<number | null>(20);
 const quality = ref<number | null>(5);
 const startSeconds = ref<number | null>(null);
 const endSeconds = ref<number | null>(null);
+const startTimeInput = ref("");
+const endTimeInput = ref("");
 const mp3Bitrate = ref<number | null>(128);
 const targetSetupMode = ref<TargetSetupMode>("preset");
 const selectedBoardPresetId = ref<string>(BOARD_PRESETS[0]?.id ?? "");
@@ -674,18 +689,153 @@ const ffmpegStatusColor = computed(() => {
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
 
+const formatDurationClock = (
+  rawSeconds: number | null | undefined,
+  options: { includeTenths?: boolean } = {}
+) => {
+  if (typeof rawSeconds !== "number" || !Number.isFinite(rawSeconds) || rawSeconds < 0) {
+    return "00:00";
+  }
+  const includeTenths = options.includeTenths ?? false;
+  const normalized = includeTenths
+    ? Math.round(rawSeconds * 10) / 10
+    : Math.round(rawSeconds);
+  const totalSeconds = Math.floor(normalized);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secondsValue = normalized - hours * 3600 - minutes * 60;
+  const minutesLabel = String(minutes).padStart(2, "0");
+  const secondsLabel = includeTenths
+    ? secondsValue.toFixed(1).padStart(4, "0")
+    : String(Math.floor(secondsValue)).padStart(2, "0");
+  if (hours > 0) {
+    return `${hours}:${minutesLabel}:${secondsLabel}`;
+  }
+  return `${minutesLabel}:${secondsLabel}`;
+};
+
+const parseTimeInputSeconds = (
+  rawValue: string | number | null | undefined
+): number | null | "invalid" => {
+  if (rawValue === null || rawValue === undefined) {
+    return null;
+  }
+  const raw = String(rawValue).trim();
+  if (!raw) {
+    return null;
+  }
+
+  if (/^\d+(?:\.\d+)?$/.test(raw)) {
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) {
+      return "invalid";
+    }
+    return parsed < 0 ? 0 : parsed;
+  }
+
+  const parts = raw.split(":").map((part) => part.trim());
+  if (parts.length < 2 || parts.length > 3 || parts.some((part) => part.length === 0)) {
+    return "invalid";
+  }
+
+  if (parts.length === 2) {
+    const [minutesPart, secondsPart] = parts;
+    if (!/^\d+$/.test(minutesPart) || !/^\d+(?:\.\d+)?$/.test(secondsPart)) {
+      return "invalid";
+    }
+    const minutes = Number(minutesPart);
+    const seconds = Number(secondsPart);
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || seconds >= 60) {
+      return "invalid";
+    }
+    return minutes * 60 + seconds;
+  }
+
+  const [hoursPart, minutesPart, secondsPart] = parts;
+  if (
+    !/^\d+$/.test(hoursPart) ||
+    !/^\d+$/.test(minutesPart) ||
+    !/^\d+(?:\.\d+)?$/.test(secondsPart)
+  ) {
+    return "invalid";
+  }
+  const hours = Number(hoursPart);
+  const minutes = Number(minutesPart);
+  const seconds = Number(secondsPart);
+  if (
+    !Number.isFinite(hours) ||
+    !Number.isFinite(minutes) ||
+    !Number.isFinite(seconds) ||
+    minutes >= 60 ||
+    seconds >= 60
+  ) {
+    return "invalid";
+  }
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
+const parsedStartTimeSeconds = computed(() => parseTimeInputSeconds(startTimeInput.value));
+const parsedEndTimeSeconds = computed(() => parseTimeInputSeconds(endTimeInput.value));
+const startTimeInputInvalid = computed(() => parsedStartTimeSeconds.value === "invalid");
+const endTimeInputInvalid = computed(() => parsedEndTimeSeconds.value === "invalid");
+const hasTrimInputError = computed(
+  () => startTimeInputInvalid.value || endTimeInputInvalid.value
+);
+
+const commitStartTimeInput = () => {
+  const parsed = parsedStartTimeSeconds.value;
+  if (parsed === "invalid") {
+    return false;
+  }
+  startSeconds.value = parsed;
+  startTimeInput.value =
+    parsed === null ? "" : formatDurationClock(parsed, { includeTenths: true });
+  return true;
+};
+
+const commitEndTimeInput = () => {
+  const parsed = parsedEndTimeSeconds.value;
+  if (parsed === "invalid") {
+    return false;
+  }
+  endSeconds.value = parsed;
+  endTimeInput.value =
+    parsed === null ? "" : formatDurationClock(parsed, { includeTenths: true });
+  return true;
+};
+
+const trimInputHelpText = computed(() => {
+  const duration = sourceMetadata.value?.durationSeconds;
+  if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+    return `Use hh:mm:ss (or seconds). Source duration: ${formatDurationClock(duration, {
+      includeTenths: true,
+    })}`;
+  }
+  return "Use hh:mm:ss (or seconds).";
+});
+
 const hasRangeError = computed(() => {
   if (
-    typeof startSeconds.value === "number" &&
-    typeof endSeconds.value === "number"
+    typeof parsedStartTimeSeconds.value === "number" &&
+    typeof parsedEndTimeSeconds.value === "number"
   ) {
-    return endSeconds.value <= startSeconds.value;
+    return parsedEndTimeSeconds.value <= parsedStartTimeSeconds.value;
   }
   return false;
 });
 
+const trimValidationMessage = computed(() => {
+  if (hasTrimInputError.value) {
+    return "Invalid trim time. Use hh:mm:ss (or seconds).";
+  }
+  return "End time must be greater than start time.";
+});
+
 const canConvert = computed(() => {
   if (!sourceFile.value || processing.value || previewFrameBusy.value) {
+    return false;
+  }
+  if (hasTrimInputError.value) {
     return false;
   }
   if (hasRangeError.value) {
@@ -837,14 +987,6 @@ const toNullableNumber = (value: string | number | null): number | null => {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-};
-
-const toNonNegativeNullable = (value: string | number | null): number | null => {
-  const parsed = toNullableNumber(value);
-  if (parsed === null) {
-    return null;
-  }
-  return parsed < 0 ? 0 : parsed;
 };
 
 const toPositiveNullable = (value: string | number | null): number | null => {
@@ -1108,7 +1250,10 @@ const previewSecondDisplay = computed(() => {
   if (!hasPreviewSource.value) {
     return "Unavailable";
   }
-  return `${previewSecondModel.value.toFixed(1)} s / ${previewSecondsMax.value.toFixed(1)} s`;
+  return `${formatDurationClock(previewSecondModel.value, { includeTenths: true })} / ${formatDurationClock(
+    previewSecondsMax.value,
+    { includeTenths: true }
+  )}`;
 });
 
 const buildVideoOptions = (): VideoTranscodeOptions => {
@@ -1149,8 +1294,12 @@ const runConversion = async () => {
     processingError.value = "Select a source media file.";
     return;
   }
+  if (!commitStartTimeInput() || !commitEndTimeInput()) {
+    processingError.value = "Invalid trim time. Use hh:mm:ss (or seconds).";
+    return;
+  }
   if (hasRangeError.value) {
-    processingError.value = "End seconds must be greater than start seconds.";
+    processingError.value = "End time must be greater than start time.";
     return;
   }
   const ready = await initializeFfmpeg();
