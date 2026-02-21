@@ -98,7 +98,6 @@ export const usePreviewFrame = ({
 
     previewFrameBusy.value = true;
     previewFrameError.value = null;
-    clearPreviewFrame();
 
     const options: Pick<
       VideoTranscodeOptions,
@@ -122,7 +121,11 @@ export const usePreviewFrame = ({
         onLog
       );
       const previewBlob = new Blob([result.data], { type: "image/png" });
-      previewFrameUrl.value = URL.createObjectURL(previewBlob);
+      const nextPreviewUrl = URL.createObjectURL(previewBlob);
+      if (previewFrameUrl.value) {
+        URL.revokeObjectURL(previewFrameUrl.value);
+      }
+      previewFrameUrl.value = nextPreviewUrl;
     } catch (error) {
       previewFrameError.value =
         error instanceof Error ? error.message : "Failed to render preview frame.";

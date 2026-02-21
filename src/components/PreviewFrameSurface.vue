@@ -7,9 +7,6 @@
         alt="Generated preview frame"
         class="preview-frame-image"
       />
-      <div v-else-if="previewFrameBusy && isVideoOutput" class="preview-placeholder">
-        Generating frame preview...
-      </div>
       <div v-else-if="!hasSourceFile" class="preview-placeholder">
         Select a media file to generate a preview.
       </div>

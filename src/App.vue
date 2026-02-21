@@ -237,6 +237,12 @@
                             {{ previewSecondDisplay }}
                           </div>
                         </div>
+                        <div
+                          v-if="previewFrameBusy"
+                          class="text-caption text-info mb-2 preview-generation-status"
+                        >
+                          Generating frame preview...
+                        </div>
                         <v-slider
                           v-model="previewSecondModel"
                           :min="0"
@@ -1606,6 +1612,10 @@ onBeforeUnmount(() => {
 
 .preview-time-card {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.preview-generation-status {
+  letter-spacing: 0.01em;
 }
 
 .app-nav-target {
