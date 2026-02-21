@@ -2080,12 +2080,33 @@ onBeforeUnmount(() => {
 
 .board-catalog-image {
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  background: rgba(var(--v-theme-surface-variant), 0.28);
+  background:
+    radial-gradient(
+      140% 90% at 10% 10%,
+      rgba(var(--v-theme-primary), 0.26),
+      transparent 55%
+    ),
+    radial-gradient(
+      120% 100% at 92% 80%,
+      rgba(var(--v-theme-secondary), 0.22),
+      transparent 58%
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(var(--v-theme-on-surface), 0.04) 0 10px,
+      rgba(var(--v-theme-on-surface), 0.015) 10px 20px
+    ),
+    linear-gradient(
+      135deg,
+      rgba(var(--v-theme-surface-variant), 0.62) 0%,
+      rgba(var(--v-theme-surface), 0.42) 100%
+    );
 }
 
 .board-catalog-image :deep(.v-img__img) {
   object-fit: contain !important;
   object-position: center center;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
 }
 
 .board-catalog-image-placeholder {
@@ -2094,7 +2115,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   color: rgba(var(--v-theme-on-surface), 0.65);
-  background: rgba(var(--v-theme-surface-variant), 0.35);
+  background: rgba(var(--v-theme-surface), 0.18);
   font-size: 0.8rem;
 }
 

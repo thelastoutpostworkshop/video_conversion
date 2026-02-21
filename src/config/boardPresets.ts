@@ -33,7 +33,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "ESP32-S3-LCD-3.16",
     name: "Waveshare ESP32-S3 3.16inch",
-    imagePath: "board-catalog/esp32-s3-lcd-3-16.svg",
+    imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
     bundle: "Round/square TFT board package",
     width: 320,
     height: 820,
