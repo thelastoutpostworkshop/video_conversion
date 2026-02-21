@@ -57,7 +57,7 @@
               </template>
             </v-img>
 
-            <v-card-title class="text-subtitle-2">
+            <v-card-title class="text-subtitle-1">
               {{ preset.name }}
             </v-card-title>
 
@@ -329,7 +329,7 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   background: rgba(var(--v-theme-surface), 0.72);
   backdrop-filter: blur(6px);
   color: rgb(var(--v-theme-on-surface));
-  font-size: 0.72rem;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1;
