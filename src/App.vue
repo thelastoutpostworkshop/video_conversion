@@ -1587,6 +1587,11 @@ watch(sourceFile, (file) => {
   clearPreviewFrame();
   processingError.value = null;
   processingProgress.value = 0;
+  isTrimRangeDragging.value = false;
+  startSeconds.value = null;
+  endSeconds.value = null;
+  startTimeInput.value = "";
+  endTimeInput.value = "";
 
   if (!file) {
     outputFileName.value = "";
