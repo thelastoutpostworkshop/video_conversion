@@ -57,13 +57,13 @@ const previewSurfaceStyle = computed<Record<string, string>>(() => {
     };
   }
   if (!width || !height) {
-    return props.roundDisplay ? { borderRadius: "50%" } : {};
+    return { borderRadius: props.roundDisplay ? "50%" : "0" };
   }
   return {
     width: `${width}px`,
     height: `${height}px`,
     minHeight: `${height}px`,
-    borderRadius: props.roundDisplay ? "50%" : "12px",
+    borderRadius: props.roundDisplay ? "50%" : "0",
   };
 });
 </script>
@@ -77,7 +77,7 @@ const previewSurfaceStyle = computed<Record<string, string>>(() => {
 .preview-surface {
   width: 100%;
   min-height: 240px;
-  border-radius: 12px;
+  border-radius: 0;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.15);
   background:
     radial-gradient(circle at 15% 15%, rgba(var(--v-theme-primary), 0.12), transparent 35%),
