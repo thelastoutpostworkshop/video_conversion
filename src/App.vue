@@ -213,6 +213,7 @@
                       :has-source-file="Boolean(sourceFile)"
                       :is-video-source="isVideoSource"
                       :is-video-output="isVideoOutput"
+                      :round-display="workspaceRoundDisplay"
                       :target-width="previewTargetDimensions?.width ?? null"
                       :target-height="previewTargetDimensions?.height ?? null"
                     />
@@ -704,6 +705,10 @@ const workspaceBoardSummary = computed(() => {
   }
   return "No board selected";
 });
+
+const workspaceRoundDisplay = computed(
+  () => targetSetupMode.value === "preset" && Boolean(selectedBoardPreset.value?.roundDisplay)
+);
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
 

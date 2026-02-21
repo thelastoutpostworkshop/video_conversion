@@ -19,6 +19,7 @@ export interface BoardPreset {
   id: string;
   name: string;
   imagePath: string;
+  roundDisplay?: boolean;
   amazonUrl?: string;
   aliexpressUrl?: string;
   width: number;
@@ -80,6 +81,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "ESP32-S3-1.43-AMOLED",
     name: "Waveshare ESP32-S3 1.43inch AMOLED Round",
     imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
+    roundDisplay: true,
     amazonUrl: "https://amzn.to/41VszVi",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_ondyHh3",

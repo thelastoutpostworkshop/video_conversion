@@ -32,6 +32,7 @@ const props = defineProps<{
   hasSourceFile: boolean;
   isVideoSource: boolean;
   isVideoOutput: boolean;
+  roundDisplay?: boolean;
   targetWidth: number | null;
   targetHeight: number | null;
 }>();
@@ -46,13 +47,23 @@ const toPositivePixelDimension = (value: number | null): number | null => {
 const previewSurfaceStyle = computed<Record<string, string>>(() => {
   const width = toPositivePixelDimension(props.targetWidth);
   const height = toPositivePixelDimension(props.targetHeight);
+  if (props.roundDisplay && width && height) {
+    const size = Math.max(1, Math.min(width, height));
+    return {
+      width: `${size}px`,
+      height: `${size}px`,
+      minHeight: `${size}px`,
+      borderRadius: "50%",
+    };
+  }
   if (!width || !height) {
-    return {};
+    return props.roundDisplay ? { borderRadius: "50%" } : {};
   }
   return {
     width: `${width}px`,
     height: `${height}px`,
     minHeight: `${height}px`,
+    borderRadius: props.roundDisplay ? "50%" : "12px",
   };
 });
 </script>
