@@ -249,6 +249,84 @@
                       :target-height="previewTargetDimensions?.height ?? null"
                     />
                     </div>
+
+                    <v-divider class="my-4" />
+                    <div id="section-export" class="app-nav-target" />
+                    <div class="step-heading mb-2">
+                      <div class="text-subtitle-1 font-weight-medium">
+                        4. Convert and download
+                      </div>
+                      <div class="text-caption text-medium-emphasis">
+                        Launch conversion, monitor progress, and download the output file.
+                      </div>
+                    </div>
+
+                    <v-row dense>
+                      <v-col cols="12" md="8">
+                        <v-text-field
+                          v-model="outputFileName"
+                          label="Output file name"
+                          density="comfortable"
+                          :disabled="processing"
+                        />
+                      </v-col>
+                      <v-col cols="12" md="4" class="d-flex align-center justify-end">
+                        <v-btn
+                          color="error"
+                          variant="tonal"
+                          :disabled="!processing"
+                          @click="cancelConversion"
+                        >
+                          Cancel
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+
+                    <div class="d-flex flex-wrap ga-2">
+                      <v-btn
+                        color="primary"
+                        :loading="processing"
+                        :disabled="!canConvert"
+                        @click="runConversion"
+                      >
+                        {{ processing ? "Converting..." : "Convert" }}
+                      </v-btn>
+                      <v-btn
+                        color="success"
+                        :disabled="!hasOutput"
+                        @click="downloadOutput"
+                      >
+                        Download output
+                      </v-btn>
+                    </div>
+
+                    <v-progress-linear
+                      v-if="processing"
+                      :model-value="processingProgress"
+                      height="6"
+                      class="mt-4"
+                      color="primary"
+                    />
+                    <div v-if="processing" class="text-caption text-medium-emphasis mt-1">
+                      Progress: {{ processingProgress }}%
+                    </div>
+
+                    <v-alert
+                      v-if="processingError"
+                      type="error"
+                      variant="tonal"
+                      class="mt-3"
+                    >
+                      {{ processingError }}
+                    </v-alert>
+                    <v-alert
+                      v-if="previewFrameError"
+                      type="warning"
+                      variant="tonal"
+                      class="mt-3"
+                    >
+                      {{ previewFrameError }}
+                    </v-alert>
                   </v-col>
                   <v-col cols="12" md="4" class="d-flex flex-column ga-3">
                     <v-sheet class="source-metadata-inline px-3 py-2" rounded="lg" border>
@@ -422,84 +500,6 @@
                     </v-card>
                   </v-col>
                 </v-row>
-
-                <v-divider class="my-4" />
-                <div id="section-export" class="app-nav-target" />
-                <div class="step-heading mb-2">
-                  <div class="text-subtitle-1 font-weight-medium">
-                    4. Convert and download
-                  </div>
-                  <div class="text-caption text-medium-emphasis">
-                    Launch conversion, monitor progress, and download the output file.
-                  </div>
-                </div>
-
-                <v-row dense>
-                  <v-col cols="12" md="8">
-                    <v-text-field
-                      v-model="outputFileName"
-                      label="Output file name"
-                      density="comfortable"
-                      :disabled="processing"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4" class="d-flex align-center justify-end">
-                    <v-btn
-                      color="error"
-                      variant="tonal"
-                      :disabled="!processing"
-                      @click="cancelConversion"
-                    >
-                      Cancel
-                    </v-btn>
-                  </v-col>
-                </v-row>
-
-                <div class="d-flex flex-wrap ga-2">
-                  <v-btn
-                    color="primary"
-                    :loading="processing"
-                    :disabled="!canConvert"
-                    @click="runConversion"
-                  >
-                    {{ processing ? "Converting..." : "Convert" }}
-                  </v-btn>
-                  <v-btn
-                    color="success"
-                    :disabled="!hasOutput"
-                    @click="downloadOutput"
-                  >
-                    Download output
-                  </v-btn>
-                </div>
-
-                <v-progress-linear
-                  v-if="processing"
-                  :model-value="processingProgress"
-                  height="6"
-                  class="mt-4"
-                  color="primary"
-                />
-                <div v-if="processing" class="text-caption text-medium-emphasis mt-1">
-                  Progress: {{ processingProgress }}%
-                </div>
-
-                <v-alert
-                  v-if="processingError"
-                  type="error"
-                  variant="tonal"
-                  class="mt-3"
-                >
-                  {{ processingError }}
-                </v-alert>
-                <v-alert
-                  v-if="previewFrameError"
-                  type="warning"
-                  variant="tonal"
-                  class="mt-3"
-                >
-                  {{ previewFrameError }}
-                </v-alert>
               </v-card-text>
             </v-card>
             <v-card v-else rounded="lg" elevation="4" class="panel-card logs-view-card">
