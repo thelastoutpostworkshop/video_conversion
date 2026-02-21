@@ -264,23 +264,13 @@
                       </div>
 
                       <v-row dense>
-                        <v-col cols="12" md="8">
+                        <v-col cols="12">
                           <v-text-field
                             v-model="outputFileName"
                             label="Output file name"
                             density="comfortable"
                             :disabled="processing"
                           />
-                        </v-col>
-                        <v-col cols="12" md="4" class="d-flex align-center justify-end">
-                          <v-btn
-                            color="error"
-                            variant="tonal"
-                            :disabled="!processing"
-                            @click="cancelConversion"
-                          >
-                            Cancel
-                          </v-btn>
                         </v-col>
                       </v-row>
 
@@ -300,17 +290,6 @@
                         >
                           Download output
                         </v-btn>
-                      </div>
-
-                      <v-progress-linear
-                        v-if="processing"
-                        :model-value="processingProgress"
-                        height="6"
-                        class="mt-4"
-                        color="primary"
-                      />
-                      <div v-if="processing" class="text-caption text-medium-emphasis mt-1">
-                        Progress: {{ processingProgress }}%
                       </div>
 
                       <v-alert
@@ -535,6 +514,47 @@
         </v-row>
       </v-container>
     </v-main>
+
+    <v-dialog :model-value="processing" persistent max-width="560">
+      <v-card rounded="lg">
+        <v-card-title class="d-flex align-center ga-2">
+          <v-icon icon="mdi-progress-clock" />
+          <span>Conversion in progress</span>
+        </v-card-title>
+        <v-card-text>
+          <div class="text-body-2 mb-2">
+            {{ processingStatusMessage }}
+          </div>
+          <v-progress-linear
+            :model-value="processingProgress"
+            :indeterminate="processingProgress <= 0"
+            color="primary"
+            height="8"
+            rounded
+          />
+          <div class="text-caption text-medium-emphasis mt-1">
+            {{ processingProgress }}%
+          </div>
+          <v-divider class="my-3" />
+          <div class="text-subtitle-2 mb-1">Conversion overview</div>
+          <div class="conversion-overview">
+            <div
+              v-for="(line, index) in conversionOverviewLines"
+              :key="`${index}-${line}`"
+              class="text-caption text-medium-emphasis"
+            >
+              {{ line }}
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="error" variant="tonal" @click="cancelConversion">
+            Cancel conversion
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -727,6 +747,15 @@ const ffmpegStatusColor = computed(() => {
 });
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
+
+const getOutputFormatLabel = (format: OutputFormat): string =>
+  formatItems.find((item) => item.value === format)?.title ?? format.toUpperCase();
+
+const getOrientationLabel = (value: VideoOrientation): string =>
+  orientationItems.find((item) => item.value === value)?.title ?? value;
+
+const getScaleModeLabel = (value: VideoScaleMode): string =>
+  scaleModeItems.find((item) => item.value === value)?.title ?? value;
 
 const formatDurationClock = (
   rawSeconds: number | null | undefined,
@@ -1394,6 +1423,68 @@ const previewSecondDisplay = computed(() => {
   )}`;
 });
 
+const processingStatusMessage = computed(() =>
+  processingProgress.value > 0 ? "Converting media..." : "Preparing conversion..."
+);
+
+const conversionOverviewLines = computed(() => {
+  const file = sourceFile.value;
+  const sourceLabel = file?.name ?? "No source selected";
+  const outputLabel = getOutputFormatLabel(outputFormat.value);
+  const fallbackOutputName = file
+    ? ensureOutputFileName(outputFileName.value, file.name, outputFormat.value)
+    : `output.${outputExtensionMap[outputFormat.value]}`;
+  const lines = [
+    `Source: ${sourceLabel}`,
+    `Output format: ${outputLabel}`,
+    `Output file: ${fallbackOutputName}`,
+  ];
+
+  if (isVideoOutput.value) {
+    const profileLabel =
+      targetSetupMode.value === "preset" && selectedBoardPreset.value
+        ? selectedBoardPreset.value.name
+        : "Custom";
+    const hasCustomDimensions =
+      outputSizeMode.value === "custom" &&
+      typeof width.value === "number" &&
+      width.value > 0 &&
+      typeof height.value === "number" &&
+      height.value > 0;
+    const resizeLabel = hasCustomDimensions
+      ? `${Math.round(width.value)}x${Math.round(height.value)} (${getScaleModeLabel(scaleMode.value)})`
+      : "Original source size";
+    lines.push(`Target profile: ${profileLabel}`);
+    lines.push(`Resize: ${resizeLabel}`);
+    lines.push(`Orientation: ${getOrientationLabel(orientation.value)}`);
+    lines.push(`FPS: ${fps.value && fps.value > 0 ? `${Math.round(fps.value)}` : "Auto/default"}`);
+    if (outputFormat.value === "mjpeg" || outputFormat.value === "avi") {
+      lines.push(
+        `Quality: ${quality.value && quality.value > 0 ? `${Math.round(quality.value)} (1 is best)` : "Default"}`
+      );
+    }
+    const hasStartTrim = typeof startSeconds.value === "number" && startSeconds.value > 0;
+    const hasEndTrim = typeof endSeconds.value === "number" && endSeconds.value > 0;
+    if (!hasStartTrim && !hasEndTrim) {
+      lines.push("Trim: Full source");
+    } else {
+      const startLabel = hasStartTrim
+        ? formatDurationClock(startSeconds.value, { includeTenths: true })
+        : "00:00.0";
+      const endLabel = hasEndTrim
+        ? formatDurationClock(endSeconds.value, { includeTenths: true })
+        : "Source end";
+      lines.push(`Trim: ${startLabel} -> ${endLabel}`);
+    }
+  } else {
+    lines.push(
+      `Bitrate: ${mp3Bitrate.value && mp3Bitrate.value > 0 ? `${Math.round(mp3Bitrate.value)} kbps` : "128 kbps"}`
+    );
+  }
+
+  return lines;
+});
+
 const buildVideoOptions = (): VideoTranscodeOptions => {
   const options: VideoTranscodeOptions = {
     orientation: orientation.value,
@@ -1804,6 +1895,11 @@ onBeforeUnmount(() => {
 .log-output :deep(textarea) {
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.8rem;
+}
+
+.conversion-overview {
+  display: grid;
+  gap: 4px;
 }
 
 @media (max-width: 959px) {
