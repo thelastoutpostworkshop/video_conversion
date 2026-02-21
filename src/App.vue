@@ -553,6 +553,12 @@ interface CustomTargetProfile extends TargetProfileBase {
   createdAt: string;
 }
 
+interface PersistedConversionPreferences {
+  outputFormat: OutputFormat;
+  orientation: VideoOrientation;
+  scaleMode: VideoScaleMode;
+}
+
 const formatItems: Array<{ title: string; value: OutputFormat }> = [
   { title: "GIF", value: "gif" },
   { title: "MJPEG", value: "mjpeg" },
@@ -607,6 +613,7 @@ const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
 const customTargetStorageKey = "video-conversion.custom-target-profiles.v1";
 const sectionIdPrefix = "section-";
 const themeStorageKey = "video-conversion.theme.v1";
+const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
   gif: "gif",
@@ -932,6 +939,9 @@ const isVideoOrientation = (value: unknown): value is VideoOrientation =>
 const isVideoScaleMode = (value: unknown): value is VideoScaleMode =>
   value === "fit" || value === "fill" || value === "stretch";
 
+const isOutputFormat = (value: unknown): value is OutputFormat =>
+  value === "gif" || value === "mjpeg" || value === "avi" || value === "mp3";
+
 const isVideoOutputFormat = (value: unknown): value is VideoOutputFormat =>
   value === "gif" || value === "mjpeg" || value === "avi";
 
@@ -1016,6 +1026,55 @@ const loadCustomProfiles = () => {
     const message =
       error instanceof Error ? error.message : "Failed to load saved target profiles.";
     appendLog(`[warn] ${message}`);
+  }
+};
+
+const persistConversionPreferences = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const preferences: PersistedConversionPreferences = {
+    outputFormat: outputFormat.value,
+    orientation: orientation.value,
+    scaleMode: scaleMode.value,
+  };
+  try {
+    window.localStorage.setItem(
+      conversionPreferencesStorageKey,
+      JSON.stringify(preferences)
+    );
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
+const loadPersistedConversionPreferences = (): PersistedConversionPreferences | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(conversionPreferencesStorageKey);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const outputFormatValue = parsed.outputFormat;
+    const orientationValue = parsed.orientation;
+    const scaleModeValue = parsed.scaleMode;
+    if (
+      !isOutputFormat(outputFormatValue) ||
+      !isVideoOrientation(orientationValue) ||
+      !isVideoScaleMode(scaleModeValue)
+    ) {
+      return null;
+    }
+    return {
+      outputFormat: outputFormatValue,
+      orientation: orientationValue,
+      scaleMode: scaleModeValue,
+    };
+  } catch {
+    return null;
   }
 };
 
@@ -1437,6 +1496,10 @@ watch(
   { immediate: true }
 );
 
+watch([outputFormat, orientation, scaleMode], () => {
+  persistConversionPreferences();
+});
+
 watch(previewSecondsMax, (maxSeconds) => {
   if (previewSecondModel.value > maxSeconds) {
     previewSecondModel.value = maxSeconds;
@@ -1543,6 +1606,12 @@ onMounted(() => {
     applySelectedBoardPreset({ setOutputFormat: false, writeLog: false });
   } else {
     applySizingDefaults();
+  }
+  const persistedPreferences = loadPersistedConversionPreferences();
+  if (persistedPreferences) {
+    outputFormat.value = persistedPreferences.outputFormat;
+    orientation.value = persistedPreferences.orientation;
+    scaleMode.value = persistedPreferences.scaleMode;
   }
   void initializeFfmpeg();
   if (activeView.value === "workspace") {
