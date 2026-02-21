@@ -697,8 +697,7 @@ export class MediaProcessingService {
     signal?: AbortSignal
   ): Promise<MediaProcessingResult> {
     const filter = buildVideoFilter(options);
-    const args: string[] = [];
-    const preInputArgs: string[] = [];
+    const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
     if (filter) {
       args.push("-vf", filter);
     }
@@ -721,8 +720,7 @@ export class MediaProcessingService {
       durationSeconds = endSeconds;
     }
     if (typeof startSeconds === "number" && startSeconds > 0) {
-      // Fast seek before decode for better responsiveness in wasm builds.
-      preInputArgs.push("-ss", `${startSeconds}`);
+      args.push("-ss", `${startSeconds}`);
     }
     if (typeof durationSeconds === "number" && durationSeconds > 0) {
       args.push("-t", `${durationSeconds}`);
@@ -730,7 +728,6 @@ export class MediaProcessingService {
     const quality = options?.quality ?? 3;
     args.push("-q:v", `${quality}`);
     return this.runTranscode(file, "mjpeg", args, onProgress, onLog, signal, {
-      preInputArgs,
       expectedDurationSeconds: durationSeconds,
     });
   }
@@ -742,8 +739,7 @@ export class MediaProcessingService {
     onLog?: MediaLogCallback,
     signal?: AbortSignal
   ): Promise<MediaProcessingResult> {
-    const args: string[] = [];
-    const preInputArgs: string[] = [];
+    const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
     const filterParts: string[] = [];
     if (options?.fps) {
       filterParts.push(`fps=${options.fps}`);
@@ -772,15 +768,14 @@ export class MediaProcessingService {
       durationSeconds = endSeconds;
     }
     if (typeof startSeconds === "number" && startSeconds > 0) {
-      preInputArgs.push("-ss", `${startSeconds}`);
+      args.push("-ss", `${startSeconds}`);
     }
     if (typeof durationSeconds === "number" && durationSeconds > 0) {
       args.push("-t", `${durationSeconds}`);
     }
 
-    args.push("-an", "-loop", "0");
+    args.push("-loop", "0");
     return this.runTranscode(file, "gif", args, onProgress, onLog, signal, {
-      preInputArgs,
       expectedDurationSeconds: durationSeconds,
     });
   }
@@ -793,8 +788,7 @@ export class MediaProcessingService {
     signal?: AbortSignal
   ): Promise<MediaProcessingResult> {
     const filter = buildVideoFilter(options);
-    const args: string[] = [];
-    const preInputArgs: string[] = [];
+    const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
     if (filter) {
       args.push("-vf", filter);
     }
@@ -817,7 +811,7 @@ export class MediaProcessingService {
       durationSeconds = endSeconds;
     }
     if (typeof startSeconds === "number" && startSeconds > 0) {
-      preInputArgs.push("-ss", `${startSeconds}`);
+      args.push("-ss", `${startSeconds}`);
     }
     if (typeof durationSeconds === "number" && durationSeconds > 0) {
       args.push("-t", `${durationSeconds}`);
@@ -825,7 +819,6 @@ export class MediaProcessingService {
     const quality = options?.quality ?? 4;
     args.push("-c:v", "mjpeg", "-q:v", `${quality}`);
     return this.runTranscode(file, "avi", args, onProgress, onLog, signal, {
-      preInputArgs,
       expectedDurationSeconds: durationSeconds,
     });
   }
