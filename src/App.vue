@@ -114,7 +114,6 @@
                         :src="toPublicAssetPath(preset.imagePath)"
                         :alt="preset.name"
                         height="164"
-                        cover
                         class="board-catalog-image"
                       >
                         <template #placeholder>
@@ -1997,6 +1996,12 @@ onBeforeUnmount(() => {
 
 .board-catalog-image {
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: rgba(var(--v-theme-surface-variant), 0.28);
+}
+
+.board-catalog-image :deep(.v-img__img) {
+  object-fit: contain !important;
+  object-position: center center;
 }
 
 .board-catalog-image-placeholder {
