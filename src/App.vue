@@ -49,14 +49,26 @@
                 <v-row dense class="mt-2">
                   <v-col cols="12" md="8">
                     <div class="preview-surface">
-                      <video
-                        v-if="sourceFileUrl && isVideoSource"
-                        :src="sourceFileUrl"
-                        controls
-                        class="preview-video"
+                      <img
+                        v-if="previewFrameUrl && isVideoOutput"
+                        :src="previewFrameUrl"
+                        alt="Generated preview frame"
+                        class="preview-frame-image"
                       />
+                      <div v-else-if="previewFrameBusy && isVideoOutput" class="preview-placeholder">
+                        Generating frame preview...
+                      </div>
+                      <div v-else-if="!sourceFile" class="preview-placeholder">
+                        Select a media file to generate a preview.
+                      </div>
+                      <div v-else-if="!isVideoSource" class="preview-placeholder">
+                        Preview is available for video sources only.
+                      </div>
+                      <div v-else-if="!isVideoOutput" class="preview-placeholder">
+                        Switch to a video output format to preview frames.
+                      </div>
                       <div v-else class="preview-placeholder">
-                        Select a media file to start.
+                        Adjust settings to generate a frame preview.
                       </div>
                     </div>
                   </v-col>
@@ -341,15 +353,6 @@
                   >
                     Download output
                   </v-btn>
-                  <v-btn
-                    v-if="isVideoOutput"
-                    variant="outlined"
-                    :disabled="!sourceFile || !isVideoSource || processing || previewFrameBusy"
-                    :loading="previewFrameBusy"
-                    @click="generatePreviewFrame"
-                  >
-                    Generate frame preview
-                  </v-btn>
                 </div>
 
                 <v-progress-linear
@@ -379,17 +382,6 @@
                 >
                   {{ previewFrameError }}
                 </v-alert>
-
-                <div v-if="previewFrameUrl && isVideoOutput" class="mt-4">
-                  <div class="text-subtitle-2 mb-2">Frame preview</div>
-                  <div class="frame-preview-surface">
-                    <img
-                      :src="previewFrameUrl"
-                      alt="Frame preview"
-                      class="frame-preview-image"
-                    />
-                  </div>
-                </div>
 
                 <v-divider class="my-4" />
 
@@ -498,7 +490,6 @@ const outputMimeMap: Record<OutputFormat, string> = {
 };
 
 const sourceFile = ref<File | null>(null);
-const sourceFileUrl = ref<string | null>(null);
 const outputFileUrl = ref<string | null>(null);
 const previewFrameUrl = ref<string | null>(null);
 
@@ -534,6 +525,8 @@ const previewFrameError = ref<string | null>(null);
 const logLines = ref<string[]>([]);
 
 let convertAbortController: AbortController | null = null;
+let previewDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let previewRefreshQueued = false;
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
@@ -947,6 +940,13 @@ const clearPreviewFrame = () => {
   previewFrameError.value = null;
 };
 
+const clearPreviewDebounce = () => {
+  if (previewDebounceTimer !== null) {
+    clearTimeout(previewDebounceTimer);
+    previewDebounceTimer = null;
+  }
+};
+
 const fileBaseName = (name: string) => {
   const dotIndex = name.lastIndexOf(".");
   return dotIndex > 0 ? name.slice(0, dotIndex) : name;
@@ -1202,15 +1202,49 @@ const cancelConversion = () => {
   convertAbortController.abort();
 };
 
-const generatePreviewFrame = async () => {
+const schedulePreviewFrameRefresh = (delayMs = 350) => {
+  if (
+    !sourceFile.value ||
+    !isVideoSource.value ||
+    !isVideoOutput.value ||
+    processing.value
+  ) {
+    clearPreviewDebounce();
+    previewRefreshQueued = false;
+    return;
+  }
+
+  clearPreviewDebounce();
+  previewDebounceTimer = setTimeout(() => {
+    previewDebounceTimer = null;
+    if (previewFrameBusy.value) {
+      previewRefreshQueued = true;
+      return;
+    }
+    void generatePreviewFrame({ silentWhenUnavailable: true });
+  }, delayMs);
+};
+
+const generatePreviewFrame = async (
+  config: { silentWhenUnavailable?: boolean } = {}
+) => {
+  const silentWhenUnavailable = config.silentWhenUnavailable ?? false;
   const file = sourceFile.value;
-  if (!file || !isVideoSource.value) {
-    previewFrameError.value = "Select a video file to generate a frame preview.";
+  if (!file || !isVideoSource.value || !isVideoOutput.value) {
+    if (!silentWhenUnavailable) {
+      previewFrameError.value = "Select a video file to generate a frame preview.";
+    }
+    return;
+  }
+  if (previewFrameBusy.value || processing.value) {
+    previewRefreshQueued = true;
     return;
   }
   const ready = await initializeFfmpeg();
   if (!ready) {
-    previewFrameError.value = "FFmpeg is not ready.";
+    if (!silentWhenUnavailable) {
+      previewFrameError.value = "FFmpeg is not ready.";
+    }
     return;
   }
 
@@ -1246,6 +1280,10 @@ const generatePreviewFrame = async () => {
       error instanceof Error ? error.message : "Failed to render preview frame.";
   } finally {
     previewFrameBusy.value = false;
+    if (previewRefreshQueued && !processing.value) {
+      previewRefreshQueued = false;
+      schedulePreviewFrameRefresh(50);
+    }
   }
 };
 
@@ -1262,7 +1300,8 @@ const downloadOutput = () => {
 };
 
 watch(sourceFile, (file) => {
-  revokeUrlRef(sourceFileUrl);
+  clearPreviewDebounce();
+  previewRefreshQueued = false;
   clearOutput();
   clearPreviewFrame();
   sourceMetadata.value = null;
@@ -1276,7 +1315,6 @@ watch(sourceFile, (file) => {
     return;
   }
 
-  sourceFileUrl.value = URL.createObjectURL(file);
   outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
   void loadSourceMetadata();
 });
@@ -1288,6 +1326,43 @@ watch(outputFormat, (format) => {
     return;
   }
   outputFileName.value = buildDefaultOutputName(sourceFile.value.name, format);
+});
+
+watch(
+  () => [
+    sourceFile.value?.name ?? "",
+    sourceFile.value?.size ?? 0,
+    sourceFile.value?.lastModified ?? 0,
+    isVideoSource.value,
+    isVideoOutput.value,
+    outputSizeMode.value,
+    width.value ?? 0,
+    height.value ?? 0,
+    orientation.value,
+    scaleMode.value,
+    fps.value ?? 0,
+    quality.value ?? 0,
+    startSeconds.value ?? 0,
+    endSeconds.value ?? 0,
+    previewFrameSeconds.value ?? 0,
+  ],
+  () => {
+    if (!sourceFile.value || !isVideoSource.value || !isVideoOutput.value) {
+      clearPreviewDebounce();
+      previewRefreshQueued = false;
+      clearPreviewFrame();
+      return;
+    }
+    schedulePreviewFrameRefresh();
+  }
+);
+
+watch(previewFrameBusy, (isBusy) => {
+  if (isBusy || !previewRefreshQueued) {
+    return;
+  }
+  previewRefreshQueued = false;
+  schedulePreviewFrameRefresh(50);
 });
 
 watch(targetSetupMode, (mode) => {
@@ -1352,7 +1427,7 @@ onBeforeUnmount(() => {
     convertAbortController.abort();
     convertAbortController = null;
   }
-  revokeUrlRef(sourceFileUrl);
+  clearPreviewDebounce();
   clearOutput();
   clearPreviewFrame();
 });
@@ -1378,7 +1453,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-.preview-video {
+.preview-frame-image {
   width: 100%;
   height: 100%;
   max-height: 420px;
@@ -1390,21 +1465,6 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.72);
   padding: 0 16px;
   text-align: center;
-}
-
-.frame-preview-surface {
-  width: 100%;
-  min-height: 180px;
-  border-radius: 10px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
-  background: #000;
-  overflow: hidden;
-}
-
-.frame-preview-image {
-  display: block;
-  width: 100%;
-  height: auto;
 }
 
 .log-output :deep(textarea) {
