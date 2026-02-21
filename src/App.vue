@@ -23,14 +23,9 @@
               <v-card-text>
                 <v-row dense>
                   <v-col cols="12" md="8">
-                    <v-file-input
-                      :model-value="sourceFile"
-                      label="Source media"
-                      prepend-icon="mdi-file-video"
-                      accept="video/*,audio/*,.mjpeg,.mjpg,.avi,.mov,.mkv,.mp4,.webm"
-                      density="comfortable"
+                    <SourceFileInput
+                      v-model="sourceFile"
                       :disabled="processing || previewFrameBusy"
-                      @update:model-value="onSourceFileUpdate"
                     />
                   </v-col>
                   <v-col cols="12" md="4">
@@ -57,31 +52,11 @@
                     />
                   </v-col>
                   <v-col cols="12" md="4">
-                    <v-card variant="tonal">
-                      <v-card-title class="text-subtitle-2">Source metadata</v-card-title>
-                      <v-card-text>
-                        <div class="text-body-2">
-                          {{ sourceMetadataLabel }}
-                        </div>
-                        <v-progress-linear
-                          v-if="sourceMetadataLoading"
-                          indeterminate
-                          height="4"
-                          class="mt-3"
-                        />
-                        <v-alert
-                          v-else-if="sourceMetadataError"
-                          type="warning"
-                          variant="tonal"
-                          class="mt-3"
-                        >
-                          {{ sourceMetadataError }}
-                        </v-alert>
-                        <div class="text-caption text-medium-emphasis mt-3">
-                          Metadata is read automatically for video sources.
-                        </div>
-                      </v-card-text>
-                    </v-card>
+                    <SourceMetadataCard
+                      :label="sourceMetadataLabel"
+                      :loading="sourceMetadataLoading"
+                      :error="sourceMetadataError"
+                    />
                   </v-col>
                 </v-row>
 
@@ -401,17 +376,19 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
+import SourceFileInput from "@/components/SourceFileInput.vue";
+import SourceMetadataCard from "@/components/SourceMetadataCard.vue";
 import type {
   AudioTranscodeOptions,
   MediaLogCallback,
   MediaProgressCallback,
-  VideoMetadataResult,
   VideoOrientation,
   VideoScaleMode,
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 import { usePreviewFrame } from "@/composables/usePreviewFrame";
+import { useSourceMedia } from "@/composables/useSourceMedia";
 import {
   BOARD_PRESETS,
   type TargetProfileBase,
@@ -475,7 +452,6 @@ const outputMimeMap: Record<OutputFormat, string> = {
   mp3: "audio/mpeg",
 };
 
-const sourceFile = ref<File | null>(null);
 const outputFileUrl = ref<string | null>(null);
 
 const outputFormat = ref<OutputFormat>("gif");
@@ -496,9 +472,14 @@ const customProfiles = ref<CustomTargetProfile[]>([]);
 const selectedCustomProfileId = ref<string | null>(null);
 const customProfileName = ref("");
 
-const sourceMetadata = ref<VideoMetadataResult | null>(null);
-const sourceMetadataLoading = ref(false);
-const sourceMetadataError = ref<string | null>(null);
+const {
+  sourceFile,
+  isVideoSource,
+  sourceMetadata,
+  sourceMetadataLoading,
+  sourceMetadataError,
+  sourceMetadataLabel,
+} = useSourceMedia();
 
 const ffmpegStatus = ref<FfmpegStatus>("idle");
 const processing = ref(false);
@@ -531,25 +512,6 @@ const selectedBoardPreset = computed(() =>
 const selectedCustomProfile = computed(() =>
   customProfiles.value.find((profile) => profile.id === selectedCustomProfileId.value) ?? null
 );
-
-const isVideoSource = computed(() => {
-  if (!sourceFile.value) {
-    return false;
-  }
-  if (sourceFile.value.type.startsWith("video/")) {
-    return true;
-  }
-  const lowerName = sourceFile.value.name.toLowerCase();
-  return (
-    lowerName.endsWith(".avi") ||
-    lowerName.endsWith(".mjpeg") ||
-    lowerName.endsWith(".mjpg") ||
-    lowerName.endsWith(".mov") ||
-    lowerName.endsWith(".mkv") ||
-    lowerName.endsWith(".mp4") ||
-    lowerName.endsWith(".webm")
-  );
-});
 
 const ffmpegStatusText = computed(() => {
   if (ffmpegStatus.value === "loading") {
@@ -621,22 +583,6 @@ const selectedBoardPresetDetails = computed(() => {
     return "";
   }
   return `${preset.bundle}. ${preset.notes}`;
-});
-
-const sourceMetadataLabel = computed(() => {
-  if (!sourceFile.value) {
-    return "No file selected.";
-  }
-  if (!isVideoSource.value) {
-    return "Audio source selected.";
-  }
-  if (!sourceMetadata.value) {
-    return "Metadata not available yet.";
-  }
-  const duration = sourceMetadata.value.durationSeconds;
-  const durationLabel =
-    typeof duration === "number" ? `${duration.toFixed(2)} s` : "unknown duration";
-  return `${sourceMetadata.value.width}x${sourceMetadata.value.height}, ${durationLabel}`;
 });
 
 const logsText = computed(() => logLines.value.join("\n"));
@@ -941,75 +887,6 @@ const ensureOutputFileName = (
   return `${base}${requiredExt}`;
 };
 
-const onSourceFileUpdate = (value: File | File[] | null) => {
-  sourceFile.value = Array.isArray(value) ? (value[0] ?? null) : value;
-};
-
-const readVideoMetadata = async (file: File): Promise<VideoMetadataResult> => {
-  const tempUrl = URL.createObjectURL(file);
-  const video = document.createElement("video");
-  return new Promise((resolve, reject) => {
-    const cleanup = () => {
-      video.onloadedmetadata = null;
-      video.onerror = null;
-      video.removeAttribute("src");
-      URL.revokeObjectURL(tempUrl);
-    };
-    video.preload = "metadata";
-    video.onloadedmetadata = () => {
-      const widthValue = video.videoWidth;
-      const heightValue = video.videoHeight;
-      const durationValue = Number.isFinite(video.duration) ? video.duration : null;
-      cleanup();
-      if (widthValue <= 0 || heightValue <= 0) {
-        reject(new Error("Video dimensions are not available."));
-        return;
-      }
-      resolve({
-        width: widthValue,
-        height: heightValue,
-        durationSeconds: durationValue,
-      });
-    };
-    video.onerror = () => {
-      cleanup();
-      reject(new Error("Failed to read video metadata."));
-    };
-    video.src = tempUrl;
-  });
-};
-
-const loadSourceMetadata = async () => {
-  const file = sourceFile.value;
-  if (!file || !isVideoSource.value) {
-    sourceMetadata.value = null;
-    sourceMetadataError.value = null;
-    sourceMetadataLoading.value = false;
-    return;
-  }
-  sourceMetadataLoading.value = true;
-  sourceMetadataError.value = null;
-  try {
-    const metadata = await readVideoMetadata(file);
-    if (sourceFile.value !== file) {
-      return;
-    }
-    sourceMetadata.value = metadata;
-    applySizingDefaults();
-  } catch (error) {
-    if (sourceFile.value !== file) {
-      return;
-    }
-    sourceMetadata.value = null;
-    sourceMetadataError.value =
-      error instanceof Error ? error.message : "Failed to read source metadata.";
-  } finally {
-    if (sourceFile.value === file) {
-      sourceMetadataLoading.value = false;
-    }
-  }
-};
-
 const initializeFfmpeg = async (): Promise<boolean> => {
   if (ffmpegStatus.value === "ready") {
     return true;
@@ -1211,9 +1088,6 @@ watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
   clearPreviewFrame();
-  sourceMetadata.value = null;
-  sourceMetadataError.value = null;
-  sourceMetadataLoading.value = false;
   processingError.value = null;
   processingProgress.value = 0;
 
@@ -1223,7 +1097,13 @@ watch(sourceFile, (file) => {
   }
 
   outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
-  void loadSourceMetadata();
+});
+
+watch(sourceMetadata, (metadata) => {
+  if (!metadata) {
+    return;
+  }
+  applySizingDefaults();
 });
 
 watch(outputFormat, (format) => {
