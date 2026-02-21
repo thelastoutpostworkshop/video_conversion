@@ -231,17 +231,19 @@
                     >
                       <v-card-text class="py-3">
                         <div class="d-flex align-center mb-2">
-                          <div class="text-subtitle-2">Preview frame position</div>
+                          <div class="d-flex align-center ga-2">
+                            <div class="text-subtitle-2">Preview frame position</div>
+                            <div
+                              v-if="previewFrameBusy"
+                              class="text-caption text-info preview-generation-status"
+                            >
+                              Generating frame preview...
+                            </div>
+                          </div>
                           <v-spacer />
                           <div class="text-caption text-medium-emphasis">
                             {{ previewSecondDisplay }}
                           </div>
-                        </div>
-                        <div
-                          v-if="previewFrameBusy"
-                          class="text-caption text-info mb-2 preview-generation-status"
-                        >
-                          Generating frame preview...
                         </div>
                         <v-slider
                           v-model="previewSecondModel"
