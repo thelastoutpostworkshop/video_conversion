@@ -39,7 +39,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    notes: "Balanced for SPI displays with limited RAM.",
+    notes: "ESP32-S3 3.16inch Display Development Board, 320×820 Pixels, 262K Color, 32-bit LX7 Dual-core Processor, Up to 240MHz Frequency, WiFi & Bluetooth 5, ESP32 With Display",
   },
   {
     id: "esp32-st7789-240",
