@@ -1,5 +1,60 @@
 ﻿<template>
   <v-app>
+    <v-navigation-drawer
+      v-model="drawerOpen"
+      :temporary="mdAndDown"
+      :permanent="!mdAndDown"
+      width="280"
+      class="app-navigation"
+    >
+      <div class="pa-4">
+        <div class="text-overline text-medium-emphasis">Navigation</div>
+        <v-list nav density="comfortable" class="mt-2">
+          <v-list-item
+            v-for="item in navigationItems"
+            :key="item.id"
+            :prepend-icon="item.icon"
+            :title="item.title"
+            :active="activeSection === item.id"
+            color="primary"
+            rounded="lg"
+            @click="navigateToSection(item.id)"
+          />
+        </v-list>
+      </div>
+
+      <template #append>
+        <div class="pa-4">
+          <v-divider class="mb-4" />
+          <div class="text-caption text-medium-emphasis mb-2">FFmpeg engine</div>
+          <v-chip
+            :color="ffmpegStatusColor"
+            variant="tonal"
+            class="navigation-status-chip"
+          >
+            {{ ffmpegStatusText }}
+          </v-chip>
+        </div>
+      </template>
+    </v-navigation-drawer>
+
+    <v-app-bar class="app-bar" flat>
+      <v-app-bar-nav-icon @click="drawerOpen = !drawerOpen" />
+      <v-toolbar-title class="font-weight-medium">
+        Video Conversion Studio
+      </v-toolbar-title>
+      <v-spacer />
+      <v-chip
+        v-if="!mdAndDown"
+        :color="ffmpegStatusColor"
+        variant="tonal"
+        size="small"
+        prepend-icon="mdi-memory"
+      >
+        {{ ffmpegStatusText }}
+      </v-chip>
+    </v-app-bar>
+
     <v-main>
       <v-container class="py-6">
         <v-row justify="center">
@@ -7,20 +62,17 @@
             <v-card rounded="lg" elevation="4" class="panel-card">
               <v-card-title class="d-flex align-center flex-wrap ga-3">
                 <div>
-                  <div class="text-h6">Video Conversion Studio</div>
+                  <div class="text-h6">Conversion workspace</div>
                   <div class="text-caption text-medium-emphasis">
-                    Vue 3 + TypeScript + Vuetify + ffmpeg.wasm
+                    Source, target, export, and logs in one flow.
                   </div>
                 </div>
-                <v-chip :color="ffmpegStatusColor" variant="tonal" size="small">
-                  {{ ffmpegStatusText }}
-                </v-chip>
-                <v-spacer />
               </v-card-title>
 
               <v-divider />
 
               <v-card-text>
+                <div id="section-source" class="app-nav-target" />
                 <v-row dense>
                   <v-col cols="12" md="8">
                     <SourceFileInput
@@ -61,6 +113,7 @@
                 </v-row>
 
                 <v-divider class="my-4" />
+                <div id="section-target" class="app-nav-target" />
 
                 <v-row v-if="isVideoOutput" dense>
                   <v-col cols="12" md="4">
@@ -274,6 +327,7 @@
                 </v-alert>
 
                 <v-divider class="my-4" />
+                <div id="section-export" class="app-nav-target" />
 
                 <v-row dense>
                   <v-col cols="12" md="8">
@@ -343,6 +397,7 @@
                 </v-alert>
 
                 <v-divider class="my-4" />
+                <div id="section-logs" class="app-nav-target" />
 
                 <div class="d-flex align-center">
                   <div class="text-subtitle-2">FFmpeg logs</div>
@@ -374,7 +429,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useDisplay } from "vuetify";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
 import SourceFileInput from "@/components/SourceFileInput.vue";
 import SourceMetadataCard from "@/components/SourceMetadataCard.vue";
@@ -399,6 +455,7 @@ type OutputFormat = VideoOutputFormat | "mp3";
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
+type AppSectionId = "source" | "target" | "export" | "logs";
 
 interface CustomTargetProfile extends TargetProfileBase {
   id: string;
@@ -436,7 +493,15 @@ const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
   { title: "Custom target profile", value: "custom" },
 ];
 
+const navigationItems: Array<{ id: AppSectionId; title: string; icon: string }> = [
+  { id: "source", title: "Source", icon: "mdi-file-video-outline" },
+  { id: "target", title: "Target", icon: "mdi-tune-variant" },
+  { id: "export", title: "Export", icon: "mdi-file-export-outline" },
+  { id: "logs", title: "Logs", icon: "mdi-text-box-search-outline" },
+];
+
 const customTargetStorageKey = "video-conversion.custom-target-profiles.v1";
+const sectionIdPrefix = "section-";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
   gif: "gif",
@@ -471,6 +536,10 @@ const selectedBoardPresetId = ref<string>(BOARD_PRESETS[0]?.id ?? "");
 const customProfiles = ref<CustomTargetProfile[]>([]);
 const selectedCustomProfileId = ref<string | null>(null);
 const customProfileName = ref("");
+const drawerOpen = ref(true);
+const activeSection = ref<AppSectionId>("source");
+
+const { mdAndDown } = useDisplay();
 
 const {
   sourceFile,
@@ -486,6 +555,7 @@ const processing = ref(false);
 const processingProgress = ref(0);
 const processingError = ref<string | null>(null);
 const logLines = ref<string[]>([]);
+let sectionObserver: IntersectionObserver | null = null;
 
 let convertAbortController: AbortController | null = null;
 
@@ -586,6 +656,62 @@ const selectedBoardPresetDetails = computed(() => {
 });
 
 const logsText = computed(() => logLines.value.join("\n"));
+
+const resolveSectionId = (elementId: string): AppSectionId | null => {
+  if (!elementId.startsWith(sectionIdPrefix)) {
+    return null;
+  }
+  const candidate = elementId.slice(sectionIdPrefix.length);
+  return navigationItems.some((item) => item.id === candidate)
+    ? (candidate as AppSectionId)
+    : null;
+};
+
+const initializeSectionObserver = () => {
+  if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+    return;
+  }
+  sectionObserver?.disconnect();
+  sectionObserver = new IntersectionObserver(
+    (entries) => {
+      const visibleEntries = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort(
+          (a, b) =>
+            Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top)
+        );
+      if (visibleEntries.length === 0) {
+        return;
+      }
+      const nextSection = resolveSectionId(visibleEntries[0].target.id);
+      if (nextSection) {
+        activeSection.value = nextSection;
+      }
+    },
+    {
+      rootMargin: "-96px 0px -50% 0px",
+      threshold: [0.15, 0.35, 0.6],
+    }
+  );
+
+  for (const item of navigationItems) {
+    const section = document.getElementById(`${sectionIdPrefix}${item.id}`);
+    if (section) {
+      sectionObserver.observe(section);
+    }
+  }
+};
+
+const navigateToSection = (sectionId: AppSectionId) => {
+  activeSection.value = sectionId;
+  const section = document.getElementById(`${sectionIdPrefix}${sectionId}`);
+  if (section) {
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (mdAndDown.value) {
+    drawerOpen.value = false;
+  }
+};
 
 const toNullableNumber = (value: string | number | null): number | null => {
   if (value === null || value === "") {
@@ -1084,6 +1210,14 @@ const downloadOutput = () => {
   link.remove();
 };
 
+watch(
+  mdAndDown,
+  (isMobile) => {
+    drawerOpen.value = !isMobile;
+  },
+  { immediate: true }
+);
+
 watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
@@ -1170,9 +1304,14 @@ onMounted(() => {
     applySizingDefaults();
   }
   void initializeFfmpeg();
+  void nextTick(() => {
+    initializeSectionObserver();
+  });
 });
 
 onBeforeUnmount(() => {
+  sectionObserver?.disconnect();
+  sectionObserver = null;
   if (convertAbortController) {
     convertAbortController.abort();
     convertAbortController = null;
@@ -1184,6 +1323,30 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.app-navigation {
+  border-right: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.app-navigation :deep(.v-navigation-drawer__content) {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.app-bar {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+}
+
+.navigation-status-chip {
+  width: 100%;
+  justify-content: center;
+}
+
+.app-nav-target {
+  scroll-margin-top: 96px;
+}
+
 .panel-card {
   backdrop-filter: blur(6px);
   background: rgba(255, 255, 255, 0.92);
@@ -1192,5 +1355,11 @@ onBeforeUnmount(() => {
 .log-output :deep(textarea) {
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.8rem;
+}
+
+@media (max-width: 959px) {
+  .app-nav-target {
+    scroll-margin-top: 84px;
+  }
 }
 </style>
