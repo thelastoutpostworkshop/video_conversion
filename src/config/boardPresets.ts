@@ -96,12 +96,12 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "ESP32-2432S028",
     name: "Cheap Yellow Display ESP32-2432S028",
-    imagePath: "board-catalog/m5stack-core2-320x240.svg",
+    imagePath: "board-catalog/ESP32-2432S028.png",
     amazonUrl: "https://amzn.to/4kAyDJh",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oCVWMbC",
-    width: 240,
-    height: 320,
+    width: 320,
+    height: 240,
     orientation: "none",
     scaleMode: "fit",
     fps: 20,
