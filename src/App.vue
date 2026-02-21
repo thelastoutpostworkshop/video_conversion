@@ -239,23 +239,33 @@
                     Board, source, settings, and export in one flow.
                   </div>
                 </div>
+                <v-spacer />
+                <div class="d-flex align-center ga-2 workspace-title-controls">
+                  <v-chip
+                    v-if="hasBoardSelection"
+                    color="info"
+                    variant="tonal"
+                    size="small"
+                    prepend-icon="mdi-monitor-dashboard"
+                  >
+                    {{ workspaceBoardSummary }}
+                  </v-chip>
+                  <v-btn
+                    size="small"
+                    variant="tonal"
+                    prepend-icon="mdi-view-grid-outline"
+                    :disabled="processing"
+                    @click="navigateToView('boards')"
+                  >
+                    Change board
+                  </v-btn>
+                </div>
               </v-card-title>
 
               <v-divider />
 
               <v-card-text>
                 <section class="workspace-section">
-                  <div class="d-flex justify-end mb-3">
-                    <v-btn
-                      size="small"
-                      variant="tonal"
-                      prepend-icon="mdi-view-grid-outline"
-                      :disabled="processing"
-                      @click="navigateToView('boards')"
-                    >
-                      Change board
-                    </v-btn>
-                  </div>
                   <div id="section-source" class="app-nav-target" />
                   <div class="step-heading mb-2">
                     <div class="text-subtitle-1 font-weight-medium">
@@ -336,18 +346,6 @@
                         </v-slider>
                       </v-card-text>
                     </v-card>
-
-                    <div class="d-flex align-center mt-2 mb-2">
-                      <v-chip
-                        v-if="hasBoardSelection"
-                        color="info"
-                        variant="tonal"
-                        size="small"
-                        prepend-icon="mdi-monitor-dashboard"
-                      >
-                        {{ workspaceBoardSummary }}
-                      </v-chip>
-                    </div>
 
                     <div>
                     <PreviewFrameSurface
@@ -1986,6 +1984,10 @@ onBeforeUnmount(() => {
 .step-heading {
   display: grid;
   gap: 2px;
+}
+
+.workspace-title-controls {
+  min-height: 32px;
 }
 
 .workspace-section {
