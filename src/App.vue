@@ -142,6 +142,30 @@
                         >
                           {{ isPresetSelected(preset.id) ? "Use selected board" : "Use this board" }}
                         </v-btn>
+                        <v-btn
+                          v-if="preset.amazonUrl"
+                          :href="preset.amazonUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="small"
+                          variant="text"
+                          icon="mdi-cart-outline"
+                          color="warning"
+                          :aria-label="`Buy ${preset.name} on Amazon`"
+                          :title="`Buy ${preset.name} on Amazon`"
+                        />
+                        <v-btn
+                          v-if="preset.aliexpressUrl"
+                          :href="preset.aliexpressUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="small"
+                          variant="text"
+                          icon="mdi-shopping-outline"
+                          color="red-accent-2"
+                          :aria-label="`Buy ${preset.name} on AliExpress`"
+                          :title="`Buy ${preset.name} on AliExpress`"
+                        />
                         <v-spacer />
                         <v-chip
                           v-if="isPresetSelected(preset.id)"
