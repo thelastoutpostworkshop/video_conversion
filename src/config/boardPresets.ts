@@ -36,9 +36,9 @@ export const BOARD_PRESETS: BoardPreset[] = [
     name: "Waveshare ESP32-S3 3.16inch",
     imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
     amazonUrl:
-      "https://www.amazon.com/s?k=Waveshare+ESP32-S3+3.16+inch+display+board",
+      "https://amzn.to/4689Mbm",
     aliexpressUrl:
-      "https://www.aliexpress.com/wholesale?SearchText=Waveshare+ESP32-S3+3.16+inch+display+board",
+      "https://s.click.aliexpress.com/e/_c4S9IVQB",
     width: 320,
     height: 820,
     orientation: "none",
