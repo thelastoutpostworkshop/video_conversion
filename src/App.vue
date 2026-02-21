@@ -15,7 +15,7 @@
             :key="item.id"
             :prepend-icon="item.icon"
             :title="item.title"
-            :active="activeSection === item.id"
+            :active="activeNavigation === item.id"
             color="primary"
             rounded="lg"
             @click="navigateToSection(item.id)"
@@ -71,12 +71,12 @@
       <v-container class="py-6">
         <v-row justify="center">
           <v-col cols="12" xl="10">
-            <v-card rounded="lg" elevation="4" class="panel-card">
+            <v-card v-if="activeView === 'workspace'" rounded="lg" elevation="4" class="panel-card">
               <v-card-title class="d-flex align-center flex-wrap ga-3">
                 <div>
                   <div class="text-h6">Conversion workspace</div>
                   <div class="text-caption text-medium-emphasis">
-                    Source, target, export, and logs in one flow.
+                    Source, target, and export in one flow.
                   </div>
                 </div>
               </v-card-title>
@@ -407,29 +407,30 @@
                 >
                   {{ previewFrameError }}
                 </v-alert>
-
-                <v-divider class="my-4" />
-                <div id="section-logs" class="app-nav-target" />
-
-                <div class="d-flex align-center">
-                  <div class="text-subtitle-2">FFmpeg logs</div>
-                  <v-spacer />
-                  <v-btn
-                    size="small"
-                    variant="text"
-                    :disabled="logLines.length === 0"
-                    @click="clearLogs"
-                  >
-                    Clear
-                  </v-btn>
-                </div>
+              </v-card-text>
+            </v-card>
+            <v-card v-else rounded="lg" elevation="4" class="panel-card logs-view-card">
+              <v-card-title class="d-flex align-center">
+                <div class="text-h6">FFmpeg logs</div>
+                <v-spacer />
+                <v-btn
+                  size="small"
+                  variant="text"
+                  :disabled="logLines.length === 0"
+                  @click="clearLogs"
+                >
+                  Clear
+                </v-btn>
+              </v-card-title>
+              <v-divider />
+              <v-card-text>
                 <v-textarea
                   :model-value="logsText"
                   readonly
                   auto-grow
-                  rows="8"
+                  rows="14"
                   variant="outlined"
-                  class="log-output mt-2"
+                  class="log-output logs-view-output"
                 />
               </v-card-text>
             </v-card>
@@ -467,7 +468,9 @@ type OutputFormat = VideoOutputFormat | "mp3";
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
-type AppSectionId = "source" | "target" | "export" | "logs";
+type WorkspaceSectionId = "source" | "target" | "export";
+type AppNavigationId = WorkspaceSectionId | "logs";
+type AppView = "workspace" | "logs";
 type AppTheme = "light" | "dark";
 
 interface CustomTargetProfile extends TargetProfileBase {
@@ -506,12 +509,13 @@ const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
   { title: "Custom target profile", value: "custom" },
 ];
 
-const navigationItems: Array<{ id: AppSectionId; title: string; icon: string }> = [
+const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string }> = [
   { id: "source", title: "Source", icon: "mdi-file-video-outline" },
   { id: "target", title: "Target", icon: "mdi-tune-variant" },
   { id: "export", title: "Export", icon: "mdi-file-export-outline" },
   { id: "logs", title: "Logs", icon: "mdi-text-box-search-outline" },
 ];
+const workspaceSectionIds: WorkspaceSectionId[] = ["source", "target", "export"];
 
 const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
   {
@@ -569,7 +573,7 @@ const customProfiles = ref<CustomTargetProfile[]>([]);
 const selectedCustomProfileId = ref<string | null>(null);
 const customProfileName = ref("");
 const drawerOpen = ref(true);
-const activeSection = ref<AppSectionId>("source");
+const activeNavigation = ref<AppNavigationId>("source");
 
 const { mdAndDown } = useDisplay();
 const theme = useTheme();
@@ -688,6 +692,9 @@ const selectedBoardPresetDetails = computed(() => {
   return `${preset.bundle}. ${preset.notes}`;
 });
 
+const activeView = computed<AppView>(() =>
+  activeNavigation.value === "logs" ? "logs" : "workspace"
+);
 const logsText = computed(() => logLines.value.join("\n"));
 const isDarkTheme = computed(() => theme.global.current.value.dark);
 const themeToggleIcon = computed(() =>
@@ -713,14 +720,15 @@ const toggleTheme = () => {
   theme.global.name.value = nextTheme;
 };
 
-const resolveSectionId = (elementId: string): AppSectionId | null => {
+const isWorkspaceSectionId = (value: string): value is WorkspaceSectionId =>
+  workspaceSectionIds.includes(value as WorkspaceSectionId);
+
+const resolveSectionId = (elementId: string): WorkspaceSectionId | null => {
   if (!elementId.startsWith(sectionIdPrefix)) {
     return null;
   }
   const candidate = elementId.slice(sectionIdPrefix.length);
-  return navigationItems.some((item) => item.id === candidate)
-    ? (candidate as AppSectionId)
-    : null;
+  return isWorkspaceSectionId(candidate) ? candidate : null;
 };
 
 const initializeSectionObserver = () => {
@@ -730,6 +738,9 @@ const initializeSectionObserver = () => {
   sectionObserver?.disconnect();
   sectionObserver = new IntersectionObserver(
     (entries) => {
+      if (activeView.value === "logs") {
+        return;
+      }
       const visibleEntries = entries
         .filter((entry) => entry.isIntersecting)
         .sort(
@@ -741,7 +752,7 @@ const initializeSectionObserver = () => {
       }
       const nextSection = resolveSectionId(visibleEntries[0].target.id);
       if (nextSection) {
-        activeSection.value = nextSection;
+        activeNavigation.value = nextSection;
       }
     },
     {
@@ -750,19 +761,23 @@ const initializeSectionObserver = () => {
     }
   );
 
-  for (const item of navigationItems) {
-    const section = document.getElementById(`${sectionIdPrefix}${item.id}`);
+  for (const sectionId of workspaceSectionIds) {
+    const section = document.getElementById(`${sectionIdPrefix}${sectionId}`);
     if (section) {
       sectionObserver.observe(section);
     }
   }
 };
 
-const navigateToSection = (sectionId: AppSectionId) => {
-  activeSection.value = sectionId;
-  const section = document.getElementById(`${sectionIdPrefix}${sectionId}`);
-  if (section) {
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
+const navigateToSection = (sectionId: AppNavigationId) => {
+  activeNavigation.value = sectionId;
+  if (sectionId !== "logs") {
+    void nextTick(() => {
+      const section = document.getElementById(`${sectionIdPrefix}${sectionId}`);
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
   }
   if (mdAndDown.value) {
     drawerOpen.value = false;
@@ -1284,6 +1299,17 @@ watch(
   { immediate: true }
 );
 
+watch(activeView, (nextView) => {
+  if (nextView === "logs") {
+    sectionObserver?.disconnect();
+    sectionObserver = null;
+    return;
+  }
+  void nextTick(() => {
+    initializeSectionObserver();
+  });
+});
+
 watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
@@ -1370,9 +1396,11 @@ onMounted(() => {
     applySizingDefaults();
   }
   void initializeFfmpeg();
-  void nextTick(() => {
-    initializeSectionObserver();
-  });
+  if (activeView.value === "workspace") {
+    void nextTick(() => {
+      initializeSectionObserver();
+    });
+  }
 });
 
 onBeforeUnmount(() => {
@@ -1434,6 +1462,14 @@ onBeforeUnmount(() => {
 .panel-card {
   backdrop-filter: blur(6px);
   background: rgba(var(--v-theme-surface), 0.92);
+}
+
+.logs-view-card {
+  min-height: 68vh;
+}
+
+.logs-view-output :deep(textarea) {
+  min-height: 58vh;
 }
 
 .log-output :deep(textarea) {
