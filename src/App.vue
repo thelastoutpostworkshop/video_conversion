@@ -16,14 +16,6 @@
                   {{ ffmpegStatusText }}
                 </v-chip>
                 <v-spacer />
-                <v-btn
-                  variant="tonal"
-                  :loading="ffmpegStatus === 'loading'"
-                  :disabled="ffmpegStatus === 'loading' || processing || previewFrameBusy"
-                  @click="initializeFfmpeg"
-                >
-                  Initialize FFmpeg
-                </v-btn>
               </v-card-title>
 
               <v-divider />
@@ -360,7 +352,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type {
   AudioTranscodeOptions,
   MediaLogCallback,
@@ -941,6 +933,10 @@ watch(outputSizeMode, (mode) => {
   }
   width.value = sourceMetadata.value.width;
   height.value = sourceMetadata.value.height;
+});
+
+onMounted(() => {
+  void initializeFfmpeg();
 });
 
 onBeforeUnmount(() => {
