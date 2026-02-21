@@ -1337,7 +1337,7 @@ const hasPreviewSource = computed(
 );
 
 const isPreviewSliderDisabled = computed(
-  () => processing.value || previewFrameBusy.value || !hasPreviewSource.value
+  () => processing.value || !hasPreviewSource.value
 );
 
 const previewSliderColor = computed(() =>

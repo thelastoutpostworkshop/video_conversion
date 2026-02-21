@@ -268,6 +268,10 @@ const pickFailureLogLine = (logs: string[]): string | null => {
   return logs.length > 0 ? logs[logs.length - 1] ?? null : null;
 };
 
+interface RunTranscodeOptions {
+  preInputArgs?: string[];
+}
+
 export class MediaProcessingService {
   private ffmpeg: FFmpeg | null = null;
   private loadingPromise: Promise<void> | null = null;
@@ -298,7 +302,8 @@ export class MediaProcessingService {
     args: string[],
     onProgress?: MediaProgressCallback,
     onLog?: MediaLogCallback,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    options: RunTranscodeOptions = {}
   ): Promise<MediaProcessingResult> {
     await this.ensureReady();
     if (!this.ffmpeg) {
@@ -388,15 +393,22 @@ export class MediaProcessingService {
     try {
       const writeOptions = signal ? { signal } : undefined;
       await race(ffmpeg.writeFile(safeInputName, await fetchFile(file), writeOptions));
+      const preInputArgs = options.preInputArgs ?? [];
       const inputArgs = forceMjpegInput
         ? ["-f", "mjpeg", "-i", safeInputName]
         : ["-i", safeInputName];
-      const execArgs = ["-y", ...inputArgs, ...args, outputName];
+      const execArgs = ["-y", ...preInputArgs, ...inputArgs, ...args, outputName];
       if (onLog) {
         const displayInputArgs = forceMjpegInput
           ? ["-f", "mjpeg", "-i", file.name]
           : ["-i", file.name];
-        const displayArgs = ["-y", ...displayInputArgs, ...args, `output.${outputExt}`];
+        const displayArgs = [
+          "-y",
+          ...preInputArgs,
+          ...displayInputArgs,
+          ...args,
+          `output.${outputExt}`,
+        ];
         onLog(`[app] exec ${displayArgs.join(" ")}`);
       }
       try {
@@ -711,16 +723,20 @@ export class MediaProcessingService {
     signal?: AbortSignal
   ): Promise<MediaProcessingResult> {
     const args: string[] = [];
+    const preInputArgs: string[] = [];
     const startSeconds = options?.startSeconds ?? null;
     if (typeof startSeconds === "number" && startSeconds > 0) {
-      args.push("-ss", `${startSeconds}`);
+      // Fast seek for preview responsiveness on long videos.
+      preInputArgs.push("-ss", `${startSeconds}`);
     }
     const filter = buildVideoFilter(options);
     if (filter) {
       args.push("-vf", filter);
     }
-    args.push("-map", "0:v:0", "-frames:v", "1", "-f", "image2");
-    return this.runTranscode(file, "png", args, undefined, onLog, signal);
+    args.push("-an", "-sn", "-dn", "-map", "0:v:0", "-frames:v", "1", "-f", "image2");
+    return this.runTranscode(file, "png", args, undefined, onLog, signal, {
+      preInputArgs,
+    });
   }
 
   async transcodeAudioToMp3(
