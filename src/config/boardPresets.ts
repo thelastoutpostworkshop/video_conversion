@@ -30,6 +30,18 @@ export interface BoardPreset {
 
 export const BOARD_PRESETS: BoardPreset[] = [
   {
+    id: "ESP32-S3-LCD-3.16",
+    name: "Waveshare ESP32-S3 3.16inch",
+    bundle: "Round/square TFT board package",
+    width: 320,
+    height: 820,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    notes: "Balanced for SPI displays with limited RAM.",
+  },
+  {
     id: "esp32-st7789-240",
     name: "ESP32-S3 + ST7789 240x240",
     bundle: "Round/square TFT board package",

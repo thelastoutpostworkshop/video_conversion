@@ -87,17 +87,17 @@ const buildVideoFilter = (options?: VideoTranscodeOptions): string | null => {
   if (width && height) {
     const scaleMode = options?.scaleMode;
     if (scaleMode === "stretch") {
-      filters.push(`scale=${width}:${height}`);
+      filters.push(`scale=${width}:${height}:reset_sar=1`);
     } else if (scaleMode === "fill") {
       filters.push(
-        `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`
+        `scale=${width}:${height}:force_original_aspect_ratio=increase:force_divisible_by=1:reset_sar=1,crop=${width}:${height}`
       );
     } else if (scaleMode === "fit") {
       filters.push(
-        `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
+        `scale=${width}:${height}:force_original_aspect_ratio=decrease:force_divisible_by=1:reset_sar=1,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
       );
     } else {
-      filters.push(`scale=${width}:${height}`);
+      filters.push(`scale=${width}:${height}:reset_sar=1`);
     }
   }
 
@@ -412,12 +412,28 @@ export class MediaProcessingService {
         onLog(`[app] exec ${displayArgs.join(" ")}`);
       }
       try {
-        await race(ffmpeg.exec(execArgs, undefined, writeOptions));
+        const exitCode = await race(ffmpeg.exec(execArgs, undefined, writeOptions));
+        if (typeof exitCode === "number" && exitCode !== 0) {
+          const failureLog = pickFailureLogLine(recentLogLines);
+          if (failureLog) {
+            throw new Error(`FFmpeg exited with code ${exitCode}. ${failureLog}`);
+          }
+          throw new Error(`FFmpeg exited with code ${exitCode}.`);
+        }
         const data = await race(ffmpeg.readFile(outputName));
         const payload =
           typeof data === "string" ? new TextEncoder().encode(data) : data;
+        const normalizedPayload =
+          payload instanceof Uint8Array ? payload : new Uint8Array(payload);
+        if (normalizedPayload.byteLength === 0) {
+          const failureLog = pickFailureLogLine(recentLogLines);
+          if (failureLog) {
+            throw new Error(`FFmpeg produced an empty output file. ${failureLog}`);
+          }
+          throw new Error("FFmpeg produced an empty output file.");
+        }
         return {
-          data: payload instanceof Uint8Array ? payload : new Uint8Array(payload),
+          data: normalizedPayload,
           outputName,
         };
       } catch (error) {
