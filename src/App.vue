@@ -84,96 +84,98 @@
               <v-divider />
 
               <v-card-text>
-                <div id="section-target" class="app-nav-target" />
-                <div class="step-heading mb-2">
-                  <div class="text-subtitle-1 font-weight-medium">
-                    1. Choose development board
-                  </div>
-                  <div class="text-caption text-medium-emphasis">
-                    Select a board preset or custom target size before configuring conversion details.
-                  </div>
-                </div>
-
-                <v-row v-if="isVideoOutput" dense class="section-target-grid">
-                  <v-col cols="12" sm="6" md="3">
-                    <v-select
-                      v-model="targetSetupMode"
-                      :items="targetSetupModeItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Target setup"
-                      density="compact"
-                      hide-details="auto"
-                      :disabled="processing"
-                    />
-                  </v-col>
-                  <v-col cols="12" sm="6" md="5">
-                    <v-select
-                      v-if="targetSetupMode === 'preset'"
-                      v-model="selectedBoardPresetId"
-                      :items="boardPresetItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Development board"
-                      density="compact"
-                      hide-details="auto"
-                      :disabled="processing"
-                    />
-                    <v-sheet
-                      v-else
-                      rounded="lg"
-                      border
-                      class="d-flex align-center h-100 px-3 py-2 target-custom-hint"
-                    >
-                      <div class="text-caption text-medium-emphasis">
-                        Custom target selected. Choose the screen dimensions below.
-                      </div>
-                    </v-sheet>
-                  </v-col>
-                  <v-col cols="6" md="2">
-                    <v-text-field
-                      :model-value="width"
-                      label="Screen width"
-                      type="number"
-                      density="compact"
-                      hide-details="auto"
-                      :readonly="targetSetupMode === 'preset'"
-                      :disabled="processing"
-                      @update:model-value="(value) => (width = toPositiveNullable(value))"
-                    />
-                  </v-col>
-                  <v-col cols="6" md="2">
-                    <v-text-field
-                      :model-value="height"
-                      label="Screen height"
-                      type="number"
-                      density="compact"
-                      hide-details="auto"
-                      :readonly="targetSetupMode === 'preset'"
-                      :disabled="processing"
-                      @update:model-value="(value) => (height = toPositiveNullable(value))"
-                    />
-                  </v-col>
-                  <v-col cols="12" v-if="targetSetupMode === 'preset' && selectedBoardPresetDetails">
-                    <div class="text-caption text-info target-preset-note">
-                      {{ selectedBoardPresetDetails }}
+                <section class="workspace-section">
+                  <div id="section-target" class="app-nav-target" />
+                  <div class="step-heading mb-2">
+                    <div class="text-subtitle-1 font-weight-medium">
+                      Development board
                     </div>
-                  </v-col>
-                </v-row>
-                <v-alert v-else type="info" variant="tonal" class="mt-2">
-                  Development board presets are available for video output formats.
-                </v-alert>
+                    <div class="text-caption text-medium-emphasis">
+                      Select a board preset or custom target size before configuring conversion details.
+                    </div>
+                  </div>
 
-                <v-divider class="my-4" />
-                <div id="section-source" class="app-nav-target" />
-                <div class="step-heading mb-2">
-                  <div class="text-subtitle-1 font-weight-medium">
-                    2. Choose source media
+                  <v-row v-if="isVideoOutput" dense class="section-target-grid">
+                    <v-col cols="12" sm="6" md="3">
+                      <v-select
+                        v-model="targetSetupMode"
+                        :items="targetSetupModeItems"
+                        item-title="title"
+                        item-value="value"
+                        label="Target setup"
+                        density="compact"
+                        hide-details="auto"
+                        :disabled="processing"
+                      />
+                    </v-col>
+                    <v-col cols="12" sm="6" md="5">
+                      <v-select
+                        v-if="targetSetupMode === 'preset'"
+                        v-model="selectedBoardPresetId"
+                        :items="boardPresetItems"
+                        item-title="title"
+                        item-value="value"
+                        label="Development board"
+                        density="compact"
+                        hide-details="auto"
+                        :disabled="processing"
+                      />
+                      <v-sheet
+                        v-else
+                        rounded="lg"
+                        border
+                        class="d-flex align-center h-100 px-3 py-2 target-custom-hint"
+                      >
+                        <div class="text-caption text-medium-emphasis">
+                          Custom target selected. Choose the screen dimensions below.
+                        </div>
+                      </v-sheet>
+                    </v-col>
+                    <v-col cols="6" md="2">
+                      <v-text-field
+                        :model-value="width"
+                        label="Screen width"
+                        type="number"
+                        density="compact"
+                        hide-details="auto"
+                        :readonly="targetSetupMode === 'preset'"
+                        :disabled="processing"
+                        @update:model-value="(value) => (width = toPositiveNullable(value))"
+                      />
+                    </v-col>
+                    <v-col cols="6" md="2">
+                      <v-text-field
+                        :model-value="height"
+                        label="Screen height"
+                        type="number"
+                        density="compact"
+                        hide-details="auto"
+                        :readonly="targetSetupMode === 'preset'"
+                        :disabled="processing"
+                        @update:model-value="(value) => (height = toPositiveNullable(value))"
+                      />
+                    </v-col>
+                    <v-col cols="12" v-if="targetSetupMode === 'preset' && selectedBoardPresetDetails">
+                      <div class="text-caption text-info target-preset-note">
+                        {{ selectedBoardPresetDetails }}
+                      </div>
+                    </v-col>
+                  </v-row>
+                  <v-alert v-else type="info" variant="tonal" class="mt-2">
+                    Development board presets are available for video output formats.
+                  </v-alert>
+                </section>
+
+                <section class="workspace-section mt-4">
+                  <div id="section-source" class="app-nav-target" />
+                  <div class="step-heading mb-2">
+                    <div class="text-subtitle-1 font-weight-medium">
+                      Source media
+                    </div>
+                    <div class="text-caption text-medium-emphasis">
+                      Select the video to convert, then confirm output format and preview metadata.
+                    </div>
                   </div>
-                  <div class="text-caption text-medium-emphasis">
-                    Select the video to convert, then confirm output format and preview metadata.
-                  </div>
-                </div>
 
                 <v-row dense>
                   <v-col cols="12" md="8">
@@ -250,83 +252,84 @@
                     />
                     </div>
 
-                    <v-divider class="my-4" />
-                    <div id="section-export" class="app-nav-target" />
-                    <div class="step-heading mb-2">
-                      <div class="text-subtitle-1 font-weight-medium">
-                        4. Convert and download
+                    <v-sheet class="workspace-subsection mt-4 pa-3" rounded="lg" border>
+                      <div id="section-export" class="app-nav-target" />
+                      <div class="step-heading mb-2">
+                        <div class="text-subtitle-1 font-weight-medium">
+                          Convert and download
+                        </div>
+                        <div class="text-caption text-medium-emphasis">
+                          Launch conversion, monitor progress, and download the output file.
+                        </div>
                       </div>
-                      <div class="text-caption text-medium-emphasis">
-                        Launch conversion, monitor progress, and download the output file.
-                      </div>
-                    </div>
 
-                    <v-row dense>
-                      <v-col cols="12" md="8">
-                        <v-text-field
-                          v-model="outputFileName"
-                          label="Output file name"
-                          density="comfortable"
-                          :disabled="processing"
-                        />
-                      </v-col>
-                      <v-col cols="12" md="4" class="d-flex align-center justify-end">
+                      <v-row dense>
+                        <v-col cols="12" md="8">
+                          <v-text-field
+                            v-model="outputFileName"
+                            label="Output file name"
+                            density="comfortable"
+                            :disabled="processing"
+                          />
+                        </v-col>
+                        <v-col cols="12" md="4" class="d-flex align-center justify-end">
+                          <v-btn
+                            color="error"
+                            variant="tonal"
+                            :disabled="!processing"
+                            @click="cancelConversion"
+                          >
+                            Cancel
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+
+                      <div class="d-flex flex-wrap ga-2">
                         <v-btn
-                          color="error"
-                          variant="tonal"
-                          :disabled="!processing"
-                          @click="cancelConversion"
+                          color="primary"
+                          :loading="processing"
+                          :disabled="!canConvert"
+                          @click="runConversion"
                         >
-                          Cancel
+                          {{ processing ? "Converting..." : "Convert" }}
                         </v-btn>
-                      </v-col>
-                    </v-row>
+                        <v-btn
+                          color="success"
+                          :disabled="!hasOutput"
+                          @click="downloadOutput"
+                        >
+                          Download output
+                        </v-btn>
+                      </div>
 
-                    <div class="d-flex flex-wrap ga-2">
-                      <v-btn
+                      <v-progress-linear
+                        v-if="processing"
+                        :model-value="processingProgress"
+                        height="6"
+                        class="mt-4"
                         color="primary"
-                        :loading="processing"
-                        :disabled="!canConvert"
-                        @click="runConversion"
-                      >
-                        {{ processing ? "Converting..." : "Convert" }}
-                      </v-btn>
-                      <v-btn
-                        color="success"
-                        :disabled="!hasOutput"
-                        @click="downloadOutput"
-                      >
-                        Download output
-                      </v-btn>
-                    </div>
+                      />
+                      <div v-if="processing" class="text-caption text-medium-emphasis mt-1">
+                        Progress: {{ processingProgress }}%
+                      </div>
 
-                    <v-progress-linear
-                      v-if="processing"
-                      :model-value="processingProgress"
-                      height="6"
-                      class="mt-4"
-                      color="primary"
-                    />
-                    <div v-if="processing" class="text-caption text-medium-emphasis mt-1">
-                      Progress: {{ processingProgress }}%
-                    </div>
-
-                    <v-alert
-                      v-if="processingError"
-                      type="error"
-                      variant="tonal"
-                      class="mt-3"
-                    >
-                      {{ processingError }}
-                    </v-alert>
-                    <v-alert
-                      v-if="previewFrameError"
-                      type="warning"
-                      variant="tonal"
-                      class="mt-3"
-                    >
-                      {{ previewFrameError }}
-                    </v-alert>
+                      <v-alert
+                        v-if="processingError"
+                        type="error"
+                        variant="tonal"
+                        class="mt-3"
+                      >
+                        {{ processingError }}
+                      </v-alert>
+                      <v-alert
+                        v-if="previewFrameError"
+                        type="warning"
+                        variant="tonal"
+                        class="mt-3"
+                      >
+                        {{ previewFrameError }}
+                      </v-alert>
+                    </v-sheet>
                   </v-col>
                   <v-col cols="12" md="4" class="d-flex flex-column ga-3">
                     <v-sheet class="source-metadata-inline px-3 py-2" rounded="lg" border>
@@ -351,7 +354,7 @@
                       <v-card-text class="py-3">
                         <div class="step-heading mb-2">
                           <div class="text-subtitle-1 font-weight-medium">
-                            3. Adjust conversion settings
+                            Conversion settings
                           </div>
                           <div class="text-caption text-medium-emphasis">
                             Tune size, orientation, quality, and trimming before conversion.
@@ -500,6 +503,7 @@
                     </v-card>
                   </v-col>
                 </v-row>
+                </section>
               </v-card-text>
             </v-card>
             <v-card v-else rounded="lg" elevation="4" class="panel-card logs-view-card">
@@ -1723,6 +1727,19 @@ onBeforeUnmount(() => {
 .step-heading {
   display: grid;
   gap: 2px;
+}
+
+.workspace-section {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  border-radius: 14px;
+  background: rgba(var(--v-theme-surface), 0.42);
+  box-shadow: inset 3px 0 0 rgba(var(--v-theme-primary), 0.32);
+  padding: 14px;
+}
+
+.workspace-subsection {
+  background: rgba(var(--v-theme-surface), 0.36);
+  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
 }
 
 .section-target-grid {
