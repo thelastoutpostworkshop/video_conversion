@@ -68,8 +68,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     amazonUrl: "https://amzn.to/3ZzfcZr",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_okJAvee",
-    width: 320,
-    height: 240,
+    width: 172,
+    height: 320,
     orientation: "none",
     scaleMode: "fit",
     fps: 20,
