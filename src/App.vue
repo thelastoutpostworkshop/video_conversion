@@ -332,6 +332,38 @@
                             </div>
                           </v-col>
                           <v-col cols="12">
+                            <v-range-slider
+                              v-model="trimRangeModel"
+                              :min="0"
+                              :max="trimRangeMax"
+                              :step="previewSecondsStep"
+                              :disabled="processing || !isTrimSliderAvailable"
+                              color="primary"
+                              base-color="grey-darken-3"
+                              thumb-label
+                              hide-details
+                            >
+                              <template #thumb-label="{ modelValue }">
+                                {{
+                                  formatDurationClock(Number(modelValue), {
+                                    includeTenths: true,
+                                  })
+                                }}
+                              </template>
+                            </v-range-slider>
+                            <div class="d-flex align-center text-caption text-medium-emphasis mt-1">
+                              <div>Start {{ trimRangeDisplayStart }}</div>
+                              <v-spacer />
+                              <div>End {{ trimRangeDisplayEnd }}</div>
+                            </div>
+                            <div
+                              v-if="!isTrimSliderAvailable"
+                              class="text-caption text-medium-emphasis mt-1"
+                            >
+                              Trim slider is available when source duration metadata is known.
+                            </div>
+                          </v-col>
+                          <v-col cols="12">
                             <v-text-field
                               v-model="startTimeInput"
                               label="Start time"
@@ -714,6 +746,23 @@ const formatDurationClock = (
   return `${minutesLabel}:${secondsLabel}`;
 };
 
+const sourceDurationSeconds = computed<number | null>(() => {
+  const duration = sourceMetadata.value?.durationSeconds;
+  if (typeof duration !== "number" || !Number.isFinite(duration) || duration <= 0) {
+    return null;
+  }
+  return duration;
+});
+
+const clampTrimSeconds = (value: number): number => {
+  const normalized = Number.isFinite(value) ? Math.max(0, value) : 0;
+  const duration = sourceDurationSeconds.value;
+  if (typeof duration === "number") {
+    return Math.min(normalized, duration);
+  }
+  return normalized;
+};
+
 const parseTimeInputSeconds = (
   rawValue: string | number | null | undefined
 ): number | null | "invalid" => {
@@ -787,9 +836,11 @@ const commitStartTimeInput = () => {
   if (parsed === "invalid") {
     return false;
   }
-  startSeconds.value = parsed;
+  startSeconds.value = typeof parsed === "number" ? clampTrimSeconds(parsed) : null;
   startTimeInput.value =
-    parsed === null ? "" : formatDurationClock(parsed, { includeTenths: true });
+    startSeconds.value === null
+      ? ""
+      : formatDurationClock(startSeconds.value, { includeTenths: true });
   return true;
 };
 
@@ -798,14 +849,16 @@ const commitEndTimeInput = () => {
   if (parsed === "invalid") {
     return false;
   }
-  endSeconds.value = parsed;
+  endSeconds.value = typeof parsed === "number" ? clampTrimSeconds(parsed) : null;
   endTimeInput.value =
-    parsed === null ? "" : formatDurationClock(parsed, { includeTenths: true });
+    endSeconds.value === null
+      ? ""
+      : formatDurationClock(endSeconds.value, { includeTenths: true });
   return true;
 };
 
 const trimInputHelpText = computed(() => {
-  const duration = sourceMetadata.value?.durationSeconds;
+  const duration = sourceDurationSeconds.value;
   if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
     return `Use hh:mm:ss (or seconds). Source duration: ${formatDurationClock(duration, {
       includeTenths: true,
@@ -813,6 +866,51 @@ const trimInputHelpText = computed(() => {
   }
   return "Use hh:mm:ss (or seconds).";
 });
+
+const trimRangeMax = computed(() => sourceDurationSeconds.value ?? previewSecondsMax.value);
+
+const isTrimSliderAvailable = computed(
+  () => hasPreviewSource.value && sourceDurationSeconds.value !== null
+);
+
+const trimRangeModel = computed<[number, number]>({
+  get: () => {
+    const max = trimRangeMax.value;
+    const startCandidate =
+      typeof parsedStartTimeSeconds.value === "number"
+        ? parsedStartTimeSeconds.value
+        : typeof startSeconds.value === "number"
+          ? startSeconds.value
+          : 0;
+    const endCandidate =
+      typeof parsedEndTimeSeconds.value === "number"
+        ? parsedEndTimeSeconds.value
+        : typeof endSeconds.value === "number"
+          ? endSeconds.value
+          : max;
+    const clampedStart = Math.min(max, Math.max(0, startCandidate));
+    const clampedEnd = Math.min(max, Math.max(clampedStart, endCandidate));
+    return [clampedStart, clampedEnd];
+  },
+  set: (value) => {
+    const [rawStart, rawEnd] = value;
+    const max = trimRangeMax.value;
+    const clampedStart = Math.min(max, Math.max(0, Number(rawStart) || 0));
+    const clampedEnd = Math.min(max, Math.max(clampedStart, Number(rawEnd) || clampedStart));
+    startSeconds.value = clampedStart;
+    endSeconds.value = clampedEnd;
+    startTimeInput.value = formatDurationClock(clampedStart, { includeTenths: true });
+    endTimeInput.value = formatDurationClock(clampedEnd, { includeTenths: true });
+  },
+});
+
+const trimRangeDisplayStart = computed(() =>
+  formatDurationClock(trimRangeModel.value[0], { includeTenths: true })
+);
+
+const trimRangeDisplayEnd = computed(() =>
+  formatDurationClock(trimRangeModel.value[1], { includeTenths: true })
+);
 
 const hasRangeError = computed(() => {
   if (
