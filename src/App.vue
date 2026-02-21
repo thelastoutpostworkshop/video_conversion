@@ -90,7 +90,7 @@
                     1. Choose development board
                   </div>
                   <div class="text-caption text-medium-emphasis">
-                    Select a board preset or custom profile before configuring conversion details.
+                    Select a board preset or custom target size before configuring conversion details.
                   </div>
                 </div>
 
@@ -117,53 +117,43 @@
                       density="comfortable"
                       :disabled="processing"
                     />
-                    <v-select
+                    <v-sheet
                       v-else
-                      v-model="selectedCustomProfileId"
-                      :items="customProfileItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Saved custom profile"
-                      clearable
+                      rounded="lg"
+                      border
+                      class="d-flex align-center h-100 px-4 py-3"
+                    >
+                      <div class="text-body-2 text-medium-emphasis">
+                        Custom target selected. Choose the screen dimensions below.
+                      </div>
+                    </v-sheet>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      :model-value="width"
+                      label="Screen width"
+                      type="number"
                       density="comfortable"
-                      :disabled="processing || customProfiles.length === 0"
+                      :readonly="targetSetupMode === 'preset'"
+                      :disabled="processing"
+                      @update:model-value="(value) => (width = toPositiveNullable(value))"
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      :model-value="height"
+                      label="Screen height"
+                      type="number"
+                      density="comfortable"
+                      :readonly="targetSetupMode === 'preset'"
+                      :disabled="processing"
+                      @update:model-value="(value) => (height = toPositiveNullable(value))"
                     />
                   </v-col>
                   <v-col cols="12" v-if="targetSetupMode === 'preset' && selectedBoardPresetDetails">
                     <v-alert type="info" variant="tonal">
                       {{ selectedBoardPresetDetails }}
                     </v-alert>
-                  </v-col>
-                  <v-col cols="12" md="8" v-if="targetSetupMode === 'custom'">
-                    <v-text-field
-                      v-model="customProfileName"
-                      label="Custom profile name"
-                      density="comfortable"
-                      :disabled="processing"
-                    />
-                  </v-col>
-                  <v-col
-                    cols="12"
-                    md="4"
-                    v-if="targetSetupMode === 'custom'"
-                    class="d-flex align-center ga-2"
-                  >
-                    <v-btn
-                      color="primary"
-                      variant="tonal"
-                      :disabled="!canSaveCustomProfile"
-                      @click="saveCustomProfile"
-                    >
-                      Save profile
-                    </v-btn>
-                    <v-btn
-                      color="error"
-                      variant="text"
-                      :disabled="!selectedCustomProfileId"
-                      @click="deleteSelectedCustomProfile"
-                    >
-                      Delete
-                    </v-btn>
                   </v-col>
                 </v-row>
                 <v-alert v-else type="info" variant="tonal" class="mt-2">
@@ -309,26 +299,6 @@
                             />
                           </v-col>
 
-                          <v-col cols="12" sm="6">
-                            <v-text-field
-                              :model-value="width"
-                              label="Width"
-                              type="number"
-                              density="comfortable"
-                              :disabled="processing || outputSizeMode !== 'custom'"
-                              @update:model-value="(value) => (width = toNullableNumber(value))"
-                            />
-                          </v-col>
-                          <v-col cols="12" sm="6">
-                            <v-text-field
-                              :model-value="height"
-                              label="Height"
-                              type="number"
-                              density="comfortable"
-                              :disabled="processing || outputSizeMode !== 'custom'"
-                              @update:model-value="(value) => (height = toNullableNumber(value))"
-                            />
-                          </v-col>
                           <v-col cols="12" sm="6">
                             <v-text-field
                               :model-value="fps"
@@ -547,12 +517,6 @@ type AppNavigationId = WorkspaceSectionId | "logs";
 type AppView = "workspace" | "logs";
 type AppTheme = "light" | "dark";
 
-interface CustomTargetProfile extends TargetProfileBase {
-  id: string;
-  name: string;
-  createdAt: string;
-}
-
 interface PersistedConversionPreferences {
   outputFormat: OutputFormat;
   orientation: VideoOrientation;
@@ -581,7 +545,7 @@ const orientationItems: Array<{ title: string; value: VideoOrientation }> = [
 
 const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
   { title: "Development board preset", value: "preset" },
-  { title: "Custom target profile", value: "custom" },
+  { title: "Custom target size", value: "custom" },
 ];
 
 const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string }> = [
@@ -610,7 +574,6 @@ const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
   },
 ];
 
-const customTargetStorageKey = "video-conversion.custom-target-profiles.v1";
 const sectionIdPrefix = "section-";
 const themeStorageKey = "video-conversion.theme.v1";
 const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
@@ -645,9 +608,6 @@ const endSeconds = ref<number | null>(null);
 const mp3Bitrate = ref<number | null>(128);
 const targetSetupMode = ref<TargetSetupMode>("preset");
 const selectedBoardPresetId = ref<string>(BOARD_PRESETS[0]?.id ?? "");
-const customProfiles = ref<CustomTargetProfile[]>([]);
-const selectedCustomProfileId = ref<string | null>(null);
-const customProfileName = ref("");
 const drawerOpen = ref(true);
 const activeNavigation = ref<AppNavigationId>("target");
 
@@ -681,19 +641,8 @@ const boardPresetItems = computed(() =>
   }))
 );
 
-const customProfileItems = computed(() =>
-  customProfiles.value.map((profile) => ({
-    title: `${profile.name} (${profile.width}x${profile.height})`,
-    value: profile.id,
-  }))
-);
-
 const selectedBoardPreset = computed(() =>
   BOARD_PRESETS.find((preset) => preset.id === selectedBoardPresetId.value) ?? null
-);
-
-const selectedCustomProfile = computed(() =>
-  customProfiles.value.find((profile) => profile.id === selectedCustomProfileId.value) ?? null
 );
 
 const ffmpegStatusText = computed(() => {
@@ -745,19 +694,6 @@ const canConvert = computed(() => {
     return Boolean(width.value && width.value > 0 && height.value && height.value > 0);
   }
   return true;
-});
-
-const canSaveCustomProfile = computed(() => {
-  if (processing.value || targetSetupMode.value !== "custom") {
-    return false;
-  }
-  const hasName = customProfileName.value.trim().length > 0;
-  const hasSize =
-    typeof width.value === "number" &&
-    width.value > 0 &&
-    typeof height.value === "number" &&
-    height.value > 0;
-  return hasName && hasSize;
 });
 
 const selectedBoardPresetDetails = computed(() => {
@@ -918,21 +854,6 @@ const toPositiveNullable = (value: string | number | null): number | null => {
   return parsed <= 0 ? 1 : parsed;
 };
 
-const toPositiveInteger = (value: unknown): number | null => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return null;
-  }
-  return Math.round(parsed);
-};
-
-const toPositiveIntegerOrNull = (value: unknown): number | null => {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-  return toPositiveInteger(value);
-};
-
 const isVideoOrientation = (value: unknown): value is VideoOrientation =>
   value === "none" || value === "cw90" || value === "ccw90" || value === "flip180";
 
@@ -941,93 +862,6 @@ const isVideoScaleMode = (value: unknown): value is VideoScaleMode =>
 
 const isOutputFormat = (value: unknown): value is OutputFormat =>
   value === "gif" || value === "mjpeg" || value === "avi" || value === "mp3";
-
-const isVideoOutputFormat = (value: unknown): value is VideoOutputFormat =>
-  value === "gif" || value === "mjpeg" || value === "avi";
-
-const createProfileId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
-const normalizeVideoOutputFormat = (format: OutputFormat): VideoOutputFormat =>
-  format === "mp3" ? "mjpeg" : format;
-
-const parseCustomTargetProfile = (value: unknown): CustomTargetProfile | null => {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  const id = typeof record.id === "string" ? record.id : "";
-  const name = typeof record.name === "string" ? record.name.trim() : "";
-  const widthValue = toPositiveInteger(record.width);
-  const heightValue = toPositiveInteger(record.height);
-  const orientationValue = record.orientation;
-  const scaleModeValue = record.scaleMode;
-  const outputFormatValue = record.outputFormat;
-  if (
-    !id ||
-    !name ||
-    !widthValue ||
-    !heightValue ||
-    !isVideoOrientation(orientationValue) ||
-    !isVideoScaleMode(scaleModeValue) ||
-    !isVideoOutputFormat(outputFormatValue)
-  ) {
-    return null;
-  }
-
-  return {
-    id,
-    name,
-    width: widthValue,
-    height: heightValue,
-    orientation: orientationValue,
-    scaleMode: scaleModeValue,
-    fps: toPositiveIntegerOrNull(record.fps),
-    quality: toPositiveIntegerOrNull(record.quality),
-    outputFormat: outputFormatValue,
-    createdAt:
-      typeof record.createdAt === "string"
-        ? record.createdAt
-        : new Date().toISOString(),
-  };
-};
-
-const persistCustomProfiles = () => {
-  try {
-    localStorage.setItem(customTargetStorageKey, JSON.stringify(customProfiles.value));
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to persist target profiles.";
-    appendLog(`[warn] ${message}`);
-  }
-};
-
-const loadCustomProfiles = () => {
-  try {
-    const raw = localStorage.getItem(customTargetStorageKey);
-    if (!raw) {
-      customProfiles.value = [];
-      return;
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      customProfiles.value = [];
-      return;
-    }
-    customProfiles.value = parsed
-      .map((item) => parseCustomTargetProfile(item))
-      .filter((item): item is CustomTargetProfile => item !== null);
-  } catch (error) {
-    customProfiles.value = [];
-    const message =
-      error instanceof Error ? error.message : "Failed to load saved target profiles.";
-    appendLog(`[warn] ${message}`);
-  }
-};
 
 const persistConversionPreferences = () => {
   if (typeof window === "undefined") {
@@ -1114,16 +948,6 @@ const applySelectedBoardPreset = (
   applyTargetProfile(preset, options);
 };
 
-const applySelectedCustomProfile = (
-  options: { setOutputFormat?: boolean; writeLog?: boolean } = {}
-) => {
-  const profile = selectedCustomProfile.value;
-  if (!profile) {
-    return;
-  }
-  applyTargetProfile(profile, options);
-};
-
 const applySizingDefaults = () => {
   if (outputSizeMode.value !== "custom") {
     return;
@@ -1132,69 +956,12 @@ const applySizingDefaults = () => {
     applySelectedBoardPreset({ setOutputFormat: false, writeLog: false });
     return;
   }
-  if (selectedCustomProfile.value) {
-    applySelectedCustomProfile({ setOutputFormat: false, writeLog: false });
-    return;
-  }
-  if (sourceMetadata.value) {
+  if (
+    sourceMetadata.value &&
+    (!width.value || width.value <= 0 || !height.value || height.value <= 0)
+  ) {
     width.value = sourceMetadata.value.width;
     height.value = sourceMetadata.value.height;
-  }
-};
-
-const saveCustomProfile = () => {
-  if (!canSaveCustomProfile.value) {
-    return;
-  }
-
-  const widthValue = toPositiveInteger(width.value);
-  const heightValue = toPositiveInteger(height.value);
-  if (!widthValue || !heightValue) {
-    return;
-  }
-
-  const profile: CustomTargetProfile = {
-    id: selectedCustomProfileId.value ?? createProfileId(),
-    name: customProfileName.value.trim(),
-    width: widthValue,
-    height: heightValue,
-    orientation: orientation.value,
-    scaleMode: scaleMode.value,
-    fps: toPositiveIntegerOrNull(fps.value),
-    quality: toPositiveIntegerOrNull(quality.value),
-    outputFormat: normalizeVideoOutputFormat(outputFormat.value),
-    createdAt: new Date().toISOString(),
-  };
-
-  const existingIndex = customProfiles.value.findIndex(
-    (item) => item.id === profile.id
-  );
-  if (existingIndex >= 0) {
-    const next = [...customProfiles.value];
-    next[existingIndex] = profile;
-    customProfiles.value = next;
-    appendLog(`[app] Updated custom target profile "${profile.name}".`);
-  } else {
-    customProfiles.value = [...customProfiles.value, profile];
-    appendLog(`[app] Saved custom target profile "${profile.name}".`);
-  }
-  selectedCustomProfileId.value = profile.id;
-  persistCustomProfiles();
-};
-
-const deleteSelectedCustomProfile = () => {
-  if (!selectedCustomProfileId.value) {
-    return;
-  }
-  const profile = selectedCustomProfile.value;
-  customProfiles.value = customProfiles.value.filter(
-    (item) => item.id !== selectedCustomProfileId.value
-  );
-  persistCustomProfiles();
-  selectedCustomProfileId.value = null;
-  customProfileName.value = "";
-  if (profile) {
-    appendLog(`[app] Deleted custom target profile "${profile.name}".`);
   }
 };
 
@@ -1559,11 +1326,6 @@ watch(targetSetupMode, (mode) => {
   }
   if (mode === "preset") {
     applySelectedBoardPreset();
-    return;
-  }
-  if (selectedCustomProfile.value) {
-    customProfileName.value = selectedCustomProfile.value.name;
-    applySelectedCustomProfile();
   }
 });
 
@@ -1572,18 +1334,6 @@ watch(selectedBoardPresetId, () => {
     return;
   }
   applySelectedBoardPreset();
-});
-
-watch(selectedCustomProfileId, () => {
-  if (targetSetupMode.value !== "custom" || !isVideoOutput.value) {
-    return;
-  }
-  const profile = selectedCustomProfile.value;
-  if (!profile) {
-    return;
-  }
-  customProfileName.value = profile.name;
-  applySelectedCustomProfile();
 });
 
 watch(outputSizeMode, (mode) => {
@@ -1601,12 +1351,7 @@ watch(isVideoOutput, (nextIsVideoOutput) => {
 });
 
 onMounted(() => {
-  loadCustomProfiles();
-  if (targetSetupMode.value === "preset") {
-    applySelectedBoardPreset({ setOutputFormat: false, writeLog: false });
-  } else {
-    applySizingDefaults();
-  }
+  applySizingDefaults();
   const persistedPreferences = loadPersistedConversionPreferences();
   if (persistedPreferences) {
     outputFormat.value = persistedPreferences.outputFormat;
