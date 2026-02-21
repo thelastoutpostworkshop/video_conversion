@@ -213,12 +213,152 @@
                       :target-height="previewTargetDimensions?.height ?? null"
                     />
                   </v-col>
-                  <v-col cols="12" md="4">
+                  <v-col cols="12" md="4" class="d-flex flex-column ga-3">
                     <SourceMetadataCard
                       :label="sourceMetadataLabel"
                       :loading="sourceMetadataLoading"
                       :error="sourceMetadataError"
                     />
+
+                    <v-card variant="tonal" class="settings-side-card">
+                      <v-card-text class="py-3">
+                        <div class="step-heading mb-2">
+                          <div class="text-subtitle-1 font-weight-medium">
+                            3. Adjust conversion settings
+                          </div>
+                          <div class="text-caption text-medium-emphasis">
+                            Tune size, orientation, quality, and trimming before conversion.
+                          </div>
+                        </div>
+
+                        <v-row v-if="isVideoOutput" dense>
+                          <v-col cols="12">
+                            <v-select
+                              v-model="outputSizeMode"
+                              :items="sizeModeItems"
+                              item-title="title"
+                              item-value="value"
+                              label="Output size"
+                              density="comfortable"
+                              :disabled="processing"
+                            />
+                          </v-col>
+                          <v-col cols="12">
+                            <v-select
+                              v-model="orientation"
+                              :items="orientationItems"
+                              item-title="title"
+                              item-value="value"
+                              label="Orientation"
+                              density="comfortable"
+                              :disabled="processing"
+                            />
+                          </v-col>
+                          <v-col cols="12">
+                            <v-select
+                              v-model="scaleMode"
+                              :items="scaleModeItems"
+                              item-title="title"
+                              item-value="value"
+                              label="Scale mode"
+                              density="comfortable"
+                              :disabled="processing || outputSizeMode !== 'custom'"
+                            />
+                          </v-col>
+
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              :model-value="width"
+                              label="Width"
+                              type="number"
+                              density="comfortable"
+                              :disabled="processing || outputSizeMode !== 'custom'"
+                              @update:model-value="(value) => (width = toNullableNumber(value))"
+                            />
+                          </v-col>
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              :model-value="height"
+                              label="Height"
+                              type="number"
+                              density="comfortable"
+                              :disabled="processing || outputSizeMode !== 'custom'"
+                              @update:model-value="(value) => (height = toNullableNumber(value))"
+                            />
+                          </v-col>
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              :model-value="fps"
+                              label="FPS"
+                              type="number"
+                              density="comfortable"
+                              :disabled="processing"
+                              @update:model-value="(value) => (fps = toNullableNumber(value))"
+                            />
+                          </v-col>
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              :model-value="quality"
+                              label="Quality"
+                              type="number"
+                              density="comfortable"
+                              :disabled="processing"
+                              hint="1 is highest quality"
+                              persistent-hint
+                              @update:model-value="(value) => (quality = toNullableNumber(value))"
+                            />
+                          </v-col>
+                          <v-col cols="12">
+                            <v-text-field
+                              :model-value="startSeconds"
+                              label="Start seconds"
+                              type="number"
+                              density="comfortable"
+                              :disabled="processing"
+                              @update:model-value="
+                                (value) => (startSeconds = toNonNegativeNullable(value))
+                              "
+                            />
+                          </v-col>
+                          <v-col cols="12">
+                            <v-text-field
+                              :model-value="endSeconds"
+                              label="End seconds"
+                              type="number"
+                              density="comfortable"
+                              :disabled="processing"
+                              @update:model-value="
+                                (value) => (endSeconds = toNonNegativeNullable(value))
+                              "
+                            />
+                          </v-col>
+                        </v-row>
+
+                        <v-row v-else dense>
+                          <v-col cols="12">
+                            <v-text-field
+                              :model-value="mp3Bitrate"
+                              label="MP3 bitrate (kbps)"
+                              type="number"
+                              density="comfortable"
+                              :disabled="processing"
+                              @update:model-value="
+                                (value) => (mp3Bitrate = toPositiveNullable(value))
+                              "
+                            />
+                          </v-col>
+                        </v-row>
+
+                        <v-alert
+                          v-if="hasRangeError"
+                          type="warning"
+                          variant="tonal"
+                          class="mt-2"
+                        >
+                          End seconds must be greater than start seconds.
+                        </v-alert>
+                      </v-card-text>
+                    </v-card>
                   </v-col>
                 </v-row>
 
@@ -265,142 +405,6 @@
                     </v-card>
                   </v-col>
                 </v-row>
-
-                <v-divider class="my-4" />
-                <div class="step-heading mb-2">
-                  <div class="text-subtitle-1 font-weight-medium">
-                    3. Adjust conversion settings
-                  </div>
-                  <div class="text-caption text-medium-emphasis">
-                    Tune size, orientation, quality, and trimming before conversion.
-                  </div>
-                </div>
-
-                <v-row v-if="isVideoOutput" dense>
-                  <v-col cols="12" md="4">
-                    <v-select
-                      v-model="outputSizeMode"
-                      :items="sizeModeItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Output size"
-                      density="comfortable"
-                      :disabled="processing"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-select
-                      v-model="orientation"
-                      :items="orientationItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Orientation"
-                      density="comfortable"
-                      :disabled="processing"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-select
-                      v-model="scaleMode"
-                      :items="scaleModeItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Scale mode"
-                      density="comfortable"
-                      :disabled="processing || outputSizeMode !== 'custom'"
-                    />
-                  </v-col>
-
-                  <v-col cols="12" md="3">
-                    <v-text-field
-                      :model-value="width"
-                      label="Width"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing || outputSizeMode !== 'custom'"
-                      @update:model-value="(value) => (width = toNullableNumber(value))"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="3">
-                    <v-text-field
-                      :model-value="height"
-                      label="Height"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing || outputSizeMode !== 'custom'"
-                      @update:model-value="(value) => (height = toNullableNumber(value))"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="2">
-                    <v-text-field
-                      :model-value="fps"
-                      label="FPS"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing"
-                      @update:model-value="(value) => (fps = toNullableNumber(value))"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="2">
-                    <v-text-field
-                      :model-value="quality"
-                      label="Quality"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing"
-                      hint="1 is highest quality"
-                      persistent-hint
-                      @update:model-value="(value) => (quality = toNullableNumber(value))"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      :model-value="startSeconds"
-                      label="Start seconds"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing"
-                      @update:model-value="
-                        (value) => (startSeconds = toNonNegativeNullable(value))
-                      "
-                    />
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                      :model-value="endSeconds"
-                      label="End seconds"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing"
-                      @update:model-value="
-                        (value) => (endSeconds = toNonNegativeNullable(value))
-                      "
-                    />
-                  </v-col>
-                </v-row>
-                <v-row v-else dense>
-                  <v-col cols="12" md="4">
-                    <v-text-field
-                      :model-value="mp3Bitrate"
-                      label="MP3 bitrate (kbps)"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing"
-                      @update:model-value="
-                        (value) => (mp3Bitrate = toPositiveNullable(value))
-                      "
-                    />
-                  </v-col>
-                </v-row>
-
-                <v-alert
-                  v-if="hasRangeError"
-                  type="warning"
-                  variant="tonal"
-                  class="mt-2"
-                >
-                  End seconds must be greater than start seconds.
-                </v-alert>
 
                 <v-divider class="my-4" />
                 <div id="section-export" class="app-nav-target" />
