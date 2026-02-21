@@ -126,9 +126,6 @@
                       <v-card-title class="text-subtitle-2">
                         {{ preset.name }}
                       </v-card-title>
-                      <v-card-subtitle>
-                        {{ preset.bundle }}
-                      </v-card-subtitle>
                       <v-card-text class="pt-2">
                         <div class="text-caption text-medium-emphasis">
                           Resolution: {{ preset.width }}x{{ preset.height }}
@@ -852,7 +849,7 @@ const boardCatalogFiltered = computed(() => {
     return BOARD_PRESETS;
   }
   return BOARD_PRESETS.filter((preset) =>
-    [preset.name, preset.bundle, preset.notes, `${preset.width}x${preset.height}`]
+    [preset.name, preset.notes, `${preset.width}x${preset.height}`]
       .join(" ")
       .toLowerCase()
       .includes(query)

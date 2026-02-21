@@ -19,7 +19,6 @@ export interface BoardPreset {
   id: string;
   name: string;
   imagePath: string;
-  bundle: string;
   width: number;
   height: number;
   orientation: VideoOrientation;
@@ -34,7 +33,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "ESP32-S3-LCD-3.16",
     name: "Waveshare ESP32-S3 3.16inch",
     imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
-    bundle: "Round/square TFT board package",
     width: 320,
     height: 820,
     orientation: "none",
@@ -47,7 +45,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "esp32-st7789-240",
     name: "ESP32-S3 + ST7789 240x240",
     imagePath: "board-catalog/esp32-st7789-240x240.svg",
-    bundle: "Round/square TFT board package",
     width: 240,
     height: 240,
     orientation: "none",
@@ -60,7 +57,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "esp32-ili9341-320x240",
     name: "ESP32 + ILI9341 320x240",
     imagePath: "board-catalog/esp32-ili9341-320x240.svg",
-    bundle: "2.8-inch TFT board package",
     width: 320,
     height: 240,
     orientation: "none",
@@ -73,7 +69,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "lilygo-t-display-s3",
     name: "LILYGO T-Display-S3 170x320",
     imagePath: "board-catalog/lilygo-t-display-s3-170x320.svg",
-    bundle: "Integrated ESP32-S3 display board",
     width: 170,
     height: 320,
     orientation: "none",
@@ -86,7 +81,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "m5stack-core2",
     name: "M5Stack Core2 320x240",
     imagePath: "board-catalog/m5stack-core2-320x240.svg",
-    bundle: "Integrated ESP32 display board",
     width: 320,
     height: 240,
     orientation: "none",
@@ -99,7 +93,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "esp32-st7789-135x240",
     name: "ESP32 + ST7789 135x240",
     imagePath: "board-catalog/esp32-st7789-135x240.svg",
-    bundle: "Narrow portrait TFT board package",
     width: 135,
     height: 240,
     orientation: "none",
