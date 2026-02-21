@@ -117,6 +117,9 @@
                         height="164"
                         class="board-catalog-image"
                       >
+                        <div class="board-catalog-size-overlay">
+                          {{ preset.width }}x{{ preset.height }}
+                        </div>
                         <template #placeholder>
                           <div class="board-catalog-image-placeholder">
                             Loading preview...
@@ -2076,6 +2079,7 @@ onBeforeUnmount(() => {
 }
 
 .board-catalog-image {
+  position: relative;
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   background:
     radial-gradient(
@@ -2104,6 +2108,24 @@ onBeforeUnmount(() => {
   object-fit: contain !important;
   object-position: center center;
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
+}
+
+.board-catalog-size-overlay {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.18);
+  background: rgba(var(--v-theme-surface), 0.72);
+  backdrop-filter: blur(6px);
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .board-catalog-image-placeholder {
