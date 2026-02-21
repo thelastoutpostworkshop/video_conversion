@@ -79,7 +79,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "ESP32-S3-1.43-AMOLED",
     name: "Waveshare ESP32-S3 1.43inch AMOLED Round",
-    imagePath: "board-catalog/lilygo-t-display-s3-170x320.svg",
+    imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
     amazonUrl: "https://amzn.to/41VszVi",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_ondyHh3",
