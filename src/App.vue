@@ -274,15 +274,23 @@
                     />
                   </v-col>
                   <v-col cols="12" md="4">
-                    <v-select
-                      v-model="outputFormat"
-                      :items="formatItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Output format"
-                      density="comfortable"
-                      :disabled="processing || previewFrameBusy"
-                    />
+                    <v-sheet class="source-metadata-inline px-3 py-2" rounded="lg" border>
+                      <div class="d-flex align-center ga-2">
+                        <v-icon icon="mdi-information-outline" size="16" />
+                        <div class="text-caption text-medium-emphasis">Source metadata</div>
+                        <v-spacer />
+                        <div class="text-caption">{{ sourceMetadataLabel }}</div>
+                      </div>
+                      <v-progress-linear
+                        v-if="sourceMetadataLoading"
+                        indeterminate
+                        height="3"
+                        class="mt-2"
+                      />
+                      <div v-if="sourceMetadataError" class="text-caption text-warning mt-2">
+                        {{ sourceMetadataError }}
+                      </div>
+                    </v-sheet>
                   </v-col>
                 </v-row>
 
@@ -412,24 +420,6 @@
                     </v-sheet>
                   </v-col>
                   <v-col cols="12" md="4" class="d-flex flex-column ga-3">
-                    <v-sheet class="source-metadata-inline px-3 py-2" rounded="lg" border>
-                      <div class="d-flex align-center ga-2">
-                        <v-icon icon="mdi-information-outline" size="16" />
-                        <div class="text-caption text-medium-emphasis">Source metadata</div>
-                        <v-spacer />
-                        <div class="text-caption">{{ sourceMetadataLabel }}</div>
-                      </div>
-                      <v-progress-linear
-                        v-if="sourceMetadataLoading"
-                        indeterminate
-                        height="3"
-                        class="mt-2"
-                      />
-                      <div v-if="sourceMetadataError" class="text-caption text-warning mt-2">
-                        {{ sourceMetadataError }}
-                      </div>
-                    </v-sheet>
-
                     <v-card variant="tonal" class="settings-side-card">
                       <v-card-text class="py-3">
                         <div class="step-heading mb-2">
@@ -440,6 +430,20 @@
                             Tune size, orientation, quality, and trimming before conversion.
                           </div>
                         </div>
+
+                        <v-row dense>
+                          <v-col cols="12">
+                            <v-select
+                              v-model="outputFormat"
+                              :items="formatItems"
+                              item-title="title"
+                              item-value="value"
+                              label="Output format"
+                              density="comfortable"
+                              :disabled="processing || previewFrameBusy"
+                            />
+                          </v-col>
+                        </v-row>
 
                         <v-row v-if="isVideoOutput" dense>
                           <v-col cols="12">
