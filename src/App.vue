@@ -209,6 +209,8 @@
                       :has-source-file="Boolean(sourceFile)"
                       :is-video-source="isVideoSource"
                       :is-video-output="isVideoOutput"
+                      :target-width="previewTargetDimensions?.width ?? null"
+                      :target-height="previewTargetDimensions?.height ?? null"
                     />
                   </v-col>
                   <v-col cols="12" md="4">
@@ -752,6 +754,40 @@ const selectedBoardPresetDetails = computed(() => {
     return "";
   }
   return `${preset.bundle}. ${preset.notes}`;
+});
+
+const previewTargetDimensions = computed<{ width: number; height: number } | null>(() => {
+  if (!isVideoOutput.value) {
+    return null;
+  }
+
+  let targetWidth: number | null = null;
+  let targetHeight: number | null = null;
+
+  if (
+    outputSizeMode.value === "custom" &&
+    typeof width.value === "number" &&
+    width.value > 0 &&
+    typeof height.value === "number" &&
+    height.value > 0
+  ) {
+    targetWidth = Math.max(1, Math.round(width.value));
+    targetHeight = Math.max(1, Math.round(height.value));
+  } else if (sourceMetadata.value) {
+    targetWidth = sourceMetadata.value.width;
+    targetHeight = sourceMetadata.value.height;
+    if (orientation.value === "cw90" || orientation.value === "ccw90") {
+      const swappedWidth = targetHeight;
+      targetHeight = targetWidth;
+      targetWidth = swappedWidth;
+    }
+  }
+
+  if (!targetWidth || !targetHeight) {
+    return null;
+  }
+
+  return { width: targetWidth, height: targetHeight };
 });
 
 const activeView = computed<AppView>(() =>
