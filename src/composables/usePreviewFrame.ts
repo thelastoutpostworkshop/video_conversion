@@ -22,8 +22,6 @@ interface UsePreviewFrameOptions {
   scaleMode: Ref<VideoScaleMode>;
   fps: Ref<number | null>;
   quality: Ref<number | null>;
-  startSeconds: Ref<number | null>;
-  endSeconds: Ref<number | null>;
   ensureFfmpegReady: () => Promise<boolean>;
   onLog: MediaLogCallback;
 }
@@ -40,8 +38,6 @@ export const usePreviewFrame = ({
   scaleMode,
   fps,
   quality,
-  startSeconds,
-  endSeconds,
   ensureFfmpegReady,
   onLog,
 }: UsePreviewFrameOptions) => {
@@ -175,8 +171,6 @@ export const usePreviewFrame = ({
       scaleMode.value,
       fps.value ?? 0,
       quality.value ?? 0,
-      startSeconds.value ?? 0,
-      endSeconds.value ?? 0,
       previewFrameSeconds.value ?? 0,
     ],
     () => {

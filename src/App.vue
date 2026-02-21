@@ -222,8 +222,8 @@
                           v-model="previewSecondModel"
                           class="preview-position-slider"
                           :class="{ 'preview-position-slider--inactive': !hasPreviewSource }"
-                          :min="0"
-                          :max="previewSecondsMax"
+                          :min="previewSecondMin"
+                          :max="previewSecondMax"
                           :step="previewSecondsStep"
                           :disabled="isPreviewSliderDisabled"
                           :color="previewSliderColor"
@@ -334,6 +334,8 @@
                           <v-col cols="12">
                             <v-range-slider
                               v-model="trimRangeModel"
+                              @start="onTrimRangeDragStart"
+                              @end="onTrimRangeDragEnd"
                               :min="0"
                               :max="trimRangeMax"
                               :step="previewSecondsStep"
@@ -653,6 +655,7 @@ const startSeconds = ref<number | null>(null);
 const endSeconds = ref<number | null>(null);
 const startTimeInput = ref("");
 const endTimeInput = ref("");
+const isTrimRangeDragging = ref(false);
 const mp3Bitrate = ref<number | null>(128);
 const targetSetupMode = ref<TargetSetupMode>("preset");
 const selectedBoardPresetId = ref<string>(BOARD_PRESETS[0]?.id ?? "");
@@ -911,6 +914,15 @@ const trimRangeDisplayStart = computed(() =>
 const trimRangeDisplayEnd = computed(() =>
   formatDurationClock(trimRangeModel.value[1], { includeTenths: true })
 );
+
+const onTrimRangeDragStart = () => {
+  isTrimRangeDragging.value = true;
+};
+
+const onTrimRangeDragEnd = () => {
+  isTrimRangeDragging.value = false;
+  syncPreviewWithinTrimRange();
+};
 
 const hasRangeError = computed(() => {
   if (
@@ -1299,8 +1311,6 @@ const {
   scaleMode,
   fps,
   quality,
-  startSeconds,
-  endSeconds,
   ensureFfmpegReady: initializeFfmpeg,
   onLog: appendLog,
 });
@@ -1317,20 +1327,46 @@ const previewSecondsStep = computed(() =>
   previewSecondsMax.value <= 30 ? 0.1 : 0.5
 );
 
+const previewSecondMin = computed(() => trimRangeModel.value[0]);
+
+const previewSecondMax = computed(() => {
+  const trimEnd = trimRangeModel.value[1];
+  const fallback = previewSecondsMax.value;
+  return trimEnd >= previewSecondMin.value ? trimEnd : fallback;
+});
+
+const clampPreviewSecond = (value: number) =>
+  Math.min(previewSecondMax.value, Math.max(previewSecondMin.value, value));
+
 const previewSecondModel = computed<number>({
   get: () =>
     typeof previewFrameSeconds.value === "number"
-      ? Math.min(previewSecondsMax.value, Math.max(0, previewFrameSeconds.value))
-      : 0,
+      ? clampPreviewSecond(previewFrameSeconds.value)
+      : previewSecondMin.value,
   set: (value) => {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
-      previewFrameSeconds.value = 0;
+      previewFrameSeconds.value = previewSecondMin.value;
       return;
     }
-    previewFrameSeconds.value = Math.min(previewSecondsMax.value, Math.max(0, parsed));
+    previewFrameSeconds.value = clampPreviewSecond(parsed);
   },
 });
+
+const syncPreviewWithinTrimRange = () => {
+  if (!hasPreviewSource.value) {
+    return;
+  }
+  const current =
+    typeof previewFrameSeconds.value === "number"
+      ? previewFrameSeconds.value
+      : previewSecondMin.value;
+  const clamped = clampPreviewSecond(current);
+  if (Math.abs(clamped - current) < 0.001) {
+    return;
+  }
+  previewSecondModel.value = clamped;
+};
 
 const hasPreviewSource = computed(
   () => Boolean(sourceFile.value) && isVideoSource.value && isVideoOutput.value
@@ -1527,10 +1563,11 @@ watch([outputFormat, orientation, scaleMode], () => {
   persistConversionPreferences();
 });
 
-watch(previewSecondsMax, (maxSeconds) => {
-  if (previewSecondModel.value > maxSeconds) {
-    previewSecondModel.value = maxSeconds;
+watch([previewSecondsMax, previewSecondMin, previewSecondMax], () => {
+  if (isTrimRangeDragging.value) {
+    return;
   }
+  syncPreviewWithinTrimRange();
 });
 
 watch(activeView, (nextView) => {
@@ -1559,7 +1596,7 @@ watch(sourceFile, (file) => {
   outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
 
   if (isVideoSource.value && isVideoOutput.value) {
-    previewSecondModel.value = 0;
+    previewSecondModel.value = previewSecondMin.value;
     schedulePreviewFrameRefresh(50);
   }
 });
