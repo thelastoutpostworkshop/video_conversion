@@ -782,7 +782,7 @@ const selectedBoardPresetId = ref<string>("");
 const customBoardWidth = ref<number | null>(null);
 const customBoardHeight = ref<number | null>(null);
 const customBoardValidationMessage = ref<string | null>(null);
-const boardCatalogQuery = ref("");
+const boardCatalogQuery = ref<string | null>("");
 const drawerOpen = ref(true);
 const activeNavigation = ref<AppNavigationId>("boards");
 
@@ -841,7 +841,7 @@ const workspaceBoardSummary = computed(() => {
 });
 
 const boardCatalogFiltered = computed(() => {
-  const query = boardCatalogQuery.value.trim().toLowerCase();
+  const query = (boardCatalogQuery.value ?? "").trim().toLowerCase();
   if (!query) {
     return BOARD_PRESETS;
   }
