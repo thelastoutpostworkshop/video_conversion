@@ -64,7 +64,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "esp32-c6-lcd-1_47",
     name: "Waveshare ESP32-C6 LCD 1.47inch",
-    imagePath: "board-catalog/esp32-ili9341-320x240.svg",
+    imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
     amazonUrl: "https://amzn.to/3ZzfcZr",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_okJAvee",
