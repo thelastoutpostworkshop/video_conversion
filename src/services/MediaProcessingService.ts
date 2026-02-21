@@ -87,17 +87,17 @@ const buildVideoFilter = (options?: VideoTranscodeOptions): string | null => {
   if (width && height) {
     const scaleMode = options?.scaleMode;
     if (scaleMode === "stretch") {
-      filters.push(`scale=${width}:${height}:reset_sar=1`);
+      filters.push(`scale=${width}:${height}`);
     } else if (scaleMode === "fill") {
       filters.push(
-        `scale=${width}:${height}:force_original_aspect_ratio=increase:force_divisible_by=1:reset_sar=1,crop=${width}:${height}`
+        `scale=${width}:${height}:force_original_aspect_ratio=increase:force_divisible_by=1,crop=${width}:${height}`
       );
     } else if (scaleMode === "fit") {
       filters.push(
-        `scale=${width}:${height}:force_original_aspect_ratio=decrease:force_divisible_by=1:reset_sar=1,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
+        `scale=${width}:${height}:force_original_aspect_ratio=decrease:force_divisible_by=1,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
       );
     } else {
-      filters.push(`scale=${width}:${height}:reset_sar=1`);
+      filters.push(`scale=${width}:${height}`);
     }
   }
 
