@@ -26,14 +26,19 @@
       <template #append>
         <div class="pa-4">
           <v-divider class="mb-4" />
-          <div class="text-caption text-medium-emphasis mb-2">FFmpeg engine</div>
-          <v-chip
-            :color="ffmpegStatusColor"
-            variant="tonal"
-            class="navigation-status-chip"
-          >
-            {{ ffmpegStatusText }}
-          </v-chip>
+          <div class="resources-title text-medium-emphasis mb-2">Resources</div>
+          <v-list nav density="comfortable" class="resources-list">
+            <v-list-item
+              v-for="resource in resourceLinks"
+              :key="resource.title"
+              :prepend-icon="resource.icon"
+              :title="resource.title"
+              :href="resource.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              rounded="lg"
+            />
+          </v-list>
         </div>
       </template>
     </v-navigation-drawer>
@@ -506,6 +511,24 @@ const navigationItems: Array<{ id: AppSectionId; title: string; icon: string }> 
   { id: "target", title: "Target", icon: "mdi-tune-variant" },
   { id: "export", title: "Export", icon: "mdi-file-export-outline" },
   { id: "logs", title: "Logs", icon: "mdi-text-box-search-outline" },
+];
+
+const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
+  {
+    title: "Tutorial",
+    icon: "mdi-youtube",
+    href: "https://www.youtube.com/results?search_query=ffmpeg+video+conversion+tutorial",
+  },
+  {
+    title: "Buy Me a Coffee",
+    icon: "mdi-coffee-outline",
+    href: "https://buymeacoffee.com/thelastoutpostworkshop",
+  },
+  {
+    title: "Get Help",
+    icon: "mdi-lifebuoy",
+    href: "https://github.com/thelastoutpostworkshop/video_conversion",
+  },
 ];
 
 const customTargetStorageKey = "video-conversion.custom-target-profiles.v1";
@@ -1393,9 +1416,15 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(10px);
 }
 
-.navigation-status-chip {
-  width: 100%;
-  justify-content: center;
+.resources-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.resources-list :deep(.v-list-item-title) {
+  font-weight: 600;
 }
 
 .app-nav-target {
