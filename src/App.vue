@@ -237,7 +237,7 @@
                             !isVideoOutput
                           "
                           color="primary"
-                          thumb-label="always"
+                          thumb-label
                           hide-details
                         />
                       </v-card-text>
