@@ -131,11 +131,6 @@
                       {{ selectedBoardPresetDetails }}
                     </v-alert>
                   </v-col>
-                  <v-col cols="12" v-if="targetCompatibilityWarning">
-                    <v-alert type="warning" variant="tonal">
-                      {{ targetCompatibilityWarning }}
-                    </v-alert>
-                  </v-col>
                   <v-col cols="12" md="8" v-if="targetSetupMode === 'custom'">
                     <v-text-field
                       v-model="customProfileName"
@@ -652,27 +647,7 @@ const selectedBoardPresetDetails = computed(() => {
   if (!preset) {
     return "";
   }
-  return `${preset.bundle}. ${preset.decodePipeline}. Recommended ${preset.outputFormat.toUpperCase()} at up to ${preset.maxFps} FPS (${preset.maxBitrateKbps} kbps target). ${preset.notes}`;
-});
-
-const targetCompatibilityWarning = computed(() => {
-  if (targetSetupMode.value !== "preset" || !isVideoOutput.value) {
-    return null;
-  }
-  const preset = selectedBoardPreset.value;
-  if (!preset) {
-    return null;
-  }
-  if (typeof fps.value === "number" && fps.value > preset.maxFps) {
-    return `Selected FPS (${Math.round(fps.value)}) is above ${preset.name}'s recommended max (${preset.maxFps}).`;
-  }
-  if (
-    outputFormat.value !== "mp3" &&
-    outputFormat.value !== preset.outputFormat
-  ) {
-    return `${preset.name} is tuned for ${preset.outputFormat.toUpperCase()} output.`;
-  }
-  return null;
+  return `${preset.bundle}. ${preset.notes}`;
 });
 
 const sourceMetadataLabel = computed(() => {
@@ -826,7 +801,10 @@ const loadCustomProfiles = () => {
 };
 
 const applyTargetProfile = (
-  profile: TargetProfileBase & { name: string },
+  profile: Omit<TargetProfileBase, "outputFormat"> & {
+    name: string;
+    outputFormat?: VideoOutputFormat;
+  },
   options: { setOutputFormat?: boolean; writeLog?: boolean } = {}
 ) => {
   const setOutputFormat = options.setOutputFormat ?? true;
@@ -838,7 +816,7 @@ const applyTargetProfile = (
   scaleMode.value = profile.scaleMode;
   fps.value = profile.fps;
   quality.value = profile.quality;
-  if (setOutputFormat) {
+  if (setOutputFormat && profile.outputFormat) {
     outputFormat.value = profile.outputFormat;
   }
   if (writeLog) {

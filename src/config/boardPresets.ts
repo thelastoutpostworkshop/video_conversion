@@ -15,13 +15,16 @@ export interface TargetProfileBase {
   outputFormat: VideoOutputFormat;
 }
 
-export interface BoardPreset extends TargetProfileBase {
+export interface BoardPreset {
   id: string;
   name: string;
   bundle: string;
-  decodePipeline: string;
-  maxFps: number;
-  maxBitrateKbps: number;
+  width: number;
+  height: number;
+  orientation: VideoOrientation;
+  scaleMode: VideoScaleMode;
+  fps: number | null;
+  quality: number | null;
   notes: string;
 }
 
@@ -36,10 +39,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    outputFormat: "mjpeg",
-    decodePipeline: "MJPEG + RGB565",
-    maxFps: 20,
-    maxBitrateKbps: 2200,
     notes: "Balanced for SPI displays with limited RAM.",
   },
   {
@@ -52,10 +51,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 20,
     quality: 6,
-    outputFormat: "avi",
-    decodePipeline: "AVI (MJPEG) + RGB565",
-    maxFps: 24,
-    maxBitrateKbps: 2800,
     notes: "Good default for common ESP32 TFT dev boards.",
   },
   {
@@ -68,10 +63,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 18,
     quality: 7,
-    outputFormat: "mjpeg",
-    decodePipeline: "MJPEG + ST7789 driver",
-    maxFps: 24,
-    maxBitrateKbps: 2400,
     notes: "Portrait profile tuned for 170x320 panel.",
   },
   {
@@ -84,10 +75,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 20,
     quality: 6,
-    outputFormat: "avi",
-    decodePipeline: "AVI (MJPEG) + LVGL playback",
-    maxFps: 24,
-    maxBitrateKbps: 3000,
     notes: "Matches 320x240 LCD and common playback stacks.",
   },
   {
@@ -100,10 +87,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 12,
     quality: 8,
-    outputFormat: "mjpeg",
-    decodePipeline: "MJPEG + RGB565",
-    maxFps: 16,
-    maxBitrateKbps: 1500,
     notes: "Conservative defaults for small SPI displays.",
   },
 ];
