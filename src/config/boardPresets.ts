@@ -49,7 +49,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   },
   {
     id: "jc4827w543",
-    name: "JC4827W543 development board",
+    name: "Guiton JC4827W543",
     imagePath: "board-catalog/esp32-st7789-240x240.svg",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oEHbBud",
@@ -59,7 +59,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    notes: "ESP32-S3 with 4.3' TFT 480x270 driver NV3041A and capacitive or resistance touch.",
+    notes: "ESP32-S3 8M PSRAM 4M FLASH 4.3-inch IPS with capacitive or resistance touch.",
   },
   {
     id: "esp32-ili9341-320x240",
