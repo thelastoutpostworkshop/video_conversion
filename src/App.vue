@@ -94,6 +94,82 @@
                 <v-row v-if="isVideoOutput" dense>
                   <v-col cols="12" md="4">
                     <v-select
+                      v-model="targetSetupMode"
+                      :items="targetSetupModeItems"
+                      item-title="title"
+                      item-value="value"
+                      label="Target setup"
+                      density="comfortable"
+                      :disabled="processing"
+                    />
+                  </v-col>
+                  <v-col cols="12" md="8">
+                    <v-select
+                      v-if="targetSetupMode === 'preset'"
+                      v-model="selectedBoardPresetId"
+                      :items="boardPresetItems"
+                      item-title="title"
+                      item-value="value"
+                      label="Development board"
+                      density="comfortable"
+                      :disabled="processing"
+                    />
+                    <v-select
+                      v-else
+                      v-model="selectedCustomProfileId"
+                      :items="customProfileItems"
+                      item-title="title"
+                      item-value="value"
+                      label="Saved custom profile"
+                      clearable
+                      density="comfortable"
+                      :disabled="processing || customProfiles.length === 0"
+                    />
+                  </v-col>
+                  <v-col cols="12" v-if="targetSetupMode === 'preset' && selectedBoardPresetDetails">
+                    <v-alert type="info" variant="tonal">
+                      {{ selectedBoardPresetDetails }}
+                    </v-alert>
+                  </v-col>
+                  <v-col cols="12" v-if="targetCompatibilityWarning">
+                    <v-alert type="warning" variant="tonal">
+                      {{ targetCompatibilityWarning }}
+                    </v-alert>
+                  </v-col>
+                  <v-col cols="12" md="8" v-if="targetSetupMode === 'custom'">
+                    <v-text-field
+                      v-model="customProfileName"
+                      label="Custom profile name"
+                      density="comfortable"
+                      :disabled="processing"
+                    />
+                  </v-col>
+                  <v-col
+                    cols="12"
+                    md="4"
+                    v-if="targetSetupMode === 'custom'"
+                    class="d-flex align-center ga-2"
+                  >
+                    <v-btn
+                      color="primary"
+                      variant="tonal"
+                      :disabled="!canSaveCustomProfile"
+                      @click="saveCustomProfile"
+                    >
+                      Save profile
+                    </v-btn>
+                    <v-btn
+                      color="error"
+                      variant="text"
+                      :disabled="!selectedCustomProfileId"
+                      @click="deleteSelectedCustomProfile"
+                    >
+                      Delete
+                    </v-btn>
+                  </v-col>
+
+                  <v-col cols="12" md="4">
+                    <v-select
                       v-model="outputSizeMode"
                       :items="sizeModeItems"
                       item-title="title"
@@ -365,8 +441,36 @@ import type {
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 
 type OutputFormat = "gif" | "mjpeg" | "avi" | "mp3";
+type VideoOutputFormat = Exclude<OutputFormat, "mp3">;
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
+type TargetSetupMode = "preset" | "custom";
+
+interface TargetProfileBase {
+  width: number;
+  height: number;
+  orientation: VideoOrientation;
+  scaleMode: VideoScaleMode;
+  fps: number | null;
+  quality: number | null;
+  outputFormat: VideoOutputFormat;
+}
+
+interface BoardPreset extends TargetProfileBase {
+  id: string;
+  name: string;
+  bundle: string;
+  decodePipeline: string;
+  maxFps: number;
+  maxBitrateKbps: number;
+  notes: string;
+}
+
+interface CustomTargetProfile extends TargetProfileBase {
+  id: string;
+  name: string;
+  createdAt: string;
+}
 
 const formatItems: Array<{ title: string; value: OutputFormat }> = [
   { title: "GIF", value: "gif" },
@@ -392,6 +496,96 @@ const orientationItems: Array<{ title: string; value: VideoOrientation }> = [
   { title: "Rotate 90 counter-clockwise", value: "ccw90" },
   { title: "Rotate 180", value: "flip180" },
 ];
+
+const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
+  { title: "Development board preset", value: "preset" },
+  { title: "Custom target profile", value: "custom" },
+];
+
+const boardPresets: BoardPreset[] = [
+  {
+    id: "esp32-st7789-240",
+    name: "ESP32-S3 + ST7789 240x240",
+    bundle: "Round/square TFT board package",
+    width: 240,
+    height: 240,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    outputFormat: "mjpeg",
+    decodePipeline: "MJPEG + RGB565",
+    maxFps: 20,
+    maxBitrateKbps: 2200,
+    notes: "Balanced for SPI displays with limited RAM.",
+  },
+  {
+    id: "esp32-ili9341-320x240",
+    name: "ESP32 + ILI9341 320x240",
+    bundle: "2.8-inch TFT board package",
+    width: 320,
+    height: 240,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 20,
+    quality: 6,
+    outputFormat: "avi",
+    decodePipeline: "AVI (MJPEG) + RGB565",
+    maxFps: 24,
+    maxBitrateKbps: 2800,
+    notes: "Good default for common ESP32 TFT dev boards.",
+  },
+  {
+    id: "lilygo-t-display-s3",
+    name: "LILYGO T-Display-S3 170x320",
+    bundle: "Integrated ESP32-S3 display board",
+    width: 170,
+    height: 320,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 18,
+    quality: 7,
+    outputFormat: "mjpeg",
+    decodePipeline: "MJPEG + ST7789 driver",
+    maxFps: 24,
+    maxBitrateKbps: 2400,
+    notes: "Portrait profile tuned for 170x320 panel.",
+  },
+  {
+    id: "m5stack-core2",
+    name: "M5Stack Core2 320x240",
+    bundle: "Integrated ESP32 display board",
+    width: 320,
+    height: 240,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 20,
+    quality: 6,
+    outputFormat: "avi",
+    decodePipeline: "AVI (MJPEG) + LVGL playback",
+    maxFps: 24,
+    maxBitrateKbps: 3000,
+    notes: "Matches 320x240 LCD and common playback stacks.",
+  },
+  {
+    id: "esp32-st7789-135x240",
+    name: "ESP32 + ST7789 135x240",
+    bundle: "Narrow portrait TFT board package",
+    width: 135,
+    height: 240,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 12,
+    quality: 8,
+    outputFormat: "mjpeg",
+    decodePipeline: "MJPEG + RGB565",
+    maxFps: 16,
+    maxBitrateKbps: 1500,
+    notes: "Conservative defaults for small SPI displays.",
+  },
+];
+
+const customTargetStorageKey = "video-conversion.custom-target-profiles.v1";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
   gif: "gif",
@@ -425,6 +619,11 @@ const startSeconds = ref<number | null>(null);
 const endSeconds = ref<number | null>(null);
 const previewFrameSeconds = ref<number | null>(0);
 const mp3Bitrate = ref<number | null>(128);
+const targetSetupMode = ref<TargetSetupMode>("preset");
+const selectedBoardPresetId = ref<string>(boardPresets[0]?.id ?? "");
+const customProfiles = ref<CustomTargetProfile[]>([]);
+const selectedCustomProfileId = ref<string | null>(null);
+const customProfileName = ref("");
 
 const sourceMetadata = ref<VideoMetadataResult | null>(null);
 const sourceMetadataLoading = ref(false);
@@ -441,6 +640,28 @@ const logLines = ref<string[]>([]);
 let convertAbortController: AbortController | null = null;
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
+
+const boardPresetItems = computed(() =>
+  boardPresets.map((preset) => ({
+    title: `${preset.name} (${preset.width}x${preset.height})`,
+    value: preset.id,
+  }))
+);
+
+const customProfileItems = computed(() =>
+  customProfiles.value.map((profile) => ({
+    title: `${profile.name} (${profile.width}x${profile.height})`,
+    value: profile.id,
+  }))
+);
+
+const selectedBoardPreset = computed(() =>
+  boardPresets.find((preset) => preset.id === selectedBoardPresetId.value) ?? null
+);
+
+const selectedCustomProfile = computed(() =>
+  customProfiles.value.find((profile) => profile.id === selectedCustomProfileId.value) ?? null
+);
 
 const isVideoSource = computed(() => {
   if (!sourceFile.value) {
@@ -512,6 +733,47 @@ const canConvert = computed(() => {
   return true;
 });
 
+const canSaveCustomProfile = computed(() => {
+  if (processing.value || targetSetupMode.value !== "custom") {
+    return false;
+  }
+  const hasName = customProfileName.value.trim().length > 0;
+  const hasSize =
+    typeof width.value === "number" &&
+    width.value > 0 &&
+    typeof height.value === "number" &&
+    height.value > 0;
+  return hasName && hasSize;
+});
+
+const selectedBoardPresetDetails = computed(() => {
+  const preset = selectedBoardPreset.value;
+  if (!preset) {
+    return "";
+  }
+  return `${preset.bundle}. ${preset.decodePipeline}. Recommended ${preset.outputFormat.toUpperCase()} at up to ${preset.maxFps} FPS (${preset.maxBitrateKbps} kbps target). ${preset.notes}`;
+});
+
+const targetCompatibilityWarning = computed(() => {
+  if (targetSetupMode.value !== "preset" || !isVideoOutput.value) {
+    return null;
+  }
+  const preset = selectedBoardPreset.value;
+  if (!preset) {
+    return null;
+  }
+  if (typeof fps.value === "number" && fps.value > preset.maxFps) {
+    return `Selected FPS (${Math.round(fps.value)}) is above ${preset.name}'s recommended max (${preset.maxFps}).`;
+  }
+  if (
+    outputFormat.value !== "mp3" &&
+    outputFormat.value !== preset.outputFormat
+  ) {
+    return `${preset.name} is tuned for ${preset.outputFormat.toUpperCase()} output.`;
+  }
+  return null;
+});
+
 const sourceMetadataLabel = computed(() => {
   if (!sourceFile.value) {
     return "No file selected.";
@@ -552,6 +814,231 @@ const toPositiveNullable = (value: string | number | null): number | null => {
     return null;
   }
   return parsed <= 0 ? 1 : parsed;
+};
+
+const toPositiveInteger = (value: unknown): number | null => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.round(parsed);
+};
+
+const toPositiveIntegerOrNull = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  return toPositiveInteger(value);
+};
+
+const isVideoOrientation = (value: unknown): value is VideoOrientation =>
+  value === "none" || value === "cw90" || value === "ccw90" || value === "flip180";
+
+const isVideoScaleMode = (value: unknown): value is VideoScaleMode =>
+  value === "fit" || value === "fill" || value === "stretch";
+
+const isVideoOutputFormat = (value: unknown): value is VideoOutputFormat =>
+  value === "gif" || value === "mjpeg" || value === "avi";
+
+const createProfileId = (): string => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const normalizeVideoOutputFormat = (format: OutputFormat): VideoOutputFormat =>
+  format === "mp3" ? "mjpeg" : format;
+
+const parseCustomTargetProfile = (value: unknown): CustomTargetProfile | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = typeof record.id === "string" ? record.id : "";
+  const name = typeof record.name === "string" ? record.name.trim() : "";
+  const widthValue = toPositiveInteger(record.width);
+  const heightValue = toPositiveInteger(record.height);
+  const orientationValue = record.orientation;
+  const scaleModeValue = record.scaleMode;
+  const outputFormatValue = record.outputFormat;
+  if (
+    !id ||
+    !name ||
+    !widthValue ||
+    !heightValue ||
+    !isVideoOrientation(orientationValue) ||
+    !isVideoScaleMode(scaleModeValue) ||
+    !isVideoOutputFormat(outputFormatValue)
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    width: widthValue,
+    height: heightValue,
+    orientation: orientationValue,
+    scaleMode: scaleModeValue,
+    fps: toPositiveIntegerOrNull(record.fps),
+    quality: toPositiveIntegerOrNull(record.quality),
+    outputFormat: outputFormatValue,
+    createdAt:
+      typeof record.createdAt === "string"
+        ? record.createdAt
+        : new Date().toISOString(),
+  };
+};
+
+const persistCustomProfiles = () => {
+  try {
+    localStorage.setItem(customTargetStorageKey, JSON.stringify(customProfiles.value));
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to persist target profiles.";
+    appendLog(`[warn] ${message}`);
+  }
+};
+
+const loadCustomProfiles = () => {
+  try {
+    const raw = localStorage.getItem(customTargetStorageKey);
+    if (!raw) {
+      customProfiles.value = [];
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      customProfiles.value = [];
+      return;
+    }
+    customProfiles.value = parsed
+      .map((item) => parseCustomTargetProfile(item))
+      .filter((item): item is CustomTargetProfile => item !== null);
+  } catch (error) {
+    customProfiles.value = [];
+    const message =
+      error instanceof Error ? error.message : "Failed to load saved target profiles.";
+    appendLog(`[warn] ${message}`);
+  }
+};
+
+const applyTargetProfile = (
+  profile: TargetProfileBase & { name: string },
+  options: { setOutputFormat?: boolean; writeLog?: boolean } = {}
+) => {
+  const setOutputFormat = options.setOutputFormat ?? true;
+  const writeLog = options.writeLog ?? true;
+  outputSizeMode.value = "custom";
+  width.value = profile.width;
+  height.value = profile.height;
+  orientation.value = profile.orientation;
+  scaleMode.value = profile.scaleMode;
+  fps.value = profile.fps;
+  quality.value = profile.quality;
+  if (setOutputFormat) {
+    outputFormat.value = profile.outputFormat;
+  }
+  if (writeLog) {
+    appendLog(
+      `[app] Applied target profile: ${profile.name} (${profile.width}x${profile.height}).`
+    );
+  }
+};
+
+const applySelectedBoardPreset = (
+  options: { setOutputFormat?: boolean; writeLog?: boolean } = {}
+) => {
+  const preset = selectedBoardPreset.value;
+  if (!preset) {
+    return;
+  }
+  applyTargetProfile(preset, options);
+};
+
+const applySelectedCustomProfile = (
+  options: { setOutputFormat?: boolean; writeLog?: boolean } = {}
+) => {
+  const profile = selectedCustomProfile.value;
+  if (!profile) {
+    return;
+  }
+  applyTargetProfile(profile, options);
+};
+
+const applySizingDefaults = () => {
+  if (outputSizeMode.value !== "custom") {
+    return;
+  }
+  if (targetSetupMode.value === "preset") {
+    applySelectedBoardPreset({ setOutputFormat: false, writeLog: false });
+    return;
+  }
+  if (selectedCustomProfile.value) {
+    applySelectedCustomProfile({ setOutputFormat: false, writeLog: false });
+    return;
+  }
+  if (sourceMetadata.value) {
+    width.value = sourceMetadata.value.width;
+    height.value = sourceMetadata.value.height;
+  }
+};
+
+const saveCustomProfile = () => {
+  if (!canSaveCustomProfile.value) {
+    return;
+  }
+
+  const widthValue = toPositiveInteger(width.value);
+  const heightValue = toPositiveInteger(height.value);
+  if (!widthValue || !heightValue) {
+    return;
+  }
+
+  const profile: CustomTargetProfile = {
+    id: selectedCustomProfileId.value ?? createProfileId(),
+    name: customProfileName.value.trim(),
+    width: widthValue,
+    height: heightValue,
+    orientation: orientation.value,
+    scaleMode: scaleMode.value,
+    fps: toPositiveIntegerOrNull(fps.value),
+    quality: toPositiveIntegerOrNull(quality.value),
+    outputFormat: normalizeVideoOutputFormat(outputFormat.value),
+    createdAt: new Date().toISOString(),
+  };
+
+  const existingIndex = customProfiles.value.findIndex(
+    (item) => item.id === profile.id
+  );
+  if (existingIndex >= 0) {
+    const next = [...customProfiles.value];
+    next[existingIndex] = profile;
+    customProfiles.value = next;
+    appendLog(`[app] Updated custom target profile "${profile.name}".`);
+  } else {
+    customProfiles.value = [...customProfiles.value, profile];
+    appendLog(`[app] Saved custom target profile "${profile.name}".`);
+  }
+  selectedCustomProfileId.value = profile.id;
+  persistCustomProfiles();
+};
+
+const deleteSelectedCustomProfile = () => {
+  if (!selectedCustomProfileId.value) {
+    return;
+  }
+  const profile = selectedCustomProfile.value;
+  customProfiles.value = customProfiles.value.filter(
+    (item) => item.id !== selectedCustomProfileId.value
+  );
+  persistCustomProfiles();
+  selectedCustomProfileId.value = null;
+  customProfileName.value = "";
+  if (profile) {
+    appendLog(`[app] Deleted custom target profile "${profile.name}".`);
+  }
 };
 
 const appendLog = (message: string) => {
@@ -661,10 +1148,7 @@ const loadSourceMetadata = async () => {
       return;
     }
     sourceMetadata.value = metadata;
-    if (outputSizeMode.value === "custom") {
-      width.value = metadata.width;
-      height.value = metadata.height;
-    }
+    applySizingDefaults();
   } catch (error) {
     if (sourceFile.value !== file) {
       return;
@@ -927,15 +1411,60 @@ watch(outputFormat, (format) => {
   outputFileName.value = buildDefaultOutputName(sourceFile.value.name, format);
 });
 
-watch(outputSizeMode, (mode) => {
-  if (mode !== "custom" || !sourceMetadata.value) {
+watch(targetSetupMode, (mode) => {
+  if (!isVideoOutput.value) {
     return;
   }
-  width.value = sourceMetadata.value.width;
-  height.value = sourceMetadata.value.height;
+  if (mode === "preset") {
+    applySelectedBoardPreset();
+    return;
+  }
+  if (selectedCustomProfile.value) {
+    customProfileName.value = selectedCustomProfile.value.name;
+    applySelectedCustomProfile();
+  }
+});
+
+watch(selectedBoardPresetId, () => {
+  if (targetSetupMode.value !== "preset" || !isVideoOutput.value) {
+    return;
+  }
+  applySelectedBoardPreset();
+});
+
+watch(selectedCustomProfileId, () => {
+  if (targetSetupMode.value !== "custom" || !isVideoOutput.value) {
+    return;
+  }
+  const profile = selectedCustomProfile.value;
+  if (!profile) {
+    return;
+  }
+  customProfileName.value = profile.name;
+  applySelectedCustomProfile();
+});
+
+watch(outputSizeMode, (mode) => {
+  if (mode !== "custom") {
+    return;
+  }
+  applySizingDefaults();
+});
+
+watch(isVideoOutput, (nextIsVideoOutput) => {
+  if (!nextIsVideoOutput) {
+    return;
+  }
+  applySizingDefaults();
 });
 
 onMounted(() => {
+  loadCustomProfiles();
+  if (targetSetupMode.value === "preset") {
+    applySelectedBoardPreset({ setOutputFormat: false, writeLog: false });
+  } else {
+    applySizingDefaults();
+  }
   void initializeFfmpeg();
 });
 
