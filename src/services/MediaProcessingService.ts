@@ -270,55 +270,7 @@ const pickFailureLogLine = (logs: string[]): string | null => {
 
 interface RunTranscodeOptions {
   preInputArgs?: string[];
-  expectedDurationSeconds?: number | null;
 }
-
-const parseProgressClockToSeconds = (value: string): number | null => {
-  const match = value.trim().match(/^(-)?(\d+):(\d{2}):(\d{2}(?:\.\d+)?)$/);
-  if (!match || match[1]) {
-    return null;
-  }
-  const hours = Number(match[2]);
-  const minutes = Number(match[3]);
-  const seconds = Number(match[4]);
-  if (![hours, minutes, seconds].every(Number.isFinite)) {
-    return null;
-  }
-  return hours * 3600 + minutes * 60 + seconds;
-};
-
-const parseProgressSecondsFromLog = (line: string): number | null => {
-  const outTimeUsMatch = line.match(/\bout_time_us=(\d+)/);
-  if (outTimeUsMatch) {
-    const outTimeUs = Number(outTimeUsMatch[1]);
-    if (Number.isFinite(outTimeUs) && outTimeUs >= 0) {
-      return outTimeUs / 1_000_000;
-    }
-  }
-
-  const outTimeMsMatch = line.match(/\bout_time_ms=(\d+)/);
-  if (outTimeMsMatch) {
-    const outTimeMs = Number(outTimeMsMatch[1]);
-    if (Number.isFinite(outTimeMs) && outTimeMs >= 0) {
-      // ffmpeg reports out_time_ms in microseconds.
-      return outTimeMs / 1_000_000;
-    }
-  }
-
-  const outTimeMatch = line.match(/\bout_time=(\d+:\d{2}:\d{2}(?:\.\d+)?)/);
-  if (outTimeMatch) {
-    const parsed = parseProgressClockToSeconds(outTimeMatch[1]);
-    if (parsed !== null) {
-      return parsed;
-    }
-  }
-
-  const timeMatch = line.match(/\btime=([-\d:.]+)/);
-  if (!timeMatch) {
-    return null;
-  }
-  return parseProgressClockToSeconds(timeMatch[1]);
-};
 
 export class MediaProcessingService {
   private ffmpeg: FFmpeg | null = null;
@@ -366,36 +318,16 @@ export class MediaProcessingService {
       : `${jobId}-input.bin`;
     const outputName = `${jobId}-output.${outputExt}`;
     const recentLogLines: string[] = [];
-    let progressDurationSeconds =
-      typeof options.expectedDurationSeconds === "number" &&
-      Number.isFinite(options.expectedDurationSeconds) &&
-      options.expectedDurationSeconds > 0
-        ? options.expectedDurationSeconds
-        : null;
-    let latestProgressPercent = 0;
     const inputExtension = getFileExtension(file.name);
     const forceMjpegInput =
       inputExtension === "mjpeg" || inputExtension === "mjpg";
-
-    const emitProgress = (percent: number, allowComplete = false) => {
-      if (!onProgress || !Number.isFinite(percent)) {
-        return;
-      }
-      const maxPercent = allowComplete ? 100 : 99;
-      const normalized = Math.max(0, Math.min(maxPercent, Math.round(percent)));
-      if (normalized <= latestProgressPercent) {
-        return;
-      }
-      latestProgressPercent = normalized;
-      onProgress(normalized);
-    };
 
     const handleProgress = (progress: { progress?: number }) => {
       if (!onProgress || typeof progress.progress !== "number") {
         return;
       }
       const percent = Math.max(0, Math.min(100, Math.round(progress.progress * 100)));
-      emitProgress(percent, false);
+      onProgress(percent);
     };
     const handleLog = (log: { message?: string; type?: string }) => {
       const line = log.message?.trim();
@@ -403,23 +335,6 @@ export class MediaProcessingService {
         recentLogLines.push(line);
         if (recentLogLines.length > 80) {
           recentLogLines.shift();
-        }
-        if (progressDurationSeconds === null) {
-          const parsedDuration = parseDurationToSeconds(line);
-          if (
-            typeof parsedDuration === "number" &&
-            Number.isFinite(parsedDuration) &&
-            parsedDuration > 0
-          ) {
-            progressDurationSeconds = parsedDuration;
-          }
-        }
-        if (progressDurationSeconds !== null) {
-          const progressSeconds = parseProgressSecondsFromLog(line);
-          if (typeof progressSeconds === "number" && Number.isFinite(progressSeconds)) {
-            const progressPercent = (progressSeconds / progressDurationSeconds) * 100;
-            emitProgress(progressPercent, false);
-          }
         }
       }
       if (!onLog) {
@@ -517,7 +432,7 @@ export class MediaProcessingService {
           }
           throw new Error("FFmpeg produced an empty output file.");
         }
-        emitProgress(100, true);
+        onProgress?.(100);
         return {
           data: normalizedPayload,
           outputName,
@@ -727,9 +642,7 @@ export class MediaProcessingService {
     }
     const quality = options?.quality ?? 3;
     args.push("-q:v", `${quality}`);
-    return this.runTranscode(file, "mjpeg", args, onProgress, onLog, signal, {
-      expectedDurationSeconds: durationSeconds,
-    });
+    return this.runTranscode(file, "mjpeg", args, onProgress, onLog, signal);
   }
 
   async transcodeVideoToGif(
@@ -775,9 +688,7 @@ export class MediaProcessingService {
     }
 
     args.push("-loop", "0");
-    return this.runTranscode(file, "gif", args, onProgress, onLog, signal, {
-      expectedDurationSeconds: durationSeconds,
-    });
+    return this.runTranscode(file, "gif", args, onProgress, onLog, signal);
   }
 
   async transcodeVideoToAvi(
@@ -818,9 +729,7 @@ export class MediaProcessingService {
     }
     const quality = options?.quality ?? 4;
     args.push("-c:v", "mjpeg", "-q:v", `${quality}`);
-    return this.runTranscode(file, "avi", args, onProgress, onLog, signal, {
-      expectedDurationSeconds: durationSeconds,
-    });
+    return this.runTranscode(file, "avi", args, onProgress, onLog, signal);
   }
 
   async renderVideoFramePreview(
