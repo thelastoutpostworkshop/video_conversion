@@ -220,6 +220,42 @@
                   </v-col>
                 </v-row>
 
+                <v-row dense class="mt-2">
+                  <v-col cols="12">
+                    <v-card
+                      variant="tonal"
+                      class="preview-time-card"
+                      :disabled="!isVideoSource || !isVideoOutput"
+                    >
+                      <v-card-text class="py-3">
+                        <div class="d-flex align-center mb-2">
+                          <div class="text-subtitle-2">Preview frame position</div>
+                          <v-spacer />
+                          <div class="text-caption text-medium-emphasis">
+                            {{ previewSecondDisplay }}
+                          </div>
+                        </div>
+                        <v-slider
+                          v-model="previewSecondModel"
+                          :min="0"
+                          :max="previewSecondsMax"
+                          :step="previewSecondsStep"
+                          :disabled="
+                            processing ||
+                            previewFrameBusy ||
+                            !sourceFile ||
+                            !isVideoSource ||
+                            !isVideoOutput
+                          "
+                          color="primary"
+                          thumb-label="always"
+                          hide-details
+                        />
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+
                 <v-divider class="my-4" />
                 <div class="step-heading mb-2">
                   <div class="text-subtitle-1 font-weight-medium">
@@ -307,19 +343,6 @@
                       @update:model-value="(value) => (quality = toNullableNumber(value))"
                     />
                   </v-col>
-                  <v-col cols="12" md="2">
-                    <v-text-field
-                      :model-value="previewFrameSeconds"
-                      label="Preview second"
-                      type="number"
-                      density="comfortable"
-                      :disabled="processing || previewFrameBusy"
-                      @update:model-value="
-                        (value) => (previewFrameSeconds = toNonNegativeNullable(value))
-                      "
-                    />
-                  </v-col>
-
                   <v-col cols="12" md="6">
                     <v-text-field
                       :model-value="startSeconds"
@@ -1174,6 +1197,40 @@ const {
   onLog: appendLog,
 });
 
+const previewSecondsMax = computed(() => {
+  const duration = sourceMetadata.value?.durationSeconds;
+  if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+    return Math.max(0.5, Number(duration.toFixed(1)));
+  }
+  return 30;
+});
+
+const previewSecondsStep = computed(() =>
+  previewSecondsMax.value <= 30 ? 0.1 : 0.5
+);
+
+const previewSecondModel = computed<number>({
+  get: () =>
+    typeof previewFrameSeconds.value === "number"
+      ? Math.min(previewSecondsMax.value, Math.max(0, previewFrameSeconds.value))
+      : 0,
+  set: (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      previewFrameSeconds.value = 0;
+      return;
+    }
+    previewFrameSeconds.value = Math.min(previewSecondsMax.value, Math.max(0, parsed));
+  },
+});
+
+const previewSecondDisplay = computed(() => {
+  if (!sourceFile.value || !isVideoSource.value || !isVideoOutput.value) {
+    return "Unavailable";
+  }
+  return `${previewSecondModel.value.toFixed(1)} s / ${previewSecondsMax.value.toFixed(1)} s`;
+});
+
 const buildVideoOptions = (): VideoTranscodeOptions => {
   const options: VideoTranscodeOptions = {
     orientation: orientation.value,
@@ -1339,6 +1396,12 @@ watch(
   { immediate: true }
 );
 
+watch(previewSecondsMax, (maxSeconds) => {
+  if (previewSecondModel.value > maxSeconds) {
+    previewSecondModel.value = maxSeconds;
+  }
+});
+
 watch(activeView, (nextView) => {
   if (nextView === "logs") {
     sectionObserver?.disconnect();
@@ -1365,6 +1428,7 @@ watch(sourceFile, (file) => {
   outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
 
   if (isVideoSource.value && isVideoOutput.value) {
+    previewSecondModel.value = 0;
     schedulePreviewFrameRefresh(50);
   }
 });
@@ -1502,6 +1566,10 @@ onBeforeUnmount(() => {
 .step-heading {
   display: grid;
   gap: 2px;
+}
+
+.preview-time-card {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .app-nav-target {
