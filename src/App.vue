@@ -76,7 +76,7 @@
                 <div>
                   <div class="text-h6">Conversion workspace</div>
                   <div class="text-caption text-medium-emphasis">
-                    Source, target, and export in one flow.
+                    Board, source, settings, and export in one flow.
                   </div>
                 </div>
               </v-card-title>
@@ -84,48 +84,15 @@
               <v-divider />
 
               <v-card-text>
-                <div id="section-source" class="app-nav-target" />
-                <v-row dense>
-                  <v-col cols="12" md="8">
-                    <SourceFileInput
-                      v-model="sourceFile"
-                      :disabled="processing || previewFrameBusy"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-select
-                      v-model="outputFormat"
-                      :items="formatItems"
-                      item-title="title"
-                      item-value="value"
-                      label="Output format"
-                      density="comfortable"
-                      :disabled="processing || previewFrameBusy"
-                    />
-                  </v-col>
-                </v-row>
-
-                <v-row dense class="mt-2">
-                  <v-col cols="12" md="8">
-                    <PreviewFrameSurface
-                      :preview-frame-url="previewFrameUrl"
-                      :preview-frame-busy="previewFrameBusy"
-                      :has-source-file="Boolean(sourceFile)"
-                      :is-video-source="isVideoSource"
-                      :is-video-output="isVideoOutput"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <SourceMetadataCard
-                      :label="sourceMetadataLabel"
-                      :loading="sourceMetadataLoading"
-                      :error="sourceMetadataError"
-                    />
-                  </v-col>
-                </v-row>
-
-                <v-divider class="my-4" />
                 <div id="section-target" class="app-nav-target" />
+                <div class="step-heading mb-2">
+                  <div class="text-subtitle-1 font-weight-medium">
+                    1. Choose development board
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Select a board preset or custom profile before configuring conversion details.
+                  </div>
+                </div>
 
                 <v-row v-if="isVideoOutput" dense>
                   <v-col cols="12" md="4">
@@ -198,7 +165,72 @@
                       Delete
                     </v-btn>
                   </v-col>
+                </v-row>
+                <v-alert v-else type="info" variant="tonal" class="mt-2">
+                  Development board presets are available for video output formats.
+                </v-alert>
 
+                <v-divider class="my-4" />
+                <div id="section-source" class="app-nav-target" />
+                <div class="step-heading mb-2">
+                  <div class="text-subtitle-1 font-weight-medium">
+                    2. Choose source media
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Select the video to convert, then confirm output format and preview metadata.
+                  </div>
+                </div>
+
+                <v-row dense>
+                  <v-col cols="12" md="8">
+                    <SourceFileInput
+                      v-model="sourceFile"
+                      :disabled="processing || previewFrameBusy"
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-select
+                      v-model="outputFormat"
+                      :items="formatItems"
+                      item-title="title"
+                      item-value="value"
+                      label="Output format"
+                      density="comfortable"
+                      :disabled="processing || previewFrameBusy"
+                    />
+                  </v-col>
+                </v-row>
+
+                <v-row dense class="mt-2">
+                  <v-col cols="12" md="8">
+                    <PreviewFrameSurface
+                      :preview-frame-url="previewFrameUrl"
+                      :preview-frame-busy="previewFrameBusy"
+                      :has-source-file="Boolean(sourceFile)"
+                      :is-video-source="isVideoSource"
+                      :is-video-output="isVideoOutput"
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <SourceMetadataCard
+                      :label="sourceMetadataLabel"
+                      :loading="sourceMetadataLoading"
+                      :error="sourceMetadataError"
+                    />
+                  </v-col>
+                </v-row>
+
+                <v-divider class="my-4" />
+                <div class="step-heading mb-2">
+                  <div class="text-subtitle-1 font-weight-medium">
+                    3. Adjust conversion settings
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Tune size, orientation, quality, and trimming before conversion.
+                  </div>
+                </div>
+
+                <v-row v-if="isVideoOutput" dense>
                   <v-col cols="12" md="4">
                     <v-select
                       v-model="outputSizeMode"
@@ -313,7 +345,6 @@
                     />
                   </v-col>
                 </v-row>
-
                 <v-row v-else dense>
                   <v-col cols="12" md="4">
                     <v-text-field
@@ -340,6 +371,14 @@
 
                 <v-divider class="my-4" />
                 <div id="section-export" class="app-nav-target" />
+                <div class="step-heading mb-2">
+                  <div class="text-subtitle-1 font-weight-medium">
+                    4. Convert and download
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Launch conversion, monitor progress, and download the output file.
+                  </div>
+                </div>
 
                 <v-row dense>
                   <v-col cols="12" md="8">
@@ -468,7 +507,7 @@ type OutputFormat = VideoOutputFormat | "mp3";
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
-type WorkspaceSectionId = "source" | "target" | "export";
+type WorkspaceSectionId = "target" | "source" | "export";
 type AppNavigationId = WorkspaceSectionId | "logs";
 type AppView = "workspace" | "logs";
 type AppTheme = "light" | "dark";
@@ -510,12 +549,12 @@ const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
 ];
 
 const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string }> = [
+  { id: "target", title: "Board", icon: "mdi-tune-variant" },
   { id: "source", title: "Source", icon: "mdi-file-video-outline" },
-  { id: "target", title: "Target", icon: "mdi-tune-variant" },
   { id: "export", title: "Export", icon: "mdi-file-export-outline" },
   { id: "logs", title: "Logs", icon: "mdi-text-box-search-outline" },
 ];
-const workspaceSectionIds: WorkspaceSectionId[] = ["source", "target", "export"];
+const workspaceSectionIds: WorkspaceSectionId[] = ["target", "source", "export"];
 
 const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
   {
@@ -573,7 +612,7 @@ const customProfiles = ref<CustomTargetProfile[]>([]);
 const selectedCustomProfileId = ref<string | null>(null);
 const customProfileName = ref("");
 const drawerOpen = ref(true);
-const activeNavigation = ref<AppNavigationId>("source");
+const activeNavigation = ref<AppNavigationId>("target");
 
 const { mdAndDown } = useDisplay();
 const theme = useTheme();
@@ -1453,6 +1492,11 @@ onBeforeUnmount(() => {
 
 .resources-list :deep(.v-list-item-title) {
   font-weight: 600;
+}
+
+.step-heading {
+  display: grid;
+  gap: 2px;
 }
 
 .app-nav-target {
