@@ -50,7 +50,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "jc4827w543",
     name: "Guiton JC4827W543",
-    imagePath: "board-catalog/esp32-st7789-240x240.svg",
+    imagePath: "board-catalog/JC4827W543.png",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oEHbBud",
     width: 480,
