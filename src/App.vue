@@ -276,17 +276,6 @@
                         <v-row v-if="isVideoOutput" dense>
                           <v-col cols="12">
                             <v-select
-                              v-model="outputSizeMode"
-                              :items="sizeModeItems"
-                              item-title="title"
-                              item-value="value"
-                              label="Output size"
-                              density="comfortable"
-                              :disabled="processing"
-                            />
-                          </v-col>
-                          <v-col cols="12">
-                            <v-select
                               v-model="orientation"
                               :items="orientationItems"
                               item-title="title"
@@ -560,11 +549,6 @@ const formatItems: Array<{ title: string; value: OutputFormat }> = [
   { title: "MP3 (audio extract)", value: "mp3" },
 ];
 
-const sizeModeItems: Array<{ title: string; value: OutputSizeMode }> = [
-  { title: "Original", value: "original" },
-  { title: "Custom", value: "custom" },
-];
-
 const scaleModeItems: Array<{ title: string; value: VideoScaleMode }> = [
   { title: "Fit (pad)", value: "fit" },
   { title: "Fill (crop)", value: "fill" },
@@ -631,7 +615,7 @@ const outputFileUrl = ref<string | null>(null);
 
 const outputFormat = ref<OutputFormat>("gif");
 const outputFileName = ref("");
-const outputSizeMode = ref<OutputSizeMode>("original");
+const outputSizeMode = ref<OutputSizeMode>("custom");
 const width = ref<number | null>(320);
 const height = ref<number | null>(240);
 const scaleMode = ref<VideoScaleMode>("fit");
