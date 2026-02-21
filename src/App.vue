@@ -200,7 +200,7 @@
                     <v-card
                       variant="tonal"
                       class="preview-time-card"
-                      :disabled="!isVideoSource || !isVideoOutput"
+                      :class="{ 'preview-time-card--inactive': !hasPreviewSource }"
                     >
                       <v-card-text class="py-3">
                         <div class="d-flex align-center mb-2">
@@ -220,17 +220,14 @@
                         </div>
                         <v-slider
                           v-model="previewSecondModel"
+                          class="preview-position-slider"
+                          :class="{ 'preview-position-slider--inactive': !hasPreviewSource }"
                           :min="0"
                           :max="previewSecondsMax"
                           :step="previewSecondsStep"
-                          :disabled="
-                            processing ||
-                            previewFrameBusy ||
-                            !sourceFile ||
-                            !isVideoSource ||
-                            !isVideoOutput
-                          "
-                          color="primary"
+                          :disabled="isPreviewSliderDisabled"
+                          :color="previewSliderColor"
+                          base-color="grey-darken-3"
                           thumb-label
                           hide-details
                         />
@@ -767,7 +764,7 @@ const persistThemePreference = (nextTheme: AppTheme) => {
 
 const toggleTheme = () => {
   const nextTheme: AppTheme = isDarkTheme.value ? "light" : "dark";
-  theme.global.name.value = nextTheme;
+  theme.change(nextTheme);
 };
 
 const isWorkspaceSectionId = (value: string): value is WorkspaceSectionId =>
@@ -1095,8 +1092,20 @@ const previewSecondModel = computed<number>({
   },
 });
 
+const hasPreviewSource = computed(
+  () => Boolean(sourceFile.value) && isVideoSource.value && isVideoOutput.value
+);
+
+const isPreviewSliderDisabled = computed(
+  () => processing.value || previewFrameBusy.value || !hasPreviewSource.value
+);
+
+const previewSliderColor = computed(() =>
+  hasPreviewSource.value ? "primary" : "grey-darken-1"
+);
+
 const previewSecondDisplay = computed(() => {
-  if (!sourceFile.value || !isVideoSource.value || !isVideoOutput.value) {
+  if (!hasPreviewSource.value) {
     return "Unavailable";
   }
   return `${previewSecondModel.value.toFixed(1)} s / ${previewSecondsMax.value.toFixed(1)} s`;
@@ -1442,6 +1451,23 @@ onBeforeUnmount(() => {
 
 .preview-time-card {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.preview-time-card--inactive {
+  background: rgba(var(--v-theme-surface), 0.32);
+}
+
+.preview-position-slider--inactive {
+  opacity: 0.55;
+}
+
+.preview-position-slider--inactive :deep(.v-slider-track__background),
+.preview-position-slider--inactive :deep(.v-slider-track__fill) {
+  background-color: rgba(var(--v-theme-on-surface), 0.24) !important;
+}
+
+.preview-position-slider--inactive :deep(.v-slider-thumb__surface) {
+  background-color: rgba(var(--v-theme-on-surface), 0.3) !important;
 }
 
 .source-metadata-inline {
