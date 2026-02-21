@@ -58,13 +58,13 @@
         @click="toggleTheme"
       />
       <v-chip
-        v-if="!mdAndDown"
-        :color="ffmpegStatusColor"
+        v-if="!mdAndDown && hasBoardSelection"
+        color="info"
         variant="tonal"
         size="small"
-        prepend-icon="mdi-memory"
+        prepend-icon="mdi-monitor-dashboard"
       >
-        {{ ffmpegStatusText }}
+        {{ workspaceBoardSummary }}
       </v-chip>
     </v-app-bar>
 
@@ -245,15 +245,7 @@
 
               <v-card-text>
                 <section class="workspace-section">
-                  <div class="d-flex flex-wrap align-center ga-2 mb-3">
-                    <v-chip
-                      color="info"
-                      variant="tonal"
-                      prepend-icon="mdi-monitor-dashboard"
-                    >
-                      {{ workspaceBoardSummary }}
-                    </v-chip>
-                    <v-spacer />
+                  <div class="d-flex justify-end mb-3">
                     <v-btn
                       size="small"
                       variant="tonal"
@@ -851,32 +843,6 @@ const boardCatalogFiltered = computed(() => {
       .toLowerCase()
       .includes(query)
   );
-});
-
-const ffmpegStatusText = computed(() => {
-  if (ffmpegStatus.value === "loading") {
-    return "FFmpeg loading";
-  }
-  if (ffmpegStatus.value === "ready") {
-    return "FFmpeg ready";
-  }
-  if (ffmpegStatus.value === "error") {
-    return "FFmpeg error";
-  }
-  return "FFmpeg idle";
-});
-
-const ffmpegStatusColor = computed(() => {
-  if (ffmpegStatus.value === "loading") {
-    return "info";
-  }
-  if (ffmpegStatus.value === "ready") {
-    return "success";
-  }
-  if (ffmpegStatus.value === "error") {
-    return "error";
-  }
-  return "warning";
 });
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
