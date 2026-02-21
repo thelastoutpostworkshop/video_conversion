@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <rect x="305" y="90" width="350" height="350" rx="30" fill="#111827" stroke="#5eead4" stroke-width="8"/>
+  <rect x="355" y="140" width="250" height="250" rx="20" fill="#14b8a6" opacity="0.88"/>
+  <text x="40" y="72" fill="#ccfbf1" font-family="Verdana, sans-serif" font-size="32" font-weight="700">ESP32-S3 + ST7789</text>
+  <text x="40" y="112" fill="#99f6e4" font-family="Verdana, sans-serif" font-size="24">Square TFT Dev Board</text>
+  <text x="40" y="488" fill="#ccfbf1" font-family="Verdana, sans-serif" font-size="48" font-weight="700">240 x 240</text>
+</svg>

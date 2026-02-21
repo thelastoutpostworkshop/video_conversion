@@ -18,7 +18,7 @@
             :active="activeNavigation === item.id"
             color="primary"
             rounded="lg"
-            @click="navigateToSection(item.id)"
+            @click="navigateToView(item.id)"
           />
         </v-list>
       </div>
@@ -71,7 +71,102 @@
       <v-container class="py-6">
         <v-row justify="center">
           <v-col cols="12" xl="10">
-            <v-card v-if="activeView === 'workspace'" rounded="lg" elevation="4" class="panel-card">
+            <v-card v-if="activeView === 'boards'" rounded="lg" elevation="4" class="panel-card board-catalog-card">
+              <v-card-title class="d-flex align-center flex-wrap ga-3">
+                <div>
+                  <div class="text-h6">Board catalog</div>
+                  <div class="text-caption text-medium-emphasis">
+                    Pick the closest development board preset before conversion.
+                  </div>
+                </div>
+                <v-spacer />
+                <v-text-field
+                  v-model="boardCatalogQuery"
+                  density="compact"
+                  variant="outlined"
+                  hide-details
+                  clearable
+                  prepend-inner-icon="mdi-magnify"
+                  label="Search boards"
+                  class="board-catalog-search"
+                />
+              </v-card-title>
+              <v-divider />
+              <v-card-text>
+                <v-alert v-if="boardCatalogFiltered.length === 0" type="info" variant="tonal">
+                  No board presets match your search.
+                </v-alert>
+                <v-row v-else dense>
+                  <v-col
+                    v-for="preset in boardCatalogFiltered"
+                    :key="preset.id"
+                    cols="12"
+                    sm="6"
+                    lg="4"
+                    class="d-flex"
+                  >
+                    <v-card
+                      class="board-catalog-item flex-grow-1"
+                      :class="{ 'board-catalog-item--selected': selectedBoardPresetId === preset.id }"
+                      variant="tonal"
+                    >
+                      <v-img
+                        :src="toPublicAssetPath(preset.imagePath)"
+                        :alt="preset.name"
+                        height="164"
+                        cover
+                        class="board-catalog-image"
+                      >
+                        <template #placeholder>
+                          <div class="board-catalog-image-placeholder">
+                            Loading preview...
+                          </div>
+                        </template>
+                      </v-img>
+                      <v-card-title class="text-subtitle-2">
+                        {{ preset.name }}
+                      </v-card-title>
+                      <v-card-subtitle>
+                        {{ preset.bundle }}
+                      </v-card-subtitle>
+                      <v-card-text class="pt-2">
+                        <div class="text-caption text-medium-emphasis">
+                          Resolution: {{ preset.width }}x{{ preset.height }}
+                        </div>
+                        <div class="text-caption text-medium-emphasis">
+                          Defaults:
+                          {{ preset.fps === null ? "Auto FPS" : `${preset.fps} FPS` }},
+                          {{ preset.quality === null ? "Default quality" : `Quality ${preset.quality}` }}
+                        </div>
+                        <div class="text-caption text-medium-emphasis mt-1">
+                          {{ preset.notes }}
+                        </div>
+                      </v-card-text>
+                      <v-card-actions>
+                        <v-btn
+                          color="primary"
+                          variant="flat"
+                          @click="selectBoardFromCatalog(preset.id)"
+                        >
+                          {{ selectedBoardPresetId === preset.id ? "Use selected board" : "Use this board" }}
+                        </v-btn>
+                        <v-spacer />
+                        <v-chip
+                          v-if="selectedBoardPresetId === preset.id"
+                          size="small"
+                          color="success"
+                          variant="tonal"
+                        >
+                          Selected
+                        </v-chip>
+                      </v-card-actions>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <v-card v-else-if="activeView === 'workspace'" rounded="lg" elevation="4" class="panel-card">
               <v-card-title class="d-flex align-center flex-wrap ga-3">
                 <div>
                   <div class="text-h6">Conversion workspace</div>
@@ -93,6 +188,17 @@
                     <div class="text-caption text-medium-emphasis">
                       Select a board preset or custom target size before configuring conversion details.
                     </div>
+                  </div>
+                  <div class="d-flex justify-end mb-2">
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      prepend-icon="mdi-view-grid-outline"
+                      :disabled="processing"
+                      @click="navigateToView('boards')"
+                    >
+                      Browse board catalog
+                    </v-btn>
                   </div>
 
                   <v-row v-if="isVideoOutput" dense class="section-target-grid">
@@ -559,7 +665,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useDisplay, useTheme } from "vuetify";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
 import SourceFileInput from "@/components/SourceFileInput.vue";
@@ -584,9 +690,8 @@ type OutputFormat = VideoOutputFormat | "mp3";
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
-type WorkspaceSectionId = "target" | "source" | "export";
-type AppNavigationId = WorkspaceSectionId | "logs";
-type AppView = "workspace" | "logs";
+type AppNavigationId = "boards" | "workspace" | "logs";
+type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
 
 interface PersistedConversionPreferences {
@@ -621,12 +726,10 @@ const targetSetupModeItems: Array<{ title: string; value: TargetSetupMode }> = [
 ];
 
 const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string }> = [
-  { id: "target", title: "Board", icon: "mdi-tune-variant" },
-  { id: "source", title: "Source", icon: "mdi-file-video-outline" },
-  { id: "export", title: "Export", icon: "mdi-file-export-outline" },
+  { id: "boards", title: "Board Catalog", icon: "mdi-view-grid-outline" },
+  { id: "workspace", title: "Workspace", icon: "mdi-file-cog-outline" },
   { id: "logs", title: "Logs", icon: "mdi-text-box-search-outline" },
 ];
-const workspaceSectionIds: WorkspaceSectionId[] = ["target", "source", "export"];
 
 const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
   {
@@ -646,9 +749,9 @@ const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
   },
 ];
 
-const sectionIdPrefix = "section-";
 const themeStorageKey = "video-conversion.theme.v1";
 const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
+const boardSelectionStorageKey = "video-conversion.board-selection.v1";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
   gif: "gif",
@@ -683,8 +786,9 @@ const isTrimRangeDragging = ref(false);
 const mp3Bitrate = ref<number | null>(128);
 const targetSetupMode = ref<TargetSetupMode>("preset");
 const selectedBoardPresetId = ref<string>(BOARD_PRESETS[0]?.id ?? "");
+const boardCatalogQuery = ref("");
 const drawerOpen = ref(true);
-const activeNavigation = ref<AppNavigationId>("target");
+const activeNavigation = ref<AppNavigationId>("boards");
 
 const { mdAndDown } = useDisplay();
 const theme = useTheme();
@@ -703,7 +807,6 @@ const processing = ref(false);
 const processingProgress = ref(0);
 const processingError = ref<string | null>(null);
 const logLines = ref<string[]>([]);
-let sectionObserver: IntersectionObserver | null = null;
 
 let convertAbortController: AbortController | null = null;
 
@@ -719,6 +822,19 @@ const boardPresetItems = computed(() =>
 const selectedBoardPreset = computed(() =>
   BOARD_PRESETS.find((preset) => preset.id === selectedBoardPresetId.value) ?? null
 );
+
+const boardCatalogFiltered = computed(() => {
+  const query = boardCatalogQuery.value.trim().toLowerCase();
+  if (!query) {
+    return BOARD_PRESETS;
+  }
+  return BOARD_PRESETS.filter((preset) =>
+    [preset.name, preset.bundle, preset.notes, `${preset.width}x${preset.height}`]
+      .join(" ")
+      .toLowerCase()
+      .includes(query)
+  );
+});
 
 const ffmpegStatusText = computed(() => {
   if (ffmpegStatus.value === "loading") {
@@ -756,6 +872,12 @@ const getOrientationLabel = (value: VideoOrientation): string =>
 
 const getScaleModeLabel = (value: VideoScaleMode): string =>
   scaleModeItems.find((item) => item.value === value)?.title ?? value;
+
+const toPublicAssetPath = (assetPath: string): string => {
+  const normalized = assetPath.replace(/^\/+/, "");
+  const baseUrl = import.meta.env.BASE_URL ?? "/";
+  return baseUrl.endsWith("/") ? `${baseUrl}${normalized}` : `${baseUrl}/${normalized}`;
+};
 
 const formatDurationClock = (
   rawSeconds: number | null | undefined,
@@ -1032,9 +1154,7 @@ const previewTargetDimensions = computed<{ width: number; height: number } | nul
   return { width: targetWidth, height: targetHeight };
 });
 
-const activeView = computed<AppView>(() =>
-  activeNavigation.value === "logs" ? "logs" : "workspace"
-);
+const activeView = computed<AppView>(() => activeNavigation.value);
 const logsText = computed(() => logLines.value.join("\n"));
 const isDarkTheme = computed(() => theme.global.current.value.dark);
 const themeToggleIcon = computed(() =>
@@ -1060,65 +1180,8 @@ const toggleTheme = () => {
   theme.change(nextTheme);
 };
 
-const isWorkspaceSectionId = (value: string): value is WorkspaceSectionId =>
-  workspaceSectionIds.includes(value as WorkspaceSectionId);
-
-const resolveSectionId = (elementId: string): WorkspaceSectionId | null => {
-  if (!elementId.startsWith(sectionIdPrefix)) {
-    return null;
-  }
-  const candidate = elementId.slice(sectionIdPrefix.length);
-  return isWorkspaceSectionId(candidate) ? candidate : null;
-};
-
-const initializeSectionObserver = () => {
-  if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
-    return;
-  }
-  sectionObserver?.disconnect();
-  sectionObserver = new IntersectionObserver(
-    (entries) => {
-      if (activeView.value === "logs") {
-        return;
-      }
-      const visibleEntries = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort(
-          (a, b) =>
-            Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top)
-        );
-      if (visibleEntries.length === 0) {
-        return;
-      }
-      const nextSection = resolveSectionId(visibleEntries[0].target.id);
-      if (nextSection) {
-        activeNavigation.value = nextSection;
-      }
-    },
-    {
-      rootMargin: "-96px 0px -50% 0px",
-      threshold: [0.15, 0.35, 0.6],
-    }
-  );
-
-  for (const sectionId of workspaceSectionIds) {
-    const section = document.getElementById(`${sectionIdPrefix}${sectionId}`);
-    if (section) {
-      sectionObserver.observe(section);
-    }
-  }
-};
-
-const navigateToSection = (sectionId: AppNavigationId) => {
-  activeNavigation.value = sectionId;
-  if (sectionId !== "logs") {
-    void nextTick(() => {
-      const section = document.getElementById(`${sectionIdPrefix}${sectionId}`);
-      if (section) {
-        section.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  }
+const navigateToView = (viewId: AppNavigationId) => {
+  activeNavigation.value = viewId;
   if (mdAndDown.value) {
     drawerOpen.value = false;
   }
@@ -1198,6 +1261,32 @@ const loadPersistedConversionPreferences = (): PersistedConversionPreferences | 
   }
 };
 
+const persistBoardSelection = (boardId: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(boardSelectionStorageKey, boardId);
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
+const loadPersistedBoardSelection = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(boardSelectionStorageKey);
+    if (!raw) {
+      return null;
+    }
+    return BOARD_PRESETS.some((preset) => preset.id === raw) ? raw : null;
+  } catch {
+    return null;
+  }
+};
+
 const applyTargetProfile = (
   profile: Omit<TargetProfileBase, "outputFormat"> & {
     name: string;
@@ -1232,6 +1321,20 @@ const applySelectedBoardPreset = (
     return;
   }
   applyTargetProfile(preset, options);
+};
+
+const selectBoardFromCatalog = (presetId: string) => {
+  targetSetupMode.value = "preset";
+  persistBoardSelection(presetId);
+  if (selectedBoardPresetId.value !== presetId) {
+    selectedBoardPresetId.value = presetId;
+  } else {
+    applySelectedBoardPreset();
+  }
+  activeNavigation.value = "workspace";
+  if (mdAndDown.value) {
+    drawerOpen.value = false;
+  }
 };
 
 const applySizingDefaults = () => {
@@ -1665,17 +1768,6 @@ watch([previewSecondsMax, previewSecondMin, previewSecondMax], () => {
   syncPreviewWithinTrimRange();
 });
 
-watch(activeView, (nextView) => {
-  if (nextView === "logs") {
-    sectionObserver?.disconnect();
-    sectionObserver = null;
-    return;
-  }
-  void nextTick(() => {
-    initializeSectionObserver();
-  });
-});
-
 watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
@@ -1718,19 +1810,16 @@ watch(outputFormat, (format) => {
 });
 
 watch(targetSetupMode, (mode) => {
-  if (!isVideoOutput.value) {
-    return;
-  }
   if (mode === "preset") {
     applySelectedBoardPreset();
   }
 });
 
-watch(selectedBoardPresetId, () => {
-  if (targetSetupMode.value !== "preset" || !isVideoOutput.value) {
-    return;
+watch(selectedBoardPresetId, (nextBoardId) => {
+  persistBoardSelection(nextBoardId);
+  if (targetSetupMode.value === "preset") {
+    applySelectedBoardPreset();
   }
-  applySelectedBoardPreset();
 });
 
 watch(outputSizeMode, (mode) => {
@@ -1748,6 +1837,11 @@ watch(isVideoOutput, (nextIsVideoOutput) => {
 });
 
 onMounted(() => {
+  const persistedBoardId = loadPersistedBoardSelection();
+  if (persistedBoardId) {
+    selectedBoardPresetId.value = persistedBoardId;
+    activeNavigation.value = "workspace";
+  }
   applySizingDefaults();
   const persistedPreferences = loadPersistedConversionPreferences();
   if (persistedPreferences) {
@@ -1756,16 +1850,9 @@ onMounted(() => {
     scaleMode.value = persistedPreferences.scaleMode;
   }
   void initializeFfmpeg();
-  if (activeView.value === "workspace") {
-    void nextTick(() => {
-      initializeSectionObserver();
-    });
-  }
 });
 
 onBeforeUnmount(() => {
-  sectionObserver?.disconnect();
-  sectionObserver = null;
   if (convertAbortController) {
     convertAbortController.abort();
     convertAbortController = null;
@@ -1882,6 +1969,44 @@ onBeforeUnmount(() => {
 .panel-card {
   backdrop-filter: blur(6px);
   background: rgba(var(--v-theme-surface), 0.92);
+}
+
+.board-catalog-card {
+  min-height: 68vh;
+}
+
+.board-catalog-search {
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.board-catalog-item {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.board-catalog-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.board-catalog-item--selected {
+  border-color: rgba(var(--v-theme-success), 0.75);
+  box-shadow: 0 0 0 1px rgba(var(--v-theme-success), 0.35);
+}
+
+.board-catalog-image {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.board-catalog-image-placeholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+  background: rgba(var(--v-theme-surface-variant), 0.35);
+  font-size: 0.8rem;
 }
 
 .logs-view-card {

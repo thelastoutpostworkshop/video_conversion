@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#172554"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <rect x="325" y="95" width="310" height="350" rx="30" fill="#111827" stroke="#c4b5fd" stroke-width="8"/>
+  <rect x="415" y="125" width="130" height="290" rx="14" fill="#8b5cf6" opacity="0.9"/>
+  <text x="40" y="72" fill="#ede9fe" font-family="Verdana, sans-serif" font-size="32" font-weight="700">LILYGO T-Display-S3</text>
+  <text x="40" y="112" fill="#ddd6fe" font-family="Verdana, sans-serif" font-size="24">Integrated ESP32-S3</text>
+  <text x="40" y="488" fill="#ede9fe" font-family="Verdana, sans-serif" font-size="48" font-weight="700">170 x 320</text>
+</svg>
