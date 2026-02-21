@@ -44,6 +44,13 @@
         Video Conversion Studio
       </v-toolbar-title>
       <v-spacer />
+      <v-btn
+        :icon="themeToggleIcon"
+        variant="text"
+        :aria-label="themeToggleLabel"
+        :title="themeToggleLabel"
+        @click="toggleTheme"
+      />
       <v-chip
         v-if="!mdAndDown"
         :color="ffmpegStatusColor"
@@ -55,7 +62,7 @@
       </v-chip>
     </v-app-bar>
 
-    <v-main>
+    <v-main class="app-main">
       <v-container class="py-6">
         <v-row justify="center">
           <v-col cols="12" xl="10">
@@ -430,7 +437,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useDisplay } from "vuetify";
+import { useDisplay, useTheme } from "vuetify";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
 import SourceFileInput from "@/components/SourceFileInput.vue";
 import SourceMetadataCard from "@/components/SourceMetadataCard.vue";
@@ -456,6 +463,7 @@ type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
 type AppSectionId = "source" | "target" | "export" | "logs";
+type AppTheme = "light" | "dark";
 
 interface CustomTargetProfile extends TargetProfileBase {
   id: string;
@@ -502,6 +510,7 @@ const navigationItems: Array<{ id: AppSectionId; title: string; icon: string }> 
 
 const customTargetStorageKey = "video-conversion.custom-target-profiles.v1";
 const sectionIdPrefix = "section-";
+const themeStorageKey = "video-conversion.theme.v1";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
   gif: "gif",
@@ -540,6 +549,7 @@ const drawerOpen = ref(true);
 const activeSection = ref<AppSectionId>("source");
 
 const { mdAndDown } = useDisplay();
+const theme = useTheme();
 
 const {
   sourceFile,
@@ -656,6 +666,29 @@ const selectedBoardPresetDetails = computed(() => {
 });
 
 const logsText = computed(() => logLines.value.join("\n"));
+const isDarkTheme = computed(() => theme.global.current.value.dark);
+const themeToggleIcon = computed(() =>
+  isDarkTheme.value ? "mdi-weather-sunny" : "mdi-weather-night"
+);
+const themeToggleLabel = computed(() =>
+  isDarkTheme.value ? "Switch to light mode" : "Switch to dark mode"
+);
+
+const persistThemePreference = (nextTheme: AppTheme) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(themeStorageKey, nextTheme);
+  } catch {
+    // Ignore storage errors (private mode, blocked storage, etc.)
+  }
+};
+
+const toggleTheme = () => {
+  const nextTheme: AppTheme = isDarkTheme.value ? "light" : "dark";
+  theme.global.name.value = nextTheme;
+};
 
 const resolveSectionId = (elementId: string): AppSectionId | null => {
   if (!elementId.startsWith(sectionIdPrefix)) {
@@ -1218,6 +1251,16 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => theme.global.name.value,
+  (nextTheme) => {
+    if (nextTheme === "light" || nextTheme === "dark") {
+      persistThemePreference(nextTheme);
+    }
+  },
+  { immediate: true }
+);
+
 watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
@@ -1323,18 +1366,30 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.app-main {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(var(--v-theme-primary), 0.14), transparent 36%),
+    radial-gradient(circle at 84% 0%, rgba(var(--v-theme-secondary), 0.14), transparent 28%),
+    linear-gradient(
+      165deg,
+      rgba(var(--v-theme-background), 1) 0%,
+      rgba(var(--v-theme-surface), 0.98) 58%,
+      rgba(var(--v-theme-background), 1) 100%
+    );
+}
+
 .app-navigation {
   border-right: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .app-navigation :deep(.v-navigation-drawer__content) {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(var(--v-theme-surface), 0.9);
   backdrop-filter: blur(10px);
 }
 
 .app-bar {
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(var(--v-theme-surface), 0.88);
   backdrop-filter: blur(10px);
 }
 
@@ -1349,7 +1404,7 @@ onBeforeUnmount(() => {
 
 .panel-card {
   backdrop-filter: blur(6px);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(var(--v-theme-surface), 0.92);
 }
 
 .log-output :deep(textarea) {

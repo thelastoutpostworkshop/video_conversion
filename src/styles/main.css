@@ -1,6 +1,6 @@
 ﻿:root {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
 html,
@@ -11,8 +11,5 @@ body,
 }
 
 body {
-  background:
-    radial-gradient(circle at 18% 14%, rgba(25, 118, 210, 0.16), transparent 36%),
-    radial-gradient(circle at 84% 0%, rgba(0, 151, 167, 0.16), transparent 28%),
-    linear-gradient(165deg, #f4f8fd 0%, #eff5fa 58%, #ffffff 100%);
+  background: #0f1724;
 }
