@@ -94,19 +94,20 @@
                   </div>
                 </div>
 
-                <v-row v-if="isVideoOutput" dense>
-                  <v-col cols="12" md="4">
+                <v-row v-if="isVideoOutput" dense class="section-target-grid">
+                  <v-col cols="12" sm="6" md="3">
                     <v-select
                       v-model="targetSetupMode"
                       :items="targetSetupModeItems"
                       item-title="title"
                       item-value="value"
                       label="Target setup"
-                      density="comfortable"
+                      density="compact"
+                      hide-details="auto"
                       :disabled="processing"
                     />
                   </v-col>
-                  <v-col cols="12" md="8">
+                  <v-col cols="12" sm="6" md="5">
                     <v-select
                       v-if="targetSetupMode === 'preset'"
                       v-model="selectedBoardPresetId"
@@ -114,46 +115,49 @@
                       item-title="title"
                       item-value="value"
                       label="Development board"
-                      density="comfortable"
+                      density="compact"
+                      hide-details="auto"
                       :disabled="processing"
                     />
                     <v-sheet
                       v-else
                       rounded="lg"
                       border
-                      class="d-flex align-center h-100 px-4 py-3"
+                      class="d-flex align-center h-100 px-3 py-2 target-custom-hint"
                     >
-                      <div class="text-body-2 text-medium-emphasis">
+                      <div class="text-caption text-medium-emphasis">
                         Custom target selected. Choose the screen dimensions below.
                       </div>
                     </v-sheet>
                   </v-col>
-                  <v-col cols="12" sm="6">
+                  <v-col cols="6" md="2">
                     <v-text-field
                       :model-value="width"
                       label="Screen width"
                       type="number"
-                      density="comfortable"
+                      density="compact"
+                      hide-details="auto"
                       :readonly="targetSetupMode === 'preset'"
                       :disabled="processing"
                       @update:model-value="(value) => (width = toPositiveNullable(value))"
                     />
                   </v-col>
-                  <v-col cols="12" sm="6">
+                  <v-col cols="6" md="2">
                     <v-text-field
                       :model-value="height"
                       label="Screen height"
                       type="number"
-                      density="comfortable"
+                      density="compact"
+                      hide-details="auto"
                       :readonly="targetSetupMode === 'preset'"
                       :disabled="processing"
                       @update:model-value="(value) => (height = toPositiveNullable(value))"
                     />
                   </v-col>
                   <v-col cols="12" v-if="targetSetupMode === 'preset' && selectedBoardPresetDetails">
-                    <v-alert type="info" variant="tonal">
+                    <div class="text-caption text-info target-preset-note">
                       {{ selectedBoardPresetDetails }}
-                    </v-alert>
+                    </div>
                   </v-col>
                 </v-row>
                 <v-alert v-else type="info" variant="tonal" class="mt-2">
@@ -1421,6 +1425,19 @@ onBeforeUnmount(() => {
 .step-heading {
   display: grid;
   gap: 2px;
+}
+
+.section-target-grid {
+  row-gap: 4px;
+}
+
+.target-custom-hint {
+  min-height: 40px;
+}
+
+.target-preset-note {
+  line-height: 1.3;
+  padding-left: 2px;
 }
 
 .preview-time-card {
