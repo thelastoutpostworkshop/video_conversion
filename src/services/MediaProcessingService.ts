@@ -32,7 +32,12 @@ export interface VideoMetadataResult {
 
 export type VideoOrientation = "none" | "cw90" | "ccw90" | "flip180";
 export type VideoScaleMode = "fit" | "fill" | "stretch";
-export type MediaProgressCallback = (percent: number) => void;
+export interface MediaProgressInfo {
+  percent: number;
+  timeUs: number | null;
+  timeSeconds: number | null;
+}
+export type MediaProgressCallback = (progress: MediaProgressInfo) => void;
 export type MediaLogCallback = (message: string) => void;
 
 const tryBlobURL = async (url: string, mimeType: string) => {
@@ -322,12 +327,18 @@ export class MediaProcessingService {
     const forceMjpegInput =
       inputExtension === "mjpeg" || inputExtension === "mjpg";
 
-    const handleProgress = (progress: { progress?: number }) => {
+    const handleProgress = (progress: { progress?: number; time?: number }) => {
       if (!onProgress || typeof progress.progress !== "number") {
         return;
       }
       const percent = Math.max(0, Math.min(100, Math.round(progress.progress * 100)));
-      onProgress(percent);
+      const rawTimeUs =
+        typeof progress.time === "number" && Number.isFinite(progress.time) ? progress.time : null;
+      onProgress({
+        percent,
+        timeUs: rawTimeUs,
+        timeSeconds: rawTimeUs !== null ? Math.max(0, rawTimeUs / 1_000_000) : null,
+      });
     };
     const handleLog = (log: { message?: string; type?: string }) => {
       const line = log.message?.trim();
@@ -432,7 +443,11 @@ export class MediaProcessingService {
           }
           throw new Error("FFmpeg produced an empty output file.");
         }
-        onProgress?.(100);
+        onProgress?.({
+          percent: 100,
+          timeUs: null,
+          timeSeconds: null,
+        });
         return {
           data: normalizedPayload,
           outputName,

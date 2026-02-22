@@ -1323,38 +1323,75 @@ const formatClockFromMs = (rawMs: number): string => {
 };
 
 const summarizeProcessingLogLine = (message: string): string | null => {
+  if (!message || !message.trim()) {
+    return null;
+  }
+
+  const progressSegments = message
+    .split(/[\r\n]+/)
+    .map((segment) =>
+      segment
+        .replace(/^\[(?:stderr|stdout|fferr|ffout)\]\s*/i, "")
+        .replace(/[ \t]+/g, " ")
+        .trim()
+    )
+    .filter(Boolean);
+
+  let bestProgressSummary: string | null = null;
+  let bestProgressScore = -1;
+  for (const segment of progressSegments) {
+    if (!/(?:\bframe=|\btime=|\bspeed=)/i.test(segment)) {
+      continue;
+    }
+
+    const frameMatches = [...segment.matchAll(/\bframe=\s*(\d+)/gi)];
+    const timeMatches = [...segment.matchAll(/\btime=\s*([^\s]+)/gi)];
+    const speedMatches = [...segment.matchAll(/\bspeed=\s*([^\s]+)/gi)];
+
+    const frameValueRaw =
+      frameMatches.length > 0 ? frameMatches[frameMatches.length - 1]?.[1] ?? null : null;
+    const timeValue =
+      timeMatches.length > 0 ? timeMatches[timeMatches.length - 1]?.[1] ?? "" : "";
+    const speedValue =
+      speedMatches.length > 0 ? speedMatches[speedMatches.length - 1]?.[1] ?? "" : "";
+
+    const parts: string[] = [];
+    let score = 0;
+
+    if (frameValueRaw !== null) {
+      const frameValue = Number(frameValueRaw);
+      if (Number.isFinite(frameValue) && frameValue > 0) {
+        parts.push(`Frame ${Math.round(frameValue)}`);
+        score += 2;
+      }
+    }
+    if (timeValue && !timeValue.startsWith("-") && !/^n\/a$/i.test(timeValue)) {
+      parts.push(`Encoded ${timeValue}`);
+      score += 2;
+    }
+    if (speedValue && !/^n\/a$/i.test(speedValue)) {
+      parts.push(`Speed ${speedValue}`);
+      score += 2;
+    }
+
+    if (parts.length > 0 && score >= bestProgressScore) {
+      bestProgressSummary = parts.join(" • ");
+      bestProgressScore = score;
+    } else if (bestProgressSummary === null) {
+      bestProgressSummary = "FFmpeg is processing the conversion...";
+      bestProgressScore = 0;
+    }
+  }
+
+  if (bestProgressSummary) {
+    return bestProgressSummary;
+  }
+
   const line = message.replace(/\s+/g, " ").trim();
   if (!line) {
     return null;
   }
 
-  const normalizedLine = line.replace(/^\[(?:stderr|stdout|fferr|ffout)\]\s*/i, "");
-  const frameMatch = normalizedLine.match(/\bframe=\s*(\d+)/i);
-  const timeMatch = normalizedLine.match(/\btime=\s*([^\s]+)/i);
-  const speedMatch = normalizedLine.match(/\bspeed=\s*([^\s]+)/i);
-  if (frameMatch || timeMatch || speedMatch) {
-    const parts: string[] = [];
-    const frameValue = frameMatch?.[1];
-    if (frameValue && Number(frameValue) > 0) {
-      parts.push(`Frame ${frameValue}`);
-    }
-    const timeValue = timeMatch?.[1] ?? "";
-    if (timeValue && !timeValue.startsWith("-")) {
-      parts.push(`Encoded ${timeValue}`);
-    }
-    const speedValue = speedMatch?.[1] ?? "";
-    if (speedValue && !/^n\/a$/i.test(speedValue)) {
-      parts.push(`Speed ${speedValue}`);
-    }
-    if (parts.length > 0) {
-      return parts.join(" • ");
-    }
-    return "FFmpeg is processing the conversion...";
-  }
-
-  if (/time=\S+/i.test(line) || /speed=\S+/i.test(line)) {
-    return "FFmpeg is processing the conversion...";
-  }
   if (/^\[app\]\s+exec\b/i.test(line)) {
     return "Starting FFmpeg command...";
   }
@@ -1366,6 +1403,11 @@ const summarizeProcessingLogLine = (message: string): string | null => {
   }
   return null;
 };
+
+const isDetailedProcessingActivityLine = (line: string | null): boolean =>
+  typeof line === "string" &&
+  /\bFrame\s+\d+\b/i.test(line) &&
+  (/\bEncoded\b/i.test(line) || /\bSpeed\b/i.test(line));
 
 const clearLogs = () => {
   logLines.value = [];
@@ -1559,9 +1601,6 @@ const processingProgressIndeterminate = computed(() => {
   if (processingProgressMode.value === "estimated") {
     return true;
   }
-  if (processingPhase.value === "finalizing" || processingPhase.value === "packaging") {
-    return true;
-  }
   return processingProgressDisplay.value <= 0;
 });
 
@@ -1749,9 +1788,9 @@ const runConversion = async () => {
   processingError.value = null;
   clearOutput();
 
-  const onProgress: MediaProgressCallback = (percent) => {
+  const onProgress: MediaProgressCallback = (progressEvent) => {
     markProcessingActivity();
-    const normalized = Math.max(0, Math.min(100, Math.round(percent)));
+    const normalized = Math.max(0, Math.min(100, Math.round(progressEvent.percent)));
     processingProgress.value = normalized;
     if (normalized > 0 && processingPhase.value === "preparing") {
       processingPhase.value = "encoding";
@@ -1763,13 +1802,38 @@ const runConversion = async () => {
     ) {
       processingPhase.value = "finalizing";
     }
+
+    const encodedSeconds = progressEvent.timeSeconds;
+    if (
+      typeof encodedSeconds === "number" &&
+      Number.isFinite(encodedSeconds) &&
+      encodedSeconds >= 0 &&
+      !isDetailedProcessingActivityLine(processingActivityLine.value)
+    ) {
+      const encodedLabel = formatDurationClock(encodedSeconds, { includeTenths: true });
+      const suffix =
+        processingProgressMode.value === "estimated"
+          ? normalized > 0
+            ? ` • Estimate ${Math.min(99, normalized)}%`
+            : ""
+          : normalized > 0
+            ? ` • ${Math.min(99, normalized)}%`
+            : "";
+      processingActivityLine.value = `Encoded ${encodedLabel}${suffix}`;
+    }
   };
   const onLog: MediaLogCallback = (message) => {
     appendLog(message);
     markProcessingActivity();
     const summary = summarizeProcessingLogLine(message);
     if (summary) {
-      processingActivityLine.value = summary;
+      const isGenericSummary = summary === "FFmpeg is processing the conversion...";
+      if (
+        !isGenericSummary ||
+        !isDetailedProcessingActivityLine(processingActivityLine.value)
+      ) {
+        processingActivityLine.value = summary;
+      }
       if (processingPhase.value === "preparing") {
         processingPhase.value = "encoding";
       }
