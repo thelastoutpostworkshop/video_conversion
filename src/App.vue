@@ -489,14 +489,29 @@
             {{ processingStatusMessage }}
           </div>
           <v-progress-linear
-            :model-value="processingProgress"
-            :indeterminate="processingProgress <= 0"
+            :model-value="processingProgressDisplay"
+            :indeterminate="processingProgressIndeterminate"
             color="primary"
             height="8"
             rounded
           />
           <div class="text-caption text-medium-emphasis mt-1">
-            {{ processingProgress }}%
+            {{ processingProgressCaption }}
+          </div>
+          <div class="text-caption text-medium-emphasis mt-1">
+            {{ processingLiveStatusCaption }}
+          </div>
+          <div
+            v-if="processingActivityLine"
+            class="text-caption text-medium-emphasis mt-1 processing-activity-line"
+          >
+            {{ processingActivityLine }}
+          </div>
+          <div
+            v-if="processingProgressMode === 'estimated'"
+            class="text-caption text-warning mt-1"
+          >
+            Trimmed conversions report FFmpeg activity instead of exact progress percent.
           </div>
           <v-divider class="my-3" />
           <div class="text-subtitle-2 mb-1">Conversion overview</div>
@@ -551,6 +566,8 @@ type TargetSetupMode = "preset" | "custom";
 type AppNavigationId = "boards" | "workspace" | "logs";
 type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
+type ProcessingProgressMode = "reliable" | "estimated";
+type ProcessingPhase = "idle" | "preparing" | "encoding" | "finalizing" | "packaging" | "complete";
 
 interface PersistedBoardSelection {
   mode: TargetSetupMode;
@@ -667,10 +684,17 @@ const {
 const ffmpegStatus = ref<FfmpegStatus>("idle");
 const processing = ref(false);
 const processingProgress = ref(0);
+const processingProgressMode = ref<ProcessingProgressMode>("reliable");
+const processingPhase = ref<ProcessingPhase>("idle");
+const processingActivityLine = ref<string | null>(null);
+const processingStartedAtMs = ref<number | null>(null);
+const processingLastActivityAtMs = ref<number | null>(null);
+const processingUiTick = ref(0);
 const processingError = ref<string | null>(null);
 const logLines = ref<string[]>([]);
 
 let convertAbortController: AbortController | null = null;
+let processingUiTimer: ReturnType<typeof setInterval> | null = null;
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
@@ -1264,6 +1288,85 @@ const appendLog = (message: string) => {
   logLines.value = next.slice(Math.max(0, next.length - 300));
 };
 
+const bumpProcessingUiTick = () => {
+  processingUiTick.value = Date.now();
+};
+
+const startProcessingUiTimer = () => {
+  if (processingUiTimer) {
+    clearInterval(processingUiTimer);
+  }
+  bumpProcessingUiTick();
+  processingUiTimer = setInterval(() => {
+    bumpProcessingUiTick();
+  }, 1000);
+};
+
+const stopProcessingUiTimer = () => {
+  if (!processingUiTimer) {
+    return;
+  }
+  clearInterval(processingUiTimer);
+  processingUiTimer = null;
+};
+
+const markProcessingActivity = () => {
+  processingLastActivityAtMs.value = Date.now();
+  bumpProcessingUiTick();
+};
+
+const formatClockFromMs = (rawMs: number): string => {
+  if (!Number.isFinite(rawMs) || rawMs < 0) {
+    return "00:00";
+  }
+  return formatDurationClock(rawMs / 1000);
+};
+
+const summarizeProcessingLogLine = (message: string): string | null => {
+  const line = message.replace(/\s+/g, " ").trim();
+  if (!line) {
+    return null;
+  }
+
+  const normalizedLine = line.replace(/^\[(?:stderr|stdout|fferr|ffout)\]\s*/i, "");
+  const frameMatch = normalizedLine.match(/\bframe=\s*(\d+)/i);
+  const timeMatch = normalizedLine.match(/\btime=\s*([^\s]+)/i);
+  const speedMatch = normalizedLine.match(/\bspeed=\s*([^\s]+)/i);
+  if (frameMatch || timeMatch || speedMatch) {
+    const parts: string[] = [];
+    const frameValue = frameMatch?.[1];
+    if (frameValue && Number(frameValue) > 0) {
+      parts.push(`Frame ${frameValue}`);
+    }
+    const timeValue = timeMatch?.[1] ?? "";
+    if (timeValue && !timeValue.startsWith("-")) {
+      parts.push(`Encoded ${timeValue}`);
+    }
+    const speedValue = speedMatch?.[1] ?? "";
+    if (speedValue && !/^n\/a$/i.test(speedValue)) {
+      parts.push(`Speed ${speedValue}`);
+    }
+    if (parts.length > 0) {
+      return parts.join(" • ");
+    }
+    return "FFmpeg is processing the conversion...";
+  }
+
+  if (/time=\S+/i.test(line) || /speed=\S+/i.test(line)) {
+    return "FFmpeg is processing the conversion...";
+  }
+  if (/^\[app\]\s+exec\b/i.test(line)) {
+    return "Starting FFmpeg command...";
+  }
+  if (/\bOutput #\d+/i.test(line)) {
+    return "Configuring output stream...";
+  }
+  if (/\bvideo:\s*\d+/i.test(line) || /\baudio:\s*\d+/i.test(line)) {
+    return "Writing final media file...";
+  }
+  return null;
+};
+
 const clearLogs = () => {
   logLines.value = [];
 };
@@ -1429,9 +1532,102 @@ const previewSecondDisplay = computed(() => {
   )}`;
 });
 
-const processingStatusMessage = computed(() =>
-  processingProgress.value > 0 ? "Converting media..." : "Preparing conversion..."
+const hasTrimSelection = computed(() => {
+  if (!isVideoOutput.value) {
+    return false;
+  }
+  const hasStartTrim = typeof startSeconds.value === "number" && startSeconds.value > 0;
+  const hasEndTrim = typeof endSeconds.value === "number" && endSeconds.value > 0;
+  return hasStartTrim || hasEndTrim;
+});
+
+const processingProgressDisplay = computed(() => {
+  const normalized = Math.max(0, Math.min(100, Math.round(processingProgress.value)));
+  if (processingPhase.value === "complete") {
+    return 100;
+  }
+  return normalized >= 100 ? 99 : normalized;
+});
+
+const processingProgressIndeterminate = computed(() => {
+  if (!processing.value) {
+    return false;
+  }
+  if (processingPhase.value === "preparing") {
+    return true;
+  }
+  if (processingProgressMode.value === "estimated") {
+    return true;
+  }
+  if (processingPhase.value === "finalizing" || processingPhase.value === "packaging") {
+    return true;
+  }
+  return processingProgressDisplay.value <= 0;
+});
+
+const processingProgressCaption = computed(() => {
+  if (processingPhase.value === "finalizing") {
+    return "Finalizing FFmpeg output...";
+  }
+  if (processingPhase.value === "packaging") {
+    return "Preparing output file...";
+  }
+  if (processingPhase.value === "preparing") {
+    return "Preparing conversion...";
+  }
+  if (processingProgressMode.value === "estimated") {
+    const estimate = processingProgressDisplay.value;
+    return estimate > 0 ? `Working... estimate ${estimate}%` : "Working...";
+  }
+  return `${processingProgressDisplay.value}%`;
+});
+
+const processingElapsedLabel = computed(() => {
+  void processingUiTick.value;
+  const startedAt = processingStartedAtMs.value;
+  if (!startedAt) {
+    return "00:00";
+  }
+  return formatClockFromMs(Date.now() - startedAt);
+});
+
+const processingLastActivityLabel = computed(() => {
+  void processingUiTick.value;
+  const lastActivityAt = processingLastActivityAtMs.value;
+  if (!lastActivityAt) {
+    return "Waiting for FFmpeg status...";
+  }
+  const seconds = Math.max(0, Math.floor((Date.now() - lastActivityAt) / 1000));
+  if (seconds <= 1) {
+    return "FFmpeg active just now";
+  }
+  if (seconds < 8) {
+    return `FFmpeg active ${seconds}s ago`;
+  }
+  return `No new FFmpeg updates for ${seconds}s (may still be finalizing)`;
+});
+
+const processingLiveStatusCaption = computed(
+  () => `Elapsed ${processingElapsedLabel.value} • ${processingLastActivityLabel.value}`
 );
+
+const processingStatusMessage = computed(() => {
+  if (processingPhase.value === "finalizing") {
+    return "Conversion is still running. FFmpeg is finalizing the output.";
+  }
+  if (processingPhase.value === "packaging") {
+    return "Reading the converted file and preparing download output.";
+  }
+  if (processingPhase.value === "encoding") {
+    return processingProgressMode.value === "estimated"
+      ? "Encoding trimmed media. Progress percent may not be exact."
+      : "Converting media...";
+  }
+  if (processingPhase.value === "preparing") {
+    return "Preparing conversion...";
+  }
+  return "Converting media...";
+});
 
 const conversionOverviewLines = computed(() => {
   const file = sourceFile.value;
@@ -1544,14 +1740,40 @@ const runConversion = async () => {
 
   processing.value = true;
   processingProgress.value = 0;
+  processingProgressMode.value = hasTrimSelection.value ? "estimated" : "reliable";
+  processingPhase.value = "preparing";
+  processingActivityLine.value = null;
+  processingStartedAtMs.value = Date.now();
+  processingLastActivityAtMs.value = processingStartedAtMs.value;
+  startProcessingUiTimer();
   processingError.value = null;
   clearOutput();
 
   const onProgress: MediaProgressCallback = (percent) => {
-    processingProgress.value = percent;
+    markProcessingActivity();
+    const normalized = Math.max(0, Math.min(100, Math.round(percent)));
+    processingProgress.value = normalized;
+    if (normalized > 0 && processingPhase.value === "preparing") {
+      processingPhase.value = "encoding";
+    }
+    if (
+      normalized >= 100 &&
+      processingPhase.value !== "packaging" &&
+      processingPhase.value !== "complete"
+    ) {
+      processingPhase.value = "finalizing";
+    }
   };
   const onLog: MediaLogCallback = (message) => {
     appendLog(message);
+    markProcessingActivity();
+    const summary = summarizeProcessingLogLine(message);
+    if (summary) {
+      processingActivityLine.value = summary;
+      if (processingPhase.value === "preparing") {
+        processingPhase.value = "encoding";
+      }
+    }
   };
 
   convertAbortController = new AbortController();
@@ -1598,10 +1820,12 @@ const runConversion = async () => {
       payload = result.data;
     }
 
+    processingPhase.value = "packaging";
     const finalName = ensureOutputFileName(outputFileName.value, file.name, outputFormat.value);
     outputFileName.value = finalName;
     const outputBlob = new Blob([payload], { type: outputMimeMap[outputFormat.value] });
     outputFileUrl.value = URL.createObjectURL(outputBlob);
+    processingPhase.value = "complete";
     processingProgress.value = 100;
     appendLog(
       `[app] Output ready: ${finalName} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB)`
@@ -1619,6 +1843,10 @@ const runConversion = async () => {
     }
   } finally {
     processing.value = false;
+    processingPhase.value = "idle";
+    stopProcessingUiTimer();
+    processingStartedAtMs.value = null;
+    processingLastActivityAtMs.value = null;
     convertAbortController = null;
   }
 };
@@ -1778,6 +2006,7 @@ onBeforeUnmount(() => {
     convertAbortController.abort();
     convertAbortController = null;
   }
+  stopProcessingUiTimer();
   clearPreviewDebounce();
   clearOutput();
   clearPreviewFrame();
@@ -1912,6 +2141,10 @@ onBeforeUnmount(() => {
 .conversion-overview {
   display: grid;
   gap: 4px;
+}
+
+.processing-activity-line {
+  word-break: break-word;
 }
 
 @media (max-width: 959px) {
