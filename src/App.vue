@@ -1675,11 +1675,7 @@ const conversionOverviewLines = computed(() => {
   const fallbackOutputName = file
     ? ensureOutputFileName(outputFileName.value, file.name, outputFormat.value)
     : `output.${outputExtensionMap[outputFormat.value]}`;
-  const lines = [
-    `Source: ${sourceLabel}`,
-    `Output format: ${outputLabel}`,
-    `Output file: ${fallbackOutputName}`,
-  ];
+  const lines = [`Source: ${sourceLabel}`, `Saving as: ${fallbackOutputName} (${outputLabel})`];
 
   if (isVideoOutput.value) {
     const profileLabel =
@@ -1692,22 +1688,30 @@ const conversionOverviewLines = computed(() => {
       width.value > 0 &&
       typeof height.value === "number" &&
       height.value > 0;
-    const resizeLabel = hasCustomDimensions
-      ? `${Math.round(width.value)}x${Math.round(height.value)} (${getScaleModeLabel(scaleMode.value)})`
-      : "Original source size";
-    lines.push(`Target profile: ${profileLabel}`);
-    lines.push(`Resize: ${resizeLabel}`);
-    lines.push(`Orientation: ${getOrientationLabel(orientation.value)}`);
-    lines.push(`FPS: ${fps.value && fps.value > 0 ? `${Math.round(fps.value)}` : "Auto/default"}`);
-    if (outputFormat.value === "mjpeg" || outputFormat.value === "avi") {
-      lines.push(
-        `Quality: ${quality.value && quality.value > 0 ? `${Math.round(quality.value)} (1 is best)` : "Default"}`
-      );
-    }
+    const sizeSummary = hasCustomDimensions
+      ? `${Math.round(width.value)}x${Math.round(height.value)}`
+      : "Original size";
+    lines.push(`Board: ${profileLabel}`);
+
+    const videoDetails = [
+      sizeSummary,
+      getScaleModeLabel(scaleMode.value),
+      orientation.value !== "none" ? getOrientationLabel(orientation.value) : null,
+      fps.value && fps.value > 0 ? `${Math.round(fps.value)} FPS` : "Default FPS",
+      (outputFormat.value === "mjpeg" || outputFormat.value === "avi") &&
+      quality.value &&
+      quality.value > 0
+        ? `Quality ${Math.round(quality.value)}`
+        : null,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(" | ");
+    lines.push(`Video: ${videoDetails}`);
+
     const hasStartTrim = typeof startSeconds.value === "number" && startSeconds.value > 0;
     const hasEndTrim = typeof endSeconds.value === "number" && endSeconds.value > 0;
     if (!hasStartTrim && !hasEndTrim) {
-      lines.push("Trim: Full source");
+      lines.push("Clip: Full video");
     } else {
       const startLabel = hasStartTrim
         ? formatDurationClock(startSeconds.value, { includeTenths: true })
@@ -1715,12 +1719,21 @@ const conversionOverviewLines = computed(() => {
       const endLabel = hasEndTrim
         ? formatDurationClock(endSeconds.value, { includeTenths: true })
         : "Source end";
-      lines.push(`Trim: ${startLabel} -> ${endLabel}`);
+      let clipLabel = `Clip: ${startLabel} to ${endLabel}`;
+      if (
+        typeof startSeconds.value === "number" &&
+        typeof endSeconds.value === "number" &&
+        endSeconds.value > startSeconds.value
+      ) {
+        const clipDuration = endSeconds.value - startSeconds.value;
+        clipLabel += ` (${formatDurationClock(clipDuration, { includeTenths: true })})`;
+      }
+      lines.push(clipLabel);
     }
   } else {
-    lines.push(
-      `Bitrate: ${mp3Bitrate.value && mp3Bitrate.value > 0 ? `${Math.round(mp3Bitrate.value)} kbps` : "128 kbps"}`
-    );
+    const bitrateLabel =
+      mp3Bitrate.value && mp3Bitrate.value > 0 ? `${Math.round(mp3Bitrate.value)} kbps` : "128 kbps";
+    lines.push(`Audio: MP3 at ${bitrateLabel}`);
   }
 
   return lines;
