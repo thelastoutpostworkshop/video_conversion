@@ -382,6 +382,12 @@
                               <div>End {{ trimRangeDisplayEnd }}</div>
                             </div>
                             <div
+                              v-if="trimmedOutputDurationDisplay"
+                              class="text-caption text-medium-emphasis mt-1"
+                            >
+                              Output clip duration {{ trimmedOutputDurationDisplay }}
+                            </div>
+                            <div
                               v-if="!isTrimSliderAvailable"
                               class="text-caption text-medium-emphasis mt-1"
                             >
@@ -935,6 +941,24 @@ const trimRangeDisplayStart = computed(() =>
 const trimRangeDisplayEnd = computed(() =>
   formatDurationClock(trimRangeModel.value[1], { includeTenths: true })
 );
+
+const trimmedOutputDurationSeconds = computed<number | null>(() => {
+  const sourceDuration = sourceDurationSeconds.value;
+  if (typeof sourceDuration !== "number" || !Number.isFinite(sourceDuration) || sourceDuration <= 0) {
+    return null;
+  }
+  const [start, end] = trimRangeModel.value;
+  const duration = Math.max(0, end - start);
+  return Number.isFinite(duration) ? duration : null;
+});
+
+const trimmedOutputDurationDisplay = computed(() => {
+  const duration = trimmedOutputDurationSeconds.value;
+  if (typeof duration !== "number") {
+    return null;
+  }
+  return formatDurationClock(duration, { includeTenths: true });
+});
 
 const onTrimRangeDragStart = () => {
   isTrimRangeDragging.value = true;
@@ -1720,13 +1744,8 @@ const conversionOverviewLines = computed(() => {
         ? formatDurationClock(endSeconds.value, { includeTenths: true })
         : "Source end";
       let clipLabel = `Clip: ${startLabel} to ${endLabel}`;
-      if (
-        typeof startSeconds.value === "number" &&
-        typeof endSeconds.value === "number" &&
-        endSeconds.value > startSeconds.value
-      ) {
-        const clipDuration = endSeconds.value - startSeconds.value;
-        clipLabel += ` (${formatDurationClock(clipDuration, { includeTenths: true })})`;
+      if (trimmedOutputDurationDisplay.value) {
+        clipLabel += ` (${trimmedOutputDurationDisplay.value})`;
       }
       lines.push(clipLabel);
     }
