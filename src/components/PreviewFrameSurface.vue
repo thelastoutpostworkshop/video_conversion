@@ -19,6 +19,16 @@
       <div v-else class="preview-placeholder">
         Adjust settings to generate a frame preview.
       </div>
+
+      <div
+        v-if="previewFrameBusy && hasSourceFile && isVideoSource && isVideoOutput"
+        class="preview-busy-overlay"
+      >
+        <div class="preview-busy-badge">
+          <v-progress-circular indeterminate size="18" width="2" color="info" />
+          <span>Generating frame preview...</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -75,6 +85,7 @@ const previewSurfaceStyle = computed<Record<string, string>>(() => {
 }
 
 .preview-surface {
+  position: relative;
   width: 100%;
   min-height: 240px;
   border-radius: 0;
@@ -101,5 +112,30 @@ const previewSurfaceStyle = computed<Record<string, string>>(() => {
   color: rgba(255, 255, 255, 0.72);
   padding: 0 16px;
   text-align: center;
+}
+
+.preview-busy-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(5, 10, 18, 0.14);
+}
+
+.preview-busy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 16, 28, 0.76);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
 }
 </style>

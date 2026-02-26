@@ -172,15 +172,7 @@
                     >
                       <v-card-text class="preview-time-card__body">
                         <div class="d-flex align-center preview-time-card__header">
-                          <div class="d-flex align-center ga-2">
-                            <div class="text-subtitle-2">Preview frame position</div>
-                            <div
-                              v-if="previewFrameBusy"
-                              class="text-caption text-info preview-generation-status"
-                            >
-                              Generating frame preview...
-                            </div>
-                          </div>
+                          <div class="text-subtitle-2">Preview frame position</div>
                           <v-spacer />
                           <div class="text-caption text-medium-emphasis">
                             {{ previewSecondDisplay }}
@@ -2230,10 +2222,6 @@ onBeforeUnmount(() => {
 
 .source-metadata-inline {
   background: rgba(var(--v-theme-surface), 0.48);
-}
-
-.preview-generation-status {
-  letter-spacing: 0.01em;
 }
 
 .app-nav-target {
