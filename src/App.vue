@@ -170,8 +170,8 @@
                       class="preview-time-card"
                       :class="{ 'preview-time-card--inactive': !hasPreviewSource }"
                     >
-                      <v-card-text class="py-3">
-                        <div class="d-flex align-center mb-2">
+                      <v-card-text class="preview-time-card__body">
+                        <div class="d-flex align-center preview-time-card__header">
                           <div class="d-flex align-center ga-2">
                             <div class="text-subtitle-2">Preview frame position</div>
                             <div
@@ -196,6 +196,7 @@
                           :disabled="isPreviewSliderDisabled"
                           :color="previewSliderColor"
                           base-color="grey-darken-3"
+                          density="compact"
                           thumb-label
                           hide-details
                         >
@@ -2187,8 +2188,31 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
+.preview-time-card__body {
+  padding: 10px 14px 8px !important;
+}
+
+.preview-time-card__header {
+  min-height: 20px;
+  margin-bottom: 2px;
+}
+
 .preview-time-card--inactive {
   background: rgba(var(--v-theme-surface), 0.32);
+}
+
+.preview-position-slider {
+  margin-top: -2px;
+  margin-bottom: -6px;
+}
+
+.preview-position-slider :deep(.v-slider-track__container) {
+  height: 4px;
+}
+
+.preview-position-slider :deep(.v-slider-thumb__surface) {
+  width: 14px;
+  height: 14px;
 }
 
 .preview-position-slider--inactive {
