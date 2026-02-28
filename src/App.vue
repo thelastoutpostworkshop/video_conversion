@@ -2,7 +2,7 @@
   <v-app>
     <v-navigation-drawer permanent width="280" class="app-navigation">
       <div class="pa-4">
-        <div class="text-overline text-medium-emphasis">Navigation</div>
+        <div class="text-overline text-medium-emphasis">The last outpost workshop</div>
         <v-list nav density="comfortable" class="mt-2">
           <v-list-item
             v-for="item in navigationItems"
