@@ -75,14 +75,22 @@ export const BOARD_PRESETS: BoardPreset[] = [
       "https://s.click.aliexpress.com/e/_oEHbBud",
     projectLinks: [
       {
-        label: "Community projects",
-        url: "https://github.com/search?q=JC4827W543+ESP32&type=repositories",
+        label: "Animated GIF",
+        url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
+      },
+      {
+        label: "AVI Player",
+        url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
       },
     ],
     demoVideoLinks: [
       {
-        label: "Video demos",
-        url: "https://www.youtube.com/results?search_query=JC4827W543+ESP32+demo",
+        label: "Animated GIF",
+        url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
+      },
+      {
+        label: "AVI Player",
+        url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
       },
     ],
     width: 480,
