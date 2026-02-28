@@ -677,6 +677,7 @@ const logLines = ref<string[]>([]);
 
 let convertAbortController: AbortController | null = null;
 let processingUiTimer: ReturnType<typeof setInterval> | null = null;
+const cancelRequested = ref(false);
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
@@ -1786,6 +1787,7 @@ const runConversion = async () => {
   startProcessingUiTimer();
   processingError.value = null;
   clearOutput();
+  cancelRequested.value = false;
 
   const onProgress: MediaProgressCallback = (progressEvent) => {
     markProcessingActivity();
@@ -1896,7 +1898,11 @@ const runConversion = async () => {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Media conversion failed.";
-    const wasCancelled = message.toLowerCase().includes("cancelled");
+    const normalizedMessage = message.toLowerCase();
+    const wasCancelled =
+      cancelRequested.value ||
+      normalizedMessage.includes("cancelled") ||
+      normalizedMessage.includes("canceled");
     if (wasCancelled) {
       ffmpegStatus.value = "idle";
       appendLog("[app] Conversion cancelled.");
@@ -1910,6 +1916,7 @@ const runConversion = async () => {
     stopProcessingUiTimer();
     processingStartedAtMs.value = null;
     processingLastActivityAtMs.value = null;
+    cancelRequested.value = false;
     convertAbortController = null;
   }
 };
@@ -1918,6 +1925,7 @@ const cancelConversion = () => {
   if (!convertAbortController) {
     return;
   }
+  cancelRequested.value = true;
   convertAbortController.abort();
 };
 
