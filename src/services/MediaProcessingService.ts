@@ -273,8 +273,40 @@ const pickFailureLogLine = (logs: string[]): string | null => {
   return logs.length > 0 ? logs[logs.length - 1] ?? null : null;
 };
 
+const resolveTrimWindowArgs = (options?: VideoTranscodeOptions) => {
+  const startSeconds = options?.startSeconds ?? null;
+  const endSeconds = options?.endSeconds ?? null;
+  let durationSeconds = options?.durationSeconds ?? null;
+
+  if (
+    typeof startSeconds === "number" &&
+    typeof endSeconds === "number" &&
+    endSeconds > startSeconds
+  ) {
+    durationSeconds = endSeconds - startSeconds;
+  } else if (
+    typeof endSeconds === "number" &&
+    (startSeconds === null || startSeconds <= 0)
+  ) {
+    durationSeconds = endSeconds;
+  }
+
+  const preInputArgs: string[] = [];
+  const postInputArgs: string[] = [];
+  if (typeof startSeconds === "number" && startSeconds > 0) {
+    // Fast seek for conversion so late-start trims don't decode from the beginning.
+    preInputArgs.push("-ss", `${startSeconds}`);
+  }
+  if (typeof durationSeconds === "number" && durationSeconds > 0) {
+    postInputArgs.push("-t", `${durationSeconds}`);
+  }
+
+  return { preInputArgs, postInputArgs };
+};
+
 interface RunTranscodeOptions {
   preInputArgs?: string[];
+  suppressedLogPatterns?: RegExp[];
 }
 
 export class MediaProcessingService {
@@ -351,6 +383,12 @@ export class MediaProcessingService {
       if (!onLog) {
         return;
       }
+      const isSuppressed =
+        line !== undefined &&
+        options.suppressedLogPatterns?.some((pattern) => pattern.test(line));
+      if (isSuppressed) {
+        return;
+      }
       const label = log.type ? `[${log.type}] ` : "";
       const message = log.message ? `${label}${log.message}` : label.trim();
       if (message) {
@@ -403,7 +441,9 @@ export class MediaProcessingService {
 
     try {
       const writeOptions = signal ? { signal } : undefined;
+      onLog?.("[app] Staging source file...");
       await race(ffmpeg.writeFile(safeInputName, await fetchFile(file), writeOptions));
+      onLog?.("[app] Source file staged.");
       const preInputArgs = options.preInputArgs ?? [];
       const inputArgs = forceMjpegInput
         ? ["-f", "mjpeg", "-i", safeInputName]
@@ -628,36 +668,32 @@ export class MediaProcessingService {
   ): Promise<MediaProcessingResult> {
     const filter = buildVideoFilter(options);
     const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
+    const { preInputArgs, postInputArgs } = resolveTrimWindowArgs(options);
     if (filter) {
       args.push("-vf", filter);
     }
     if (options?.fps) {
       args.push("-r", `${options.fps}`);
     }
-    const startSeconds = options?.startSeconds ?? null;
-    const endSeconds = options?.endSeconds ?? null;
-    let durationSeconds = options?.durationSeconds ?? null;
-    if (
-      typeof startSeconds === "number" &&
-      typeof endSeconds === "number" &&
-      endSeconds > startSeconds
-    ) {
-      durationSeconds = endSeconds - startSeconds;
-    } else if (
-      typeof endSeconds === "number" &&
-      (startSeconds === null || startSeconds <= 0)
-    ) {
-      durationSeconds = endSeconds;
-    }
-    if (typeof startSeconds === "number" && startSeconds > 0) {
-      args.push("-ss", `${startSeconds}`);
-    }
-    if (typeof durationSeconds === "number" && durationSeconds > 0) {
-      args.push("-t", `${durationSeconds}`);
-    }
+    args.push(...postInputArgs);
     const quality = options?.quality ?? 3;
-    args.push("-pix_fmt", "yuv420p", "-q:v", `${quality}`);
-    return this.runTranscode(file, "mjpeg", args, onProgress, onLog, signal);
+    args.push(
+      "-c:v",
+      "mjpeg",
+      "-pix_fmt",
+      "yuvj420p",
+      "-color_range",
+      "pc",
+      "-q:v",
+      `${quality}`
+    );
+    return this.runTranscode(file, "mjpeg", args, onProgress, onLog, signal, {
+      preInputArgs,
+      suppressedLogPatterns: [
+        /Incompatible pixel format 'yuv420p' for codec 'mjpeg'/i,
+        /\bdeprecated pixel format used, make sure you did set range correctly\b/i,
+      ],
+    });
   }
 
   async transcodeVideoToGif(
@@ -668,6 +704,7 @@ export class MediaProcessingService {
     signal?: AbortSignal
   ): Promise<MediaProcessingResult> {
     const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
+    const { preInputArgs, postInputArgs } = resolveTrimWindowArgs(options);
     const filterParts: string[] = [];
     if (options?.fps) {
       filterParts.push(`fps=${options.fps}`);
@@ -679,31 +716,12 @@ export class MediaProcessingService {
     if (filterParts.length > 0) {
       args.push("-vf", filterParts.join(","));
     }
-
-    const startSeconds = options?.startSeconds ?? null;
-    const endSeconds = options?.endSeconds ?? null;
-    let durationSeconds = options?.durationSeconds ?? null;
-    if (
-      typeof startSeconds === "number" &&
-      typeof endSeconds === "number" &&
-      endSeconds > startSeconds
-    ) {
-      durationSeconds = endSeconds - startSeconds;
-    } else if (
-      typeof endSeconds === "number" &&
-      (startSeconds === null || startSeconds <= 0)
-    ) {
-      durationSeconds = endSeconds;
-    }
-    if (typeof startSeconds === "number" && startSeconds > 0) {
-      args.push("-ss", `${startSeconds}`);
-    }
-    if (typeof durationSeconds === "number" && durationSeconds > 0) {
-      args.push("-t", `${durationSeconds}`);
-    }
+    args.push(...postInputArgs);
 
     args.push("-loop", "0");
-    return this.runTranscode(file, "gif", args, onProgress, onLog, signal);
+    return this.runTranscode(file, "gif", args, onProgress, onLog, signal, {
+      preInputArgs,
+    });
   }
 
   async transcodeVideoToAvi(
@@ -715,36 +733,19 @@ export class MediaProcessingService {
   ): Promise<MediaProcessingResult> {
     const filter = buildVideoFilter(options);
     const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
+    const { preInputArgs, postInputArgs } = resolveTrimWindowArgs(options);
     if (filter) {
       args.push("-vf", filter);
     }
     if (options?.fps) {
       args.push("-r", `${options.fps}`);
     }
-    const startSeconds = options?.startSeconds ?? null;
-    const endSeconds = options?.endSeconds ?? null;
-    let durationSeconds = options?.durationSeconds ?? null;
-    if (
-      typeof startSeconds === "number" &&
-      typeof endSeconds === "number" &&
-      endSeconds > startSeconds
-    ) {
-      durationSeconds = endSeconds - startSeconds;
-    } else if (
-      typeof endSeconds === "number" &&
-      (startSeconds === null || startSeconds <= 0)
-    ) {
-      durationSeconds = endSeconds;
-    }
-    if (typeof startSeconds === "number" && startSeconds > 0) {
-      args.push("-ss", `${startSeconds}`);
-    }
-    if (typeof durationSeconds === "number" && durationSeconds > 0) {
-      args.push("-t", `${durationSeconds}`);
-    }
+    args.push(...postInputArgs);
     const quality = options?.quality ?? 4;
     args.push("-c:v", "mjpeg", "-q:v", `${quality}`);
-    return this.runTranscode(file, "avi", args, onProgress, onLog, signal);
+    return this.runTranscode(file, "avi", args, onProgress, onLog, signal, {
+      preInputArgs,
+    });
   }
 
   async renderVideoFramePreview(

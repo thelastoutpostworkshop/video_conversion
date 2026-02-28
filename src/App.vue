@@ -1912,7 +1912,7 @@ const runConversion = async () => {
   processingProgressMode.value = hasTrimSelection.value ? "estimated" : "reliable";
   processingPhase.value = "preparing";
   processingActivityLine.value = null;
-  processingLiveLogLines.value = [];
+  processingLiveLogLines.value = ["[app] Preparing conversion..."];
   processingStartedAtMs.value = Date.now();
   processingLastActivityAtMs.value = processingStartedAtMs.value;
   startProcessingUiTimer();
