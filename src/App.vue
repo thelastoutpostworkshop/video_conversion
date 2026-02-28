@@ -434,8 +434,26 @@
             </v-card>
             <v-card v-else rounded="lg" elevation="4" class="panel-card logs-view-card">
               <v-card-title class="d-flex align-center">
-                <div class="text-h6">FFmpeg logs</div>
+                <div class="text-h6">Session Log</div>
                 <v-spacer />
+                <v-btn
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-content-copy"
+                  :disabled="logLines.length === 0"
+                  @click="copyLogsToClipboard"
+                >
+                  Copy
+                </v-btn>
+                <v-btn
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-download"
+                  :disabled="logLines.length === 0"
+                  @click="downloadLogs"
+                >
+                  Download
+                </v-btn>
                 <v-btn
                   size="small"
                   variant="text"
@@ -589,7 +607,7 @@ const orientationItems: Array<{ title: string; value: VideoOrientation }> = [
 const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string }> = [
   { id: "boards", title: "Board Catalog", icon: "mdi-view-grid-outline" },
   { id: "workspace", title: "Workspace", icon: "mdi-file-cog-outline" },
-  { id: "logs", title: "Logs", icon: "mdi-text-box-search-outline" },
+  { id: "logs", title: "Session Log", icon: "mdi-text-box-search-outline" },
 ];
 
 const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
@@ -1401,8 +1419,64 @@ const isDetailedProcessingActivityLine = (line: string | null): boolean =>
   /\bFrame\s+\d+\b/i.test(line) &&
   (/\bEncoded\b/i.test(line) || /\bSpeed\b/i.test(line));
 
+const createLogFileName = (): string => {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return `ffmpeg-logs-${timestamp}.txt`;
+};
+
+const copyLogsToClipboard = async () => {
+  const text = logsText.value;
+  if (!text) {
+    return;
+  }
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Clipboard permission might be blocked; fall back to execCommand.
+    }
+  }
+
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    document.execCommand("copy");
+  } finally {
+    textarea.remove();
+  }
+};
+
 const clearLogs = () => {
   logLines.value = [];
+};
+
+const downloadLogs = () => {
+  const text = logsText.value;
+  if (!text || typeof document === "undefined") {
+    return;
+  }
+  const logBlob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const logUrl = URL.createObjectURL(logBlob);
+  const link = document.createElement("a");
+  link.href = logUrl;
+  link.download = createLogFileName();
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(logUrl);
 };
 
 const revokeUrlRef = (target: { value: string | null }) => {
