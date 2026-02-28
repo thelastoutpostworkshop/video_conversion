@@ -86,11 +86,11 @@ export const BOARD_PRESETS: BoardPreset[] = [
     demoVideoLinks: [
       {
         label: "Animated GIF",
-        url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
+        url: "https://youtu.be/mnOzfRFQJIM?t=456",
       },
       {
         label: "AVI Player",
-        url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
+        url: "https://youtu.be/mnOzfRFQJIM?t=622",
       },
     ],
     width: 480,
