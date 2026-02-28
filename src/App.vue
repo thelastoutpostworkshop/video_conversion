@@ -74,19 +74,7 @@
               @select-custom-board="selectCustomBoard"
             />
 
-            <v-card v-else-if="activeView === 'workspace'" rounded="lg" elevation="4" class="panel-card">
-              <v-card-title class="d-flex align-center flex-wrap ga-3">
-                <div>
-                  <div class="text-h6">Conversion workspace</div>
-                  <div class="text-caption text-medium-emphasis">
-                    Media source, settings, and export in one flow.
-                  </div>
-                </div>
-              </v-card-title>
-
-              <v-divider />
-
-              <v-card-text>
+            <div v-else-if="activeView === 'workspace'">
                 <section class="workspace-section">
                   <div id="section-source" class="app-nav-target" />
                   <div class="step-heading mb-2">
@@ -430,8 +418,7 @@
                   </v-col>
                 </v-row>
                 </section>
-              </v-card-text>
-            </v-card>
+            </div>
             <v-card v-else-if="activeView === 'logs'" rounded="lg" elevation="4" class="panel-card logs-view-card">
               <v-card-title class="d-flex align-center">
                 <div class="text-h6">Session Log</div>
