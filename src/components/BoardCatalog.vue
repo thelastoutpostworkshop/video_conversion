@@ -3,6 +3,9 @@
     <v-card-title class="d-flex align-center flex-wrap ga-3">
       <div>
         <div class="text-h6">Board catalog</div>
+        <div class="text-caption text-medium-emphasis board-catalog-subtitle">
+          Pick your board first to lock the right conversion target. Buying and resource links are optional.
+        </div>
       </div>
       <v-spacer />
       <v-text-field
@@ -20,6 +23,21 @@
     <v-divider />
 
     <v-card-text>
+      <v-sheet class="board-catalog-focus-strip mb-4 pa-3" rounded="lg" border>
+        <div class="d-flex align-center flex-wrap ga-2">
+          <v-chip size="small" color="primary" variant="flat">
+            Step 1
+          </v-chip>
+          <div class="text-body-2">
+            Choose the board you already own.
+          </div>
+          <v-spacer />
+          <div class="text-caption text-medium-emphasis">
+            Step 2 (optional): open "More links" for buying, projects, and demos.
+          </div>
+        </div>
+      </v-sheet>
+
       <v-alert v-if="filteredPresets.length === 0" type="info" variant="tonal">
         No board presets match your search.
       </v-alert>
@@ -47,6 +65,9 @@
               <div class="board-catalog-size-overlay">
                 {{ preset.width }}x{{ preset.height }}
               </div>
+              <div v-if="preset.roundDisplay" class="board-catalog-shape-overlay">
+                Round
+              </div>
               <template #placeholder>
                 <div class="board-catalog-image-placeholder">
                   Loading preview...
@@ -59,12 +80,20 @@
             </v-card-title>
 
             <v-card-text class="pt-2">
+              <div class="board-catalog-meta-row">
+                <v-chip size="x-small" color="primary" variant="tonal">
+                  {{ preset.width }}x{{ preset.height }}
+                </v-chip>
+                <v-chip v-if="preset.roundDisplay" size="x-small" color="secondary" variant="tonal">
+                  Round display
+                </v-chip>
+              </div>
               <div class="text-caption text-medium-emphasis mt-1">
                 {{ preset.notes }}
               </div>
             </v-card-text>
 
-            <v-card-actions>
+            <v-card-actions class="board-catalog-actions">
               <v-btn
                 color="primary"
                 variant="flat"
@@ -72,31 +101,6 @@
               >
                 {{ isPresetSelected(preset.id) ? "Use selected board" : "Use this board" }}
               </v-btn>
-              <v-btn
-                v-if="preset.amazonUrl"
-                :href="preset.amazonUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                size="small"
-                variant="text"
-                icon="mdi-cart-outline"
-                color="warning"
-                :aria-label="`Buy ${preset.name} on Amazon`"
-                :title="`Buy ${preset.name} on Amazon`"
-              />
-              <v-btn
-                v-if="preset.aliexpressUrl"
-                :href="preset.aliexpressUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                size="small"
-                variant="text"
-                icon="mdi-shopping-outline"
-                color="red-accent-2"
-                :aria-label="`Buy ${preset.name} on AliExpress`"
-                :title="`Buy ${preset.name} on AliExpress`"
-              />
-              <v-spacer />
               <v-chip
                 v-if="isPresetSelected(preset.id)"
                 size="small"
@@ -105,7 +109,98 @@
               >
                 Selected
               </v-chip>
+              <v-spacer />
+              <v-btn
+                size="small"
+                variant="text"
+                color="secondary"
+                prepend-icon="mdi-link-variant"
+                :disabled="!hasSupportingLinks(preset)"
+                @click="toggleSupportingLinks(preset.id)"
+              >
+                {{ isSupportingLinksOpen(preset.id) ? "Hide links" : "More links" }}
+              </v-btn>
             </v-card-actions>
+
+            <v-expand-transition>
+              <div v-if="isSupportingLinksOpen(preset.id)" class="board-catalog-links">
+                <div class="text-caption text-medium-emphasis mb-2">
+                  Optional resources
+                </div>
+
+                <div v-if="hasBuyLinks(preset)" class="board-catalog-link-group">
+                  <div class="text-caption board-catalog-link-group-title">
+                    Buy board
+                  </div>
+                  <div class="board-catalog-link-row">
+                    <v-btn
+                      v-if="preset.amazonUrl"
+                      :href="preset.amazonUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      variant="tonal"
+                      color="warning"
+                      prepend-icon="mdi-cart-outline"
+                    >
+                      Amazon
+                    </v-btn>
+                    <v-btn
+                      v-if="preset.aliexpressUrl"
+                      :href="preset.aliexpressUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      variant="tonal"
+                      color="red-accent-2"
+                      prepend-icon="mdi-shopping-outline"
+                    >
+                      AliExpress
+                    </v-btn>
+                  </div>
+                </div>
+
+                <div v-if="preset.projectLinks?.length" class="board-catalog-link-group">
+                  <div class="text-caption board-catalog-link-group-title">
+                    Projects
+                  </div>
+                  <div class="board-catalog-link-row">
+                    <v-btn
+                      v-for="(project, index) in preset.projectLinks"
+                      :key="`${preset.id}-project-${index}`"
+                      :href="project.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      variant="text"
+                      prepend-icon="mdi-source-repository"
+                    >
+                      {{ project.label }}
+                    </v-btn>
+                  </div>
+                </div>
+
+                <div v-if="preset.demoVideoLinks?.length" class="board-catalog-link-group">
+                  <div class="text-caption board-catalog-link-group-title">
+                    Demo videos
+                  </div>
+                  <div class="board-catalog-link-row">
+                    <v-btn
+                      v-for="(video, index) in preset.demoVideoLinks"
+                      :key="`${preset.id}-video-${index}`"
+                      :href="video.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      variant="text"
+                      prepend-icon="mdi-play-circle-outline"
+                    >
+                      {{ video.label }}
+                    </v-btn>
+                  </div>
+                </div>
+              </div>
+            </v-expand-transition>
           </v-card>
         </v-col>
       </v-row>
@@ -210,18 +305,26 @@ const emit = defineEmits<{
 }>();
 
 const searchQuery = ref<string | null>("");
+const expandedSupportingPresetId = ref<string | null>(null);
 
 const filteredPresets = computed(() => {
   const query = (searchQuery.value ?? "").trim().toLowerCase();
   if (!query) {
     return props.presets;
   }
-  return props.presets.filter((preset) =>
-    [preset.name, preset.notes, `${preset.width}x${preset.height}`]
+  return props.presets.filter((preset) => {
+    const searchableText = [
+      preset.id,
+      preset.name,
+      preset.notes,
+      `${preset.width}x${preset.height}`,
+      ...(preset.projectLinks ?? []).map((link) => link.label),
+      ...(preset.demoVideoLinks ?? []).map((link) => link.label),
+    ]
       .join(" ")
-      .toLowerCase()
-      .includes(query)
-  );
+      .toLowerCase();
+    return searchableText.includes(query);
+  });
 });
 
 const toPublicAssetPath = (assetPath: string): string => {
@@ -232,6 +335,22 @@ const toPublicAssetPath = (assetPath: string): string => {
 
 const isPresetSelected = (presetId: string) =>
   props.targetSetupMode === "preset" && props.selectedPresetId === presetId;
+
+const hasBuyLinks = (preset: BoardPreset): boolean =>
+  Boolean(preset.amazonUrl || preset.aliexpressUrl);
+
+const hasSupportingLinks = (preset: BoardPreset): boolean =>
+  hasBuyLinks(preset) ||
+  Boolean(preset.projectLinks?.length) ||
+  Boolean(preset.demoVideoLinks?.length);
+
+const isSupportingLinksOpen = (presetId: string): boolean =>
+  expandedSupportingPresetId.value === presetId;
+
+const toggleSupportingLinks = (presetId: string) => {
+  expandedSupportingPresetId.value =
+    expandedSupportingPresetId.value === presetId ? null : presetId;
+};
 
 const toNullableNumber = (value: string | number | null): number | null => {
   if (value === null || value === "") {
@@ -266,6 +385,16 @@ const updateCustomBoardHeight = (value: string | number | null) => {
 .board-catalog-search {
   min-width: 220px;
   max-width: 320px;
+}
+
+.board-catalog-subtitle {
+  max-width: 640px;
+  line-height: 1.35;
+}
+
+.board-catalog-focus-strip {
+  border-color: rgba(var(--v-theme-primary), 0.28) !important;
+  background: rgba(var(--v-theme-primary), 0.08);
 }
 
 .board-catalog-item {
@@ -333,6 +462,25 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   pointer-events: none;
 }
 
+.board-catalog-shape-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
+  background: rgba(var(--v-theme-surface), 0.72);
+  backdrop-filter: blur(6px);
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .board-catalog-image-placeholder {
   height: 100%;
   display: flex;
@@ -341,5 +489,56 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   color: rgba(var(--v-theme-on-surface), 0.65);
   background: rgba(var(--v-theme-surface), 0.18);
   font-size: 0.8rem;
+}
+
+.board-catalog-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.board-catalog-actions {
+  align-items: center;
+  gap: 8px;
+}
+
+.board-catalog-links {
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  margin-top: 4px;
+  padding: 10px 16px 14px;
+}
+
+.board-catalog-link-group + .board-catalog-link-group {
+  margin-top: 10px;
+}
+
+.board-catalog-link-group-title {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(var(--v-theme-on-surface), 0.74);
+  margin-bottom: 4px;
+}
+
+.board-catalog-link-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .board-catalog-search {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .board-catalog-actions {
+    flex-wrap: wrap;
+  }
+
+  .board-catalog-actions :deep(.v-spacer) {
+    display: none;
+  }
 }
 </style>
