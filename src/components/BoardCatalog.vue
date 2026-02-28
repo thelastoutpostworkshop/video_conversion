@@ -100,15 +100,17 @@
                 :disabled="!hasSupportingLinks(preset)"
                 @click="toggleSupportingLinks(preset.id)"
               >
-                {{ isSupportingLinksOpen(preset.id) ? "Hide ideas" : "Ideas" }}
+                {{
+                  isSupportingLinksOpen(preset.id)
+                    ? "Explore"
+                    : "Explore"
+                }}
               </v-btn>
             </v-card-actions>
 
             <v-expand-transition>
               <div v-if="isSupportingLinksOpen(preset.id)" class="board-catalog-links">
-                <div class="text-caption text-medium-emphasis mb-2">
-                  Ideas
-                </div>
+  
 
                 <div v-if="hasBuyLinks(preset)" class="board-catalog-link-group">
                   <div class="text-caption board-catalog-link-group-title">
