@@ -3,9 +3,6 @@
     <v-card-title class="d-flex align-center flex-wrap ga-3">
       <div>
         <div class="text-h6">Board catalog</div>
-        <div class="text-caption text-medium-emphasis">
-          Pick the closest development board preset before conversion.
-        </div>
       </div>
       <v-spacer />
       <v-text-field
