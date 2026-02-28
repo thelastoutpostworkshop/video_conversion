@@ -243,6 +243,19 @@
             </v-col>
           </v-row>
 
+          <v-row dense>
+            <v-col cols="12">
+              <v-checkbox
+                :model-value="customBoardRoundDisplay"
+                label="Round screen"
+                density="comfortable"
+                hide-details
+                :disabled="processing"
+                @update:model-value="updateCustomBoardRoundDisplay"
+              />
+            </v-col>
+          </v-row>
+
           <v-alert
             v-if="customBoardValidationMessage"
             type="warning"
@@ -260,7 +273,8 @@
             size="small"
             class="mt-2"
           >
-            Custom board selected ({{ customTargetWidth }}x{{ customTargetHeight }})
+            Custom board selected
+            ({{ customTargetWidth }}x{{ customTargetHeight }}{{ customBoardRoundDisplay ? ", round" : "" }})
           </v-chip>
         </v-card-text>
       </v-card>
@@ -401,6 +415,7 @@ interface BoardCatalogProps {
   processing: boolean;
   customBoardWidth: number | null;
   customBoardHeight: number | null;
+  customBoardRoundDisplay: boolean;
   customBoardValidationMessage: string | null;
   isCustomBoardSelected: boolean;
   customTargetWidth: number | null;
@@ -413,6 +428,7 @@ const emit = defineEmits<{
   (event: "select-preset", presetId: string): void;
   (event: "update:custom-board-width", value: number | null): void;
   (event: "update:custom-board-height", value: number | null): void;
+  (event: "update:custom-board-round-display", value: boolean): void;
   (event: "select-custom-board"): void;
 }>();
 
@@ -505,6 +521,10 @@ const updateCustomBoardWidth = (value: string | number | null) => {
 
 const updateCustomBoardHeight = (value: string | number | null) => {
   emit("update:custom-board-height", toPositiveNullable(value));
+};
+
+const updateCustomBoardRoundDisplay = (value: boolean | null) => {
+  emit("update:custom-board-round-display", value === true);
 };
 </script>
 

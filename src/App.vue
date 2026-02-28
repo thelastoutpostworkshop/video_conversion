@@ -64,6 +64,7 @@
               :processing="processing"
               :custom-board-width="customBoardWidth"
               :custom-board-height="customBoardHeight"
+              :custom-board-round-display="customBoardRoundDisplay"
               :custom-board-validation-message="customBoardValidationMessage"
               :is-custom-board-selected="isCustomBoardSelected"
               :custom-target-width="width"
@@ -71,6 +72,7 @@
               @select-preset="selectBoardFromCatalog"
               @update:custom-board-width="(value) => (customBoardWidth = value)"
               @update:custom-board-height="(value) => (customBoardHeight = value)"
+              @update:custom-board-round-display="(value) => (customBoardRoundDisplay = value)"
               @select-custom-board="selectCustomBoard"
             />
 
@@ -574,6 +576,7 @@ interface PersistedBoardSelection {
   presetId?: string;
   width?: number;
   height?: number;
+  roundDisplay?: boolean;
 }
 
 interface PersistedConversionPreferences {
@@ -666,6 +669,7 @@ const targetSetupMode = ref<TargetSetupMode>("preset");
 const selectedBoardPresetId = ref<string>("");
 const customBoardWidth = ref<number | null>(null);
 const customBoardHeight = ref<number | null>(null);
+const customBoardRoundDisplay = ref(false);
 const customBoardValidationMessage = ref<string | null>(null);
 const activeNavigation = ref<AppNavigationId>("boards");
 
@@ -725,14 +729,22 @@ const workspaceBoardSummary = computed(() => {
     return `${selectedBoardPreset.value.name} (${selectedBoardPreset.value.width}x${selectedBoardPreset.value.height})`;
   }
   if (isCustomBoardSelected.value && width.value && height.value) {
-    return `Custom board (${Math.round(width.value)}x${Math.round(height.value)})`;
+    return `Custom board (${Math.round(width.value)}x${Math.round(height.value)}${
+      customBoardRoundDisplay.value ? ", round" : ""
+    })`;
   }
   return "No board selected";
 });
 
-const workspaceRoundDisplay = computed(
-  () => targetSetupMode.value === "preset" && Boolean(selectedBoardPreset.value?.roundDisplay)
-);
+const workspaceRoundDisplay = computed(() => {
+  if (targetSetupMode.value === "preset") {
+    return Boolean(selectedBoardPreset.value?.roundDisplay);
+  }
+  if (isCustomBoardSelected.value) {
+    return customBoardRoundDisplay.value;
+  }
+  return false;
+});
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
 
@@ -1162,6 +1174,7 @@ const persistBoardSelection = () => {
         mode: "custom",
         width: Math.max(1, Math.round(width.value ?? 1)),
         height: Math.max(1, Math.round(height.value ?? 1)),
+        roundDisplay: customBoardRoundDisplay.value,
       };
       window.localStorage.setItem(boardSelectionStorageKey, JSON.stringify(payload));
       return;
@@ -1203,6 +1216,7 @@ const loadPersistedBoardSelection = (): PersistedBoardSelection | null => {
         mode: "custom",
         width: Math.round(parsed.width),
         height: Math.round(parsed.height),
+        roundDisplay: parsed.roundDisplay === true,
       };
     }
     return null;
@@ -1286,7 +1300,11 @@ const selectCustomBoard = () => {
   width.value = Math.max(1, Math.round(customBoardWidth.value));
   height.value = Math.max(1, Math.round(customBoardHeight.value));
   persistBoardSelection();
-  appendLog(`[app] Using custom board target ${width.value}x${height.value}.`);
+  appendLog(
+    `[app] Using custom board target ${width.value}x${height.value}${
+      customBoardRoundDisplay.value ? " (round screen)." : "."
+    }`
+  );
   activeNavigation.value = "workspace";
 };
 
@@ -2083,7 +2101,7 @@ watch(selectedBoardPresetId, () => {
   persistBoardSelection();
 });
 
-watch([width, height], () => {
+watch([width, height, customBoardRoundDisplay], () => {
   if (targetSetupMode.value !== "custom") {
     return;
   }
@@ -2125,6 +2143,7 @@ onMounted(() => {
     height.value = Math.max(1, Math.round(persistedBoardSelection.height));
     customBoardWidth.value = width.value;
     customBoardHeight.value = height.value;
+    customBoardRoundDisplay.value = persistedBoardSelection.roundDisplay === true;
     activeNavigation.value = "workspace";
   }
   applySizingDefaults();
