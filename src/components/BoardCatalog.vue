@@ -23,21 +23,6 @@
     <v-divider />
 
     <v-card-text>
-      <v-sheet class="board-catalog-focus-strip mb-4 pa-3" rounded="lg" border>
-        <div class="d-flex align-center flex-wrap ga-2">
-          <v-chip size="small" color="primary" variant="flat">
-            Step 1
-          </v-chip>
-          <div class="text-body-2">
-            Choose the board you already own.
-          </div>
-          <v-spacer />
-          <div class="text-caption text-medium-emphasis">
-            Step 2 (optional): open "More links" for buying, projects, and demos.
-          </div>
-        </div>
-      </v-sheet>
-
       <v-alert v-if="filteredPresets.length === 0" type="info" variant="tonal">
         No board presets match your search.
       </v-alert>
@@ -80,11 +65,8 @@
             </v-card-title>
 
             <v-card-text class="pt-2">
-              <div class="board-catalog-meta-row">
-                <v-chip size="x-small" color="primary" variant="tonal">
-                  {{ preset.width }}x{{ preset.height }}
-                </v-chip>
-                <v-chip v-if="preset.roundDisplay" size="x-small" color="secondary" variant="tonal">
+              <div v-if="preset.roundDisplay" class="board-catalog-meta-row">
+                <v-chip size="x-small" color="secondary" variant="tonal">
                   Round display
                 </v-chip>
               </div>
@@ -118,14 +100,14 @@
                 :disabled="!hasSupportingLinks(preset)"
                 @click="toggleSupportingLinks(preset.id)"
               >
-                {{ isSupportingLinksOpen(preset.id) ? "Hide links" : "More links" }}
+                {{ isSupportingLinksOpen(preset.id) ? "Hide ideas" : "Ideas" }}
               </v-btn>
             </v-card-actions>
 
             <v-expand-transition>
               <div v-if="isSupportingLinksOpen(preset.id)" class="board-catalog-links">
                 <div class="text-caption text-medium-emphasis mb-2">
-                  Optional resources
+                  Ideas
                 </div>
 
                 <div v-if="hasBuyLinks(preset)" class="board-catalog-link-group">
@@ -390,11 +372,6 @@ const updateCustomBoardHeight = (value: string | number | null) => {
 .board-catalog-subtitle {
   max-width: 640px;
   line-height: 1.35;
-}
-
-.board-catalog-focus-strip {
-  border-color: rgba(var(--v-theme-primary), 0.28) !important;
-  background: rgba(var(--v-theme-primary), 0.08);
 }
 
 .board-catalog-item {
