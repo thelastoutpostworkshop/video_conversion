@@ -79,7 +79,7 @@
                 <div>
                   <div class="text-h6">Conversion workspace</div>
                   <div class="text-caption text-medium-emphasis">
-                    Board, source, settings, and export in one flow.
+                    Media source, settings, and export in one flow.
                   </div>
                 </div>
               </v-card-title>
