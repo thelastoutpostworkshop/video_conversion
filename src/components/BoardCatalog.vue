@@ -268,7 +268,7 @@
 
     <v-dialog
       :model-value="Boolean(imagePreviewPreset)"
-      max-width="940"
+      max-width="1080"
       @update:model-value="handleImagePreviewModelUpdate"
     >
       <v-card rounded="lg" class="board-catalog-preview-dialog">
@@ -286,118 +286,96 @@
         <v-divider />
         <v-card-text class="board-catalog-preview-dialog-body">
           <template v-if="imagePreviewPreset">
-            <v-img
-              :src="toPublicAssetPath(imagePreviewPreset.imagePath)"
-              :alt="`${imagePreviewPreset.name} preview`"
-              class="board-catalog-preview-image"
-            >
-              <div class="board-catalog-size-overlay board-catalog-size-overlay--dialog">
-                {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
-              </div>
-            </v-img>
-
-            <div class="board-catalog-preview-details">
-              <div class="board-catalog-preview-actions">
-                <v-btn
-                  size="small"
-                  color="primary"
-                  variant="tonal"
-                  prepend-icon="mdi-check-circle-outline"
-                  @click="selectPreset(imagePreviewPreset.id); closeImagePreview()"
-                >
-                  {{
-                    isPresetSelected(imagePreviewPreset.id)
-                      ? "Selected"
-                      : "Select this board"
-                  }}
-                </v-btn>
-                <v-chip
-                  v-if="isPresetSelected(imagePreviewPreset.id)"
-                  size="small"
-                  color="success"
-                  variant="tonal"
-                >
-                  Selected
-                </v-chip>
-              </div>
-
-              <div class="text-body-2 text-medium-emphasis mt-2">
-                {{ imagePreviewPreset.notes }}
-              </div>
-
-              <div
-                v-if="hasSupportingLinks(imagePreviewPreset)"
-                class="board-catalog-preview-links"
+            <div class="board-catalog-preview-layout">
+              <v-img
+                :src="toPublicAssetPath(imagePreviewPreset.imagePath)"
+                :alt="`${imagePreviewPreset.name} preview`"
+                class="board-catalog-preview-image"
               >
-                <div v-if="hasBuyLinks(imagePreviewPreset)" class="board-catalog-link-group">
-                  <div class="text-caption board-catalog-link-group-title">
-                    Buy board
-                  </div>
-                  <div class="board-catalog-link-row">
-                    <v-btn
-                      v-if="imagePreviewPreset.amazonUrl"
-                      :href="imagePreviewPreset.amazonUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="tonal"
-                      color="warning"
-                      prepend-icon="mdi-cart-outline"
-                    >
-                      Amazon
-                    </v-btn>
-                    <v-btn
-                      v-if="imagePreviewPreset.aliexpressUrl"
-                      :href="imagePreviewPreset.aliexpressUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="tonal"
-                      color="red-accent-2"
-                      prepend-icon="mdi-shopping-outline"
-                    >
-                      AliExpress
-                    </v-btn>
-                  </div>
+                <div class="board-catalog-size-overlay board-catalog-size-overlay--dialog">
+                  {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
+                </div>
+              </v-img>
+
+              <div class="board-catalog-preview-details">
+                <div class="text-body-2 text-medium-emphasis">
+                  {{ imagePreviewPreset.notes }}
                 </div>
 
-                <div v-if="imagePreviewPreset.projectLinks?.length" class="board-catalog-link-group">
-                  <div class="text-caption board-catalog-link-group-title">
-                    Projects
+                <div
+                  v-if="hasSupportingLinks(imagePreviewPreset)"
+                  class="board-catalog-preview-links"
+                >
+                  <div v-if="hasBuyLinks(imagePreviewPreset)" class="board-catalog-link-group">
+                    <div class="text-caption board-catalog-link-group-title">
+                      Buy board
+                    </div>
+                    <div class="board-catalog-link-row">
+                      <v-btn
+                        v-if="imagePreviewPreset.amazonUrl"
+                        :href="imagePreviewPreset.amazonUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="small"
+                        variant="tonal"
+                        color="warning"
+                        prepend-icon="mdi-cart-outline"
+                      >
+                        Amazon
+                      </v-btn>
+                      <v-btn
+                        v-if="imagePreviewPreset.aliexpressUrl"
+                        :href="imagePreviewPreset.aliexpressUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="small"
+                        variant="tonal"
+                        color="red-accent-2"
+                        prepend-icon="mdi-shopping-outline"
+                      >
+                        AliExpress
+                      </v-btn>
+                    </div>
                   </div>
-                  <div class="board-catalog-link-row">
-                    <v-btn
-                      v-for="(project, index) in imagePreviewPreset.projectLinks"
-                      :key="`${imagePreviewPreset.id}-dialog-project-${index}`"
-                      :href="project.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="text"
-                      prepend-icon="mdi-source-repository"
-                    >
-                      {{ project.label }}
-                    </v-btn>
-                  </div>
-                </div>
 
-                <div v-if="imagePreviewPreset.demoVideoLinks?.length" class="board-catalog-link-group">
-                  <div class="text-caption board-catalog-link-group-title">
-                    Demo videos
+                  <div v-if="imagePreviewPreset.projectLinks?.length" class="board-catalog-link-group">
+                    <div class="text-caption board-catalog-link-group-title">
+                      Projects
+                    </div>
+                    <div class="board-catalog-link-row">
+                      <v-btn
+                        v-for="(project, index) in imagePreviewPreset.projectLinks"
+                        :key="`${imagePreviewPreset.id}-dialog-project-${index}`"
+                        :href="project.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="small"
+                        variant="text"
+                        prepend-icon="mdi-source-repository"
+                      >
+                        {{ project.label }}
+                      </v-btn>
+                    </div>
                   </div>
-                  <div class="board-catalog-link-row">
-                    <v-btn
-                      v-for="(video, index) in imagePreviewPreset.demoVideoLinks"
-                      :key="`${imagePreviewPreset.id}-dialog-video-${index}`"
-                      :href="video.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="text"
-                      prepend-icon="mdi-play-circle-outline"
-                    >
-                      {{ video.label }}
-                    </v-btn>
+
+                  <div v-if="imagePreviewPreset.demoVideoLinks?.length" class="board-catalog-link-group">
+                    <div class="text-caption board-catalog-link-group-title">
+                      Demo videos
+                    </div>
+                    <div class="board-catalog-link-row">
+                      <v-btn
+                        v-for="(video, index) in imagePreviewPreset.demoVideoLinks"
+                        :key="`${imagePreviewPreset.id}-dialog-video-${index}`"
+                        :href="video.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="small"
+                        variant="text"
+                        prepend-icon="mdi-play-circle-outline"
+                      >
+                        {{ video.label }}
+                      </v-btn>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -682,7 +660,12 @@ const updateCustomBoardHeight = (value: string | number | null) => {
 
 .board-catalog-preview-dialog-body {
   padding: 12px !important;
+}
+
+.board-catalog-preview-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr);
+  align-items: start;
   gap: 12px;
 }
 
@@ -725,17 +708,20 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   background: rgba(var(--v-theme-surface), 0.4);
 }
 
-.board-catalog-preview-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .board-catalog-preview-links {
   border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
   margin-top: 12px;
   padding-top: 10px;
+}
+
+@media (max-width: 960px) {
+  .board-catalog-preview-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .board-catalog-preview-image {
+    min-height: min(58vh, 520px);
+  }
 }
 
 @media (max-width: 640px) {
