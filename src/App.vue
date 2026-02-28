@@ -502,34 +502,14 @@
           <div class="text-caption text-medium-emphasis mt-1">
             {{ processingLiveStatusCaption }}
           </div>
+          <div class="text-caption text-success mt-1 processing-confidence-line">
+            {{ processingConfidenceCaption }}
+          </div>
           <div
             v-if="processingActivityLine"
             class="text-caption text-medium-emphasis mt-1 processing-activity-line"
           >
             {{ processingActivityLine }}
-          </div>
-          <div
-            v-if="processingProgressMode === 'estimated'"
-            class="text-caption text-warning mt-1"
-          >
-            Trimmed conversions report FFmpeg activity instead of exact progress percent.
-          </div>
-          <div v-if="processingShowLiveLog" class="mt-3">
-            <div class="text-caption text-medium-emphasis mb-1">
-              Recent FFmpeg output
-            </div>
-            <pre class="processing-live-log-output">{{ processingLiveLogText }}</pre>
-          </div>
-          <v-divider class="my-3" />
-          <div class="text-subtitle-2 mb-1">Conversion overview</div>
-          <div class="conversion-overview">
-            <div
-              v-for="(line, index) in conversionOverviewLines"
-              :key="`${index}-${line}`"
-              class="text-caption text-medium-emphasis"
-            >
-              {{ line }}
-            </div>
           </div>
         </v-card-text>
         <v-card-actions>
@@ -698,7 +678,6 @@ const processingPhase = ref<ProcessingPhase>("idle");
 const processingActivityLine = ref<string | null>(null);
 const processingStartedAtMs = ref<number | null>(null);
 const processingLastActivityAtMs = ref<number | null>(null);
-const processingLiveLogLines = ref<string[]>([]);
 const processingUiTick = ref(0);
 const processingError = ref<string | null>(null);
 const logLines = ref<string[]>([]);
@@ -754,15 +733,6 @@ const workspaceRoundDisplay = computed(() => {
 });
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
-
-const getOutputFormatLabel = (format: OutputFormat): string =>
-  formatItems.find((item) => item.value === format)?.title ?? format.toUpperCase();
-
-const getOrientationLabel = (value: VideoOrientation): string =>
-  orientationItems.find((item) => item.value === value)?.title ?? value;
-
-const getScaleModeLabel = (value: VideoScaleMode): string =>
-  scaleModeItems.find((item) => item.value === value)?.title ?? value;
 
 const formatDurationClock = (
   rawSeconds: number | null | undefined,
@@ -1443,26 +1413,6 @@ const isDetailedProcessingActivityLine = (line: string | null): boolean =>
   /\bFrame\s+\d+\b/i.test(line) &&
   (/\bEncoded\b/i.test(line) || /\bSpeed\b/i.test(line));
 
-const appendProcessingLiveLog = (message: string) => {
-  if (!message || !message.trim()) {
-    return;
-  }
-
-  const normalizedLines = message
-    .split(/[\r\n]+/)
-    .map((line) => line.replace(/[ \t]+/g, " ").trim())
-    .filter(Boolean);
-
-  if (normalizedLines.length === 0) {
-    return;
-  }
-
-  const ffmpegLines = normalizedLines.filter((line) => !/^\[app\]\s+/i.test(line));
-  const linesToAppend = ffmpegLines.length > 0 ? ffmpegLines : normalizedLines;
-  const next = [...processingLiveLogLines.value, ...linesToAppend];
-  processingLiveLogLines.value = next.slice(Math.max(0, next.length - 16));
-};
-
 const createLogFileName = (): string => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   return `ffmpeg-logs-${timestamp}.txt`;
@@ -1716,19 +1666,19 @@ const processingProgressIndeterminate = computed(() => {
 
 const processingProgressCaption = computed(() => {
   if (processingPhase.value === "finalizing") {
-    return "Finalizing FFmpeg output...";
+    return "Finalizing output...";
   }
   if (processingPhase.value === "packaging") {
     return "Preparing output file...";
   }
   if (processingPhase.value === "preparing") {
-    return "Preparing conversion...";
+    return "Starting conversion...";
   }
   if (processingProgressMode.value === "estimated") {
     const estimate = processingProgressDisplay.value;
-    return estimate > 0 ? `Working... estimate ${estimate}%` : "Working...";
+    return estimate > 0 ? `Estimated progress ${estimate}%` : "Estimating progress...";
   }
-  return `${processingProgressDisplay.value}%`;
+  return `Progress ${processingProgressDisplay.value}%`;
 });
 
 const processingElapsedLabel = computed(() => {
@@ -1744,7 +1694,7 @@ const processingLastActivityLabel = computed(() => {
   void processingUiTick.value;
   const lastActivityAt = processingLastActivityAtMs.value;
   if (!lastActivityAt) {
-    return "Waiting for FFmpeg status...";
+    return "Waiting for first FFmpeg update...";
   }
   const seconds = Math.max(0, Math.floor((Date.now() - lastActivityAt) / 1000));
   if (seconds <= 1) {
@@ -1753,107 +1703,42 @@ const processingLastActivityLabel = computed(() => {
   if (seconds < 8) {
     return `FFmpeg active ${seconds}s ago`;
   }
-  return `No new FFmpeg updates for ${seconds}s (may still be finalizing)`;
+  return `No update for ${seconds}s (still running)`;
 });
 
 const processingLiveStatusCaption = computed(
   () => `Elapsed ${processingElapsedLabel.value} • ${processingLastActivityLabel.value}`
 );
 
-const processingShowLiveLog = computed(
-  () =>
-    processing.value &&
-    (processingProgressMode.value === "estimated" || processingPhase.value === "finalizing")
-);
-
-const processingLiveLogText = computed(() =>
-  processingLiveLogLines.value.length > 0
-    ? processingLiveLogLines.value.join("\n")
-    : "Waiting for FFmpeg output..."
-);
-
 const processingStatusMessage = computed(() => {
   if (processingPhase.value === "finalizing") {
-    return "Conversion is still running. FFmpeg is finalizing the output.";
+    return "Conversion is running normally. FFmpeg is finishing the file.";
   }
   if (processingPhase.value === "packaging") {
-    return "Reading the converted file and preparing download output.";
+    return "Conversion complete. Preparing your output file.";
   }
   if (processingPhase.value === "encoding") {
-    return processingProgressMode.value === "estimated"
-      ? "Encoding trimmed media. Progress percent may not be exact."
-      : "Converting media...";
+    return "FFmpeg is actively converting your media.";
   }
   if (processingPhase.value === "preparing") {
-    return "Preparing conversion...";
+    return "Preparing FFmpeg...";
   }
   return "Converting media...";
 });
 
-const conversionOverviewLines = computed(() => {
-  const file = sourceFile.value;
-  const sourceLabel = file?.name ?? "No source selected";
-  const outputLabel = getOutputFormatLabel(outputFormat.value);
-  const fallbackOutputName = file
-    ? ensureOutputFileName(outputFileName.value, file.name, outputFormat.value)
-    : `output.${outputExtensionMap[outputFormat.value]}`;
-  const lines = [`Source: ${sourceLabel}`, `Saving as: ${fallbackOutputName} (${outputLabel})`];
-
-  if (isVideoOutput.value) {
-    const profileLabel =
-      targetSetupMode.value === "preset" && selectedBoardPreset.value
-        ? selectedBoardPreset.value.name
-        : "Custom";
-    const hasCustomDimensions =
-      outputSizeMode.value === "custom" &&
-      typeof width.value === "number" &&
-      width.value > 0 &&
-      typeof height.value === "number" &&
-      height.value > 0;
-    const sizeSummary = hasCustomDimensions
-      ? `${Math.round(width.value)}x${Math.round(height.value)}`
-      : "Original size";
-    lines.push(`Board: ${profileLabel}`);
-
-    const videoDetails = [
-      sizeSummary,
-      getScaleModeLabel(scaleMode.value),
-      orientation.value !== "none" ? getOrientationLabel(orientation.value) : null,
-      fps.value && fps.value > 0 ? `${Math.round(fps.value)} FPS` : "Default FPS",
-      (outputFormat.value === "mjpeg" || outputFormat.value === "avi") &&
-      quality.value &&
-      quality.value > 0
-        ? `Quality ${Math.round(quality.value)}`
-        : null,
-    ]
-      .filter((value): value is string => Boolean(value))
-      .join(" | ");
-    lines.push(`Video: ${videoDetails}`);
-
-    const hasStartTrim = typeof startSeconds.value === "number" && startSeconds.value > 0;
-    const hasEndTrim = typeof endSeconds.value === "number" && endSeconds.value > 0;
-    if (!hasStartTrim && !hasEndTrim) {
-      lines.push("Clip: Full video");
-    } else {
-      const startLabel = hasStartTrim
-        ? formatDurationClock(startSeconds.value, { includeTenths: true })
-        : "00:00.0";
-      const endLabel = hasEndTrim
-        ? formatDurationClock(endSeconds.value, { includeTenths: true })
-        : "Source end";
-      let clipLabel = `Clip: ${startLabel} to ${endLabel}`;
-      if (trimmedOutputDurationDisplay.value) {
-        clipLabel += ` (${trimmedOutputDurationDisplay.value})`;
-      }
-      lines.push(clipLabel);
-    }
-  } else {
-    const bitrateLabel =
-      mp3Bitrate.value && mp3Bitrate.value > 0 ? `${Math.round(mp3Bitrate.value)} kbps` : "128 kbps";
-    lines.push(`Audio: MP3 at ${bitrateLabel}`);
+const processingConfidenceCaption = computed(() => {
+  void processingUiTick.value;
+  if (processingPhase.value === "packaging") {
+    return "Everything is on track.";
   }
-
-  return lines;
+  const lastActivityAt = processingLastActivityAtMs.value;
+  if (!lastActivityAt) {
+    return "Conversion has started.";
+  }
+  const seconds = Math.max(0, Math.floor((Date.now() - lastActivityAt) / 1000));
+  return seconds < 10
+    ? "Conversion is working fine."
+    : "Conversion is still running (status updates may pause briefly).";
 });
 
 const buildVideoOptions = (): VideoTranscodeOptions => {
@@ -1912,7 +1797,6 @@ const runConversion = async () => {
   processingProgressMode.value = hasTrimSelection.value ? "estimated" : "reliable";
   processingPhase.value = "preparing";
   processingActivityLine.value = null;
-  processingLiveLogLines.value = ["[app] Preparing conversion..."];
   processingStartedAtMs.value = Date.now();
   processingLastActivityAtMs.value = processingStartedAtMs.value;
   startProcessingUiTimer();
@@ -1957,7 +1841,6 @@ const runConversion = async () => {
   const onLog: MediaLogCallback = (message) => {
     appendLog(message);
     markProcessingActivity();
-    appendProcessingLiveLog(message);
     const summary = summarizeProcessingLogLine(message);
     if (summary) {
       const isGenericSummary = summary === "FFmpeg is processing the conversion...";
@@ -2359,29 +2242,12 @@ onBeforeUnmount(() => {
   font-size: 0.8rem;
 }
 
-.conversion-overview {
-  display: grid;
-  gap: 4px;
-}
-
 .processing-activity-line {
   word-break: break-word;
 }
 
-.processing-live-log-output {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(var(--v-theme-outline), 0.24);
-  background: rgba(var(--v-theme-surface-variant), 0.26);
-  color: rgba(var(--v-theme-on-surface), 0.88);
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  max-height: 152px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
+.processing-confidence-line {
+  font-weight: 600;
 }
 
 @media (max-width: 959px) {
