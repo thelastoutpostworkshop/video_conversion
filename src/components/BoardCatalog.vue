@@ -199,7 +199,11 @@
 
       <v-divider class="my-4" />
 
-      <v-card variant="tonal" class="board-catalog-custom">
+      <v-card
+        variant="tonal"
+        class="board-catalog-custom"
+        :class="{ 'board-catalog-custom--selected': isCustomBoardSelected }"
+      >
         <v-card-title class="text-subtitle-1">
           Use custom board size
         </v-card-title>
@@ -561,7 +565,11 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-item--selected {
   border-color: rgba(var(--v-theme-success), 0.75);
-  box-shadow: 0 0 0 1px rgba(var(--v-theme-success), 0.35);
+  box-shadow:
+    0 0 0 1px rgba(var(--v-theme-success), 0.35),
+    0 0 18px rgba(var(--v-theme-success), 0.34),
+    0 0 36px rgba(var(--v-theme-success), 0.2);
+  animation: selected-glow-pulse 1.8s ease-in-out infinite;
 }
 
 .board-catalog-image {
@@ -770,6 +778,43 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-preview-links {
   margin-top: 0;
   padding-top: 0;
+}
+
+.board-catalog-custom {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.board-catalog-custom--selected {
+  border-color: rgba(var(--v-theme-success), 0.75) !important;
+  box-shadow:
+    0 0 0 1px rgba(var(--v-theme-success), 0.35),
+    0 0 18px rgba(var(--v-theme-success), 0.34),
+    0 0 36px rgba(var(--v-theme-success), 0.2);
+  animation: selected-glow-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes selected-glow-pulse {
+  0% {
+    box-shadow:
+      0 0 0 1px rgba(var(--v-theme-success), 0.35),
+      0 0 12px rgba(var(--v-theme-success), 0.24),
+      0 0 24px rgba(var(--v-theme-success), 0.14);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(var(--v-theme-success), 0.42),
+      0 0 22px rgba(var(--v-theme-success), 0.45),
+      0 0 44px rgba(var(--v-theme-success), 0.24);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(var(--v-theme-success), 0.35),
+      0 0 12px rgba(var(--v-theme-success), 0.24),
+      0 0 24px rgba(var(--v-theme-success), 0.14);
+  }
 }
 
 @media (max-width: 960px) {
