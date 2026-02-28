@@ -273,9 +273,6 @@
     >
       <v-card rounded="lg" class="board-catalog-preview-dialog">
         <v-card-title class="d-flex align-center ga-2">
-          <div class="text-subtitle-1">
-            {{ imagePreviewPreset?.name }}
-          </div>
           <v-spacer />
           <v-btn
             icon="mdi-close"
@@ -292,16 +289,20 @@
                 :alt="`${imagePreviewPreset.name} preview`"
                 class="board-catalog-preview-image"
               >
+                <div class="board-catalog-preview-info-overlay">
+                  <div class="board-catalog-preview-name">
+                    {{ imagePreviewPreset.name }}
+                  </div>
+                  <div class="board-catalog-preview-description">
+                    {{ imagePreviewPreset.notes }}
+                  </div>
+                </div>
                 <div class="board-catalog-size-overlay board-catalog-size-overlay--dialog">
                   {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
                 </div>
               </v-img>
 
               <div class="board-catalog-preview-details">
-                <div class="text-body-2 text-medium-emphasis">
-                  {{ imagePreviewPreset.notes }}
-                </div>
-
                 <div
                   v-if="hasSupportingLinks(imagePreviewPreset)"
                   class="board-catalog-preview-links"
@@ -701,6 +702,44 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   font-size: 1.06rem;
 }
 
+.board-catalog-preview-info-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 2;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--v-theme-surface), 0.88) 0%,
+      rgba(var(--v-theme-surface), 0.68) 100%
+    );
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.board-catalog-preview-name {
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.board-catalog-preview-description {
+  margin-top: 6px;
+  color: rgba(var(--v-theme-on-surface), 0.86);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
 .board-catalog-preview-details {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
   border-radius: 12px;
@@ -709,9 +748,8 @@ const updateCustomBoardHeight = (value: string | number | null) => {
 }
 
 .board-catalog-preview-links {
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  margin-top: 12px;
-  padding-top: 10px;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 @media (max-width: 960px) {
