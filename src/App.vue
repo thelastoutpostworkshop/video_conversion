@@ -2487,6 +2487,13 @@ onBeforeUnmount(() => {
   padding-inline: 0;
 }
 
+.about-trust-list :deep(.v-list-item-title) {
+  white-space: normal !important;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+}
+
 .about-cta-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
