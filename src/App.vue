@@ -565,6 +565,12 @@ interface PersistedBoardSelection {
   roundDisplay?: boolean;
 }
 
+interface PersistedCustomBoardDraft {
+  width: number | null;
+  height: number | null;
+  roundDisplay: boolean;
+}
+
 interface PersistedConversionPreferences {
   outputFormat: OutputFormat;
   orientation: VideoOrientation;
@@ -619,6 +625,7 @@ const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
 const themeStorageKey = "video-conversion.theme.v1";
 const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
 const boardSelectionStorageKey = "video-conversion.board-selection.v1";
+const customBoardDraftStorageKey = "video-conversion.custom-board-draft.v1";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
   gif: "gif",
@@ -1127,6 +1134,60 @@ const loadPersistedConversionPreferences = (): PersistedConversionPreferences | 
       outputFormat: outputFormatValue,
       orientation: orientationValue,
       scaleMode: scaleModeValue,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistCustomBoardDraft = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const payload: PersistedCustomBoardDraft = {
+    width:
+      typeof customBoardWidth.value === "number" &&
+      Number.isFinite(customBoardWidth.value) &&
+      customBoardWidth.value > 0
+        ? customBoardWidth.value
+        : null,
+    height:
+      typeof customBoardHeight.value === "number" &&
+      Number.isFinite(customBoardHeight.value) &&
+      customBoardHeight.value > 0
+        ? customBoardHeight.value
+        : null,
+    roundDisplay: customBoardRoundDisplay.value,
+  };
+  try {
+    window.localStorage.setItem(customBoardDraftStorageKey, JSON.stringify(payload));
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
+const loadPersistedCustomBoardDraft = (): PersistedCustomBoardDraft | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(customBoardDraftStorageKey);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const widthValue =
+      typeof parsed.width === "number" && Number.isFinite(parsed.width) && parsed.width > 0
+        ? parsed.width
+        : null;
+    const heightValue =
+      typeof parsed.height === "number" && Number.isFinite(parsed.height) && parsed.height > 0
+        ? parsed.height
+        : null;
+    return {
+      width: widthValue,
+      height: heightValue,
+      roundDisplay: parsed.roundDisplay === true,
     };
   } catch {
     return null;
@@ -2033,6 +2094,7 @@ watch([width, height, customBoardRoundDisplay], () => {
 });
 
 watch([customBoardWidth, customBoardHeight], () => {
+  persistCustomBoardDraft();
   if (
     customBoardValidationMessage.value &&
     typeof customBoardWidth.value === "number" &&
@@ -2044,6 +2106,10 @@ watch([customBoardWidth, customBoardHeight], () => {
   }
 });
 
+watch(customBoardRoundDisplay, () => {
+  persistCustomBoardDraft();
+});
+
 watch(hasBoardSelection, (isReady) => {
   if (!isReady && activeNavigation.value === "workspace") {
     activeNavigation.value = "boards";
@@ -2051,6 +2117,13 @@ watch(hasBoardSelection, (isReady) => {
 });
 
 onMounted(() => {
+  const persistedCustomBoardDraft = loadPersistedCustomBoardDraft();
+  if (persistedCustomBoardDraft) {
+    customBoardWidth.value = persistedCustomBoardDraft.width;
+    customBoardHeight.value = persistedCustomBoardDraft.height;
+    customBoardRoundDisplay.value = persistedCustomBoardDraft.roundDisplay;
+  }
+
   const persistedBoardSelection = loadPersistedBoardSelection();
   if (persistedBoardSelection?.mode === "preset" && persistedBoardSelection.presetId) {
     targetSetupMode.value = "preset";
