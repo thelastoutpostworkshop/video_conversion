@@ -150,7 +150,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   },
   {
     id: "ESP32-2432S028",
-    name: "Cheap Yellow Display ESP32-2432S028",
+    name: "2.8\" Cheap Yellow Display ESP32-2432S028",
     imagePath: "board-catalog/ESP32-2432S028.png",
     amazonUrl: "https://amzn.to/4kAyDJh",
     aliexpressUrl:
@@ -173,7 +173,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 20,
     quality: 6,
-    notes: "2.8 inch ESP32 Display ESP32-2432S028R Resistive Touch Screen 240x320 TFT LCD, Micro SD card reader",
+    notes: "ESP32-2432S028R Resistive Touch Screen 240x320, RGB 65K color , Micro SD card reader",
   },
   {
     id: "GC9A01",
@@ -201,6 +201,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 12,
     quality: 8,
-    notes: "1.28inch Round LCD IPS Module 240x240 Resolution 65K RGB Colors SPI Interface",
+    notes: "1.28\" Round LCD IPS Module 240x240, 65K RGB Colors, SPI Interface",
   },
 ];
