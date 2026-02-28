@@ -514,6 +514,12 @@
           >
             Trimmed conversions report FFmpeg activity instead of exact progress percent.
           </div>
+          <div v-if="processingShowLiveLog" class="mt-3">
+            <div class="text-caption text-medium-emphasis mb-1">
+              Recent FFmpeg output
+            </div>
+            <pre class="processing-live-log-output">{{ processingLiveLogText }}</pre>
+          </div>
           <v-divider class="my-3" />
           <div class="text-subtitle-2 mb-1">Conversion overview</div>
           <div class="conversion-overview">
@@ -692,6 +698,7 @@ const processingPhase = ref<ProcessingPhase>("idle");
 const processingActivityLine = ref<string | null>(null);
 const processingStartedAtMs = ref<number | null>(null);
 const processingLastActivityAtMs = ref<number | null>(null);
+const processingLiveLogLines = ref<string[]>([]);
 const processingUiTick = ref(0);
 const processingError = ref<string | null>(null);
 const logLines = ref<string[]>([]);
@@ -1436,6 +1443,26 @@ const isDetailedProcessingActivityLine = (line: string | null): boolean =>
   /\bFrame\s+\d+\b/i.test(line) &&
   (/\bEncoded\b/i.test(line) || /\bSpeed\b/i.test(line));
 
+const appendProcessingLiveLog = (message: string) => {
+  if (!message || !message.trim()) {
+    return;
+  }
+
+  const normalizedLines = message
+    .split(/[\r\n]+/)
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean);
+
+  if (normalizedLines.length === 0) {
+    return;
+  }
+
+  const ffmpegLines = normalizedLines.filter((line) => !/^\[app\]\s+/i.test(line));
+  const linesToAppend = ffmpegLines.length > 0 ? ffmpegLines : normalizedLines;
+  const next = [...processingLiveLogLines.value, ...linesToAppend];
+  processingLiveLogLines.value = next.slice(Math.max(0, next.length - 16));
+};
+
 const createLogFileName = (): string => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   return `ffmpeg-logs-${timestamp}.txt`;
@@ -1733,6 +1760,18 @@ const processingLiveStatusCaption = computed(
   () => `Elapsed ${processingElapsedLabel.value} • ${processingLastActivityLabel.value}`
 );
 
+const processingShowLiveLog = computed(
+  () =>
+    processing.value &&
+    (processingProgressMode.value === "estimated" || processingPhase.value === "finalizing")
+);
+
+const processingLiveLogText = computed(() =>
+  processingLiveLogLines.value.length > 0
+    ? processingLiveLogLines.value.join("\n")
+    : "Waiting for FFmpeg output..."
+);
+
 const processingStatusMessage = computed(() => {
   if (processingPhase.value === "finalizing") {
     return "Conversion is still running. FFmpeg is finalizing the output.";
@@ -1873,6 +1912,7 @@ const runConversion = async () => {
   processingProgressMode.value = hasTrimSelection.value ? "estimated" : "reliable";
   processingPhase.value = "preparing";
   processingActivityLine.value = null;
+  processingLiveLogLines.value = [];
   processingStartedAtMs.value = Date.now();
   processingLastActivityAtMs.value = processingStartedAtMs.value;
   startProcessingUiTimer();
@@ -1917,6 +1957,7 @@ const runConversion = async () => {
   const onLog: MediaLogCallback = (message) => {
     appendLog(message);
     markProcessingActivity();
+    appendProcessingLiveLog(message);
     const summary = summarizeProcessingLogLine(message);
     if (summary) {
       const isGenericSummary = summary === "FFmpeg is processing the conversion...";
@@ -2324,6 +2365,22 @@ onBeforeUnmount(() => {
 }
 
 .processing-activity-line {
+  word-break: break-word;
+}
+
+.processing-live-log-output {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--v-theme-outline), 0.24);
+  background: rgba(var(--v-theme-surface-variant), 0.26);
+  color: rgba(var(--v-theme-on-surface), 0.88);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  max-height: 152px;
+  overflow-y: auto;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
