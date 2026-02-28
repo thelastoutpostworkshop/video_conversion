@@ -4,7 +4,7 @@
       <div>
         <div class="text-h6">Board catalog</div>
         <div class="text-caption text-medium-emphasis board-catalog-subtitle">
-          Pick your board first to lock the right conversion target. Buying and resource links are optional.
+          Click a board card to select it. Buying and resource links are optional.
         </div>
       </div>
       <v-spacer />
@@ -40,6 +40,12 @@
             class="board-catalog-item flex-grow-1"
             :class="{ 'board-catalog-item--selected': isPresetSelected(preset.id) }"
             variant="tonal"
+            role="button"
+            tabindex="0"
+            :aria-label="`Select ${preset.name}`"
+            @click="selectPreset(preset.id)"
+            @keydown.enter.prevent="selectPreset(preset.id)"
+            @keydown.space.prevent="selectPreset(preset.id)"
           >
             <v-img
               :src="toPublicAssetPath(preset.imagePath)"
@@ -52,6 +58,12 @@
               </div>
               <div v-if="preset.roundDisplay" class="board-catalog-shape-overlay">
                 Round
+              </div>
+              <div
+                v-if="isPresetSelected(preset.id)"
+                class="board-catalog-selected-overlay"
+              >
+                Selected
               </div>
               <template #placeholder>
                 <div class="board-catalog-image-placeholder">
@@ -77,20 +89,14 @@
 
             <v-card-actions class="board-catalog-actions">
               <v-btn
-                color="primary"
-                variant="flat"
-                @click="emit('select-preset', preset.id)"
-              >
-                {{ isPresetSelected(preset.id) ? "Use selected board" : "Use this board" }}
-              </v-btn>
-              <v-chip
-                v-if="isPresetSelected(preset.id)"
                 size="small"
-                color="success"
+                color="primary"
                 variant="tonal"
+                prepend-icon="mdi-check-circle-outline"
+                @click.stop="selectPreset(preset.id)"
               >
-                Selected
-              </v-chip>
+                {{ isPresetSelected(preset.id) ? "Selected" : "Select" }}
+              </v-btn>
               <v-spacer />
               <v-btn
                 size="small"
@@ -98,11 +104,11 @@
                 color="secondary"
                 prepend-icon="mdi-link-variant"
                 :disabled="!hasSupportingLinks(preset)"
-                @click="toggleSupportingLinks(preset.id)"
+                @click.stop="toggleSupportingLinks(preset.id)"
               >
                 {{
                   isSupportingLinksOpen(preset.id)
-                    ? "Explore"
+                    ? "Hide"
                     : "Explore"
                 }}
               </v-btn>
@@ -126,6 +132,7 @@
                       variant="tonal"
                       color="warning"
                       prepend-icon="mdi-cart-outline"
+                      @click.stop
                     >
                       Amazon
                     </v-btn>
@@ -138,6 +145,7 @@
                       variant="tonal"
                       color="red-accent-2"
                       prepend-icon="mdi-shopping-outline"
+                      @click.stop
                     >
                       AliExpress
                     </v-btn>
@@ -158,6 +166,7 @@
                       size="small"
                       variant="text"
                       prepend-icon="mdi-source-repository"
+                      @click.stop
                     >
                       {{ project.label }}
                     </v-btn>
@@ -178,6 +187,7 @@
                       size="small"
                       variant="text"
                       prepend-icon="mdi-play-circle-outline"
+                      @click.stop
                     >
                       {{ video.label }}
                     </v-btn>
@@ -336,6 +346,10 @@ const toggleSupportingLinks = (presetId: string) => {
     expandedSupportingPresetId.value === presetId ? null : presetId;
 };
 
+const selectPreset = (presetId: string) => {
+  emit("select-preset", presetId);
+};
+
 const toNullableNumber = (value: string | number | null): number | null => {
   if (value === null || value === "") {
     return null;
@@ -379,11 +393,17 @@ const updateCustomBoardHeight = (value: string | number | null) => {
 .board-catalog-item {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
 }
 
 .board-catalog-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.board-catalog-item:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.9);
+  outline-offset: 2px;
 }
 
 .board-catalog-item--selected {
@@ -456,6 +476,23 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.board-catalog-selected-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-success), 0.55);
+  background: rgba(var(--v-theme-surface), 0.74);
+  color: rgb(var(--v-theme-success));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   line-height: 1;
   pointer-events: none;
 }
