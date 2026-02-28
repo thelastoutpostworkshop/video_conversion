@@ -101,98 +101,11 @@
                 variant="text"
                 color="secondary"
                 prepend-icon="mdi-link-variant"
-                :disabled="!hasSupportingLinks(preset)"
-                @click.stop="toggleSupportingLinks(preset.id)"
+                @click.stop="openImagePreview(preset)"
               >
-                {{
-                  isSupportingLinksOpen(preset.id)
-                    ? "Hide"
-                    : "Explore"
-                }}
+                Explore
               </v-btn>
             </v-card-actions>
-
-            <v-expand-transition>
-              <div v-if="isSupportingLinksOpen(preset.id)" class="board-catalog-links">
-  
-
-                <div v-if="hasBuyLinks(preset)" class="board-catalog-link-group">
-                  <div class="text-caption board-catalog-link-group-title">
-                    Buy board
-                  </div>
-                  <div class="board-catalog-link-row">
-                    <v-btn
-                      v-if="preset.amazonUrl"
-                      :href="preset.amazonUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="tonal"
-                      color="warning"
-                      prepend-icon="mdi-cart-outline"
-                      @click.stop
-                    >
-                      Amazon
-                    </v-btn>
-                    <v-btn
-                      v-if="preset.aliexpressUrl"
-                      :href="preset.aliexpressUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="tonal"
-                      color="red-accent-2"
-                      prepend-icon="mdi-shopping-outline"
-                      @click.stop
-                    >
-                      AliExpress
-                    </v-btn>
-                  </div>
-                </div>
-
-                <div v-if="preset.projectLinks?.length" class="board-catalog-link-group">
-                  <div class="text-caption board-catalog-link-group-title">
-                    Projects
-                  </div>
-                  <div class="board-catalog-link-row">
-                    <v-btn
-                      v-for="(project, index) in preset.projectLinks"
-                      :key="`${preset.id}-project-${index}`"
-                      :href="project.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="text"
-                      prepend-icon="mdi-source-repository"
-                      @click.stop
-                    >
-                      {{ project.label }}
-                    </v-btn>
-                  </div>
-                </div>
-
-                <div v-if="preset.demoVideoLinks?.length" class="board-catalog-link-group">
-                  <div class="text-caption board-catalog-link-group-title">
-                    Demo videos
-                  </div>
-                  <div class="board-catalog-link-row">
-                    <v-btn
-                      v-for="(video, index) in preset.demoVideoLinks"
-                      :key="`${preset.id}-video-${index}`"
-                      :href="video.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      variant="text"
-                      prepend-icon="mdi-play-circle-outline"
-                      @click.stop
-                    >
-                      {{ video.label }}
-                    </v-btn>
-                  </div>
-                </div>
-              </div>
-            </v-expand-transition>
           </v-card>
         </v-col>
       </v-row>
@@ -437,7 +350,6 @@ const emit = defineEmits<{
 }>();
 
 const searchQuery = ref<string | null>("");
-const expandedSupportingPresetId = ref<string | null>(null);
 const imagePreviewPreset = ref<BoardPreset | null>(null);
 
 const filteredPresets = computed(() => {
@@ -476,14 +388,6 @@ const hasSupportingLinks = (preset: BoardPreset): boolean =>
   hasBuyLinks(preset) ||
   Boolean(preset.projectLinks?.length) ||
   Boolean(preset.demoVideoLinks?.length);
-
-const isSupportingLinksOpen = (presetId: string): boolean =>
-  expandedSupportingPresetId.value === presetId;
-
-const toggleSupportingLinks = (presetId: string) => {
-  expandedSupportingPresetId.value =
-    expandedSupportingPresetId.value === presetId ? null : presetId;
-};
 
 const openImagePreview = (preset: BoardPreset) => {
   imagePreviewPreset.value = preset;
@@ -661,12 +565,6 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-actions {
   align-items: center;
   gap: 8px;
-}
-
-.board-catalog-links {
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  margin-top: 4px;
-  padding: 10px 16px 14px;
 }
 
 .board-catalog-link-group + .board-catalog-link-group {
