@@ -56,9 +56,6 @@
               <div class="board-catalog-size-overlay">
                 {{ preset.width }}x{{ preset.height }}
               </div>
-              <div v-if="preset.roundDisplay" class="board-catalog-shape-overlay">
-                Round
-              </div>
               <div
                 v-if="isPresetSelected(preset.id)"
                 class="board-catalog-selected-overlay"
@@ -77,11 +74,6 @@
             </v-card-title>
 
             <v-card-text class="pt-2">
-              <div v-if="preset.roundDisplay" class="board-catalog-meta-row">
-                <v-chip size="x-small" color="secondary" variant="tonal">
-                  Round display
-                </v-chip>
-              </div>
               <div class="text-caption text-medium-emphasis mt-1">
                 {{ preset.notes }}
               </div>
@@ -461,25 +453,6 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   pointer-events: none;
 }
 
-.board-catalog-shape-overlay {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
-  background: rgba(var(--v-theme-surface), 0.72);
-  backdrop-filter: blur(6px);
-  color: rgb(var(--v-theme-on-surface));
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  line-height: 1;
-  pointer-events: none;
-}
-
 .board-catalog-selected-overlay {
   position: absolute;
   top: 10px;
@@ -505,13 +478,6 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   color: rgba(var(--v-theme-on-surface), 0.65);
   background: rgba(var(--v-theme-surface), 0.18);
   font-size: 0.8rem;
-}
-
-.board-catalog-meta-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 
 .board-catalog-actions {
