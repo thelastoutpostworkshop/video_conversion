@@ -41,7 +41,7 @@ export interface BoardPreset {
 export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "ESP32-S3-LCD-3.16",
-    name: "Waveshare ESP32-S3 3.16inch",
+    name: "Waveshare ESP32-S3 3.16\"",
     imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
     amazonUrl:
       "https://amzn.to/4689Mbm",
@@ -65,11 +65,11 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    notes: "ESP32-S3 3.16inch display board, 320x820 panel, WiFi and Bluetooth 5.",
+    notes: "320x820 Pixels 262K Color, SD Card, WiFi and Bluetooth 5.",
   },
   {
     id: "jc4827w543",
-    name: "Guiton JC4827W543",
+    name: "Guiton JC4827W543 4.3\" IPS",
     imagePath: "board-catalog/JC4827W543.png",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oEHbBud",
@@ -91,11 +91,11 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    notes: "ESP32-S3 8M PSRAM 4M FLASH 4.3-inch IPS with capacitive or resistance touch.",
+    notes: "ESP32-S3 8M PSRAM 4M FLASH RGB 65K true-to-life colours, SD Card, capacitive or resistance touch.",
   },
   {
     id: "esp32-c6-lcd-1_47",
-    name: "Waveshare ESP32-C6 LCD 1.47inch",
+    name: "Waveshare ESP32-C6 LCD 1.47\"",
     imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
     amazonUrl: "https://amzn.to/3ZzfcZr",
     aliexpressUrl:
@@ -122,7 +122,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   },
   {
     id: "ESP32-S3-1.43-AMOLED",
-    name: "Waveshare ESP32-S3 1.43inch AMOLED Round",
+    name: "Waveshare ESP32-S3 1.43\" AMOLED Round",
     imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
     roundDisplay: true,
     amazonUrl: "https://amzn.to/41VszVi",
@@ -177,7 +177,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   },
   {
     id: "GC9A01",
-    name: "GC9A01 1.28inch Round Display",
+    name: "GC9A01 1.28\" Round Display",
     imagePath: "board-catalog/GC9A01.png",
     amazonUrl: "https://amzn.to/3CJjbHy",
     aliexpressUrl:
