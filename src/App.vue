@@ -467,7 +467,7 @@
                 <div>
                   <div class="text-h6">About Video Conversion Studio</div>
                   <div class="text-caption text-medium-emphasis">
-                    Browser-first FFmpeg workflows for board-ready media exports.
+                    Free, local-first FFmpeg workflows for board-ready media exports.
                   </div>
                 </div>
                 <v-spacer />
@@ -477,15 +477,33 @@
                   variant="tonal"
                   prepend-icon="mdi-shield-check-outline"
                 >
-                  Local-first processing
+                  Runs on your computer
+                </v-chip>
+                <v-chip
+                  size="small"
+                  color="success"
+                  variant="tonal"
+                  prepend-icon="mdi-gift-outline"
+                >
+                  Free to use
                 </v-chip>
               </v-card-title>
               <v-divider />
               <v-card-text>
+                <v-sheet class="pa-4 about-surface mb-3" rounded="lg" border>
+                  <div class="text-subtitle-1 font-weight-medium mb-2">
+                    Processing and speed expectations
+                  </div>
+                  <div class="text-body-2">
+                    Conversions run directly in your browser on your own computer. Speed depends on
+                    your device performance, browser resources, and the size/length of the source
+                    media.
+                  </div>
+                </v-sheet>
                 <v-row dense class="about-grid">
                   <v-col cols="12" md="7">
                     <v-sheet class="pa-4 about-surface" rounded="lg" border>
-                      <div class="text-subtitle-1 font-weight-medium mb-2">What this app does</div>
+                      <div class="text-subtitle-1 font-weight-medium mb-2">What this app offers</div>
                       <v-list density="compact" class="bg-transparent px-0">
                         <v-list-item
                           v-for="item in aboutHighlights"
@@ -498,20 +516,24 @@
                   </v-col>
                   <v-col cols="12" md="5">
                     <v-sheet class="pa-4 about-surface" rounded="lg" border>
-                      <div class="text-subtitle-1 font-weight-medium mb-2">Quick links</div>
+                      <div class="text-subtitle-1 font-weight-medium mb-2">Support and community</div>
+                      <div class="text-body-2 text-medium-emphasis mb-3">
+                        This tool is brought to you by The Last Outpost Workshop. Contributions are
+                        welcome, and feature requests can be submitted on GitHub.
+                      </div>
                       <div class="about-link-stack">
                         <v-btn
-                          v-for="resource in resourceLinks"
-                          :key="resource.title"
-                          :prepend-icon="resource.icon"
-                          :href="resource.href"
+                          v-for="link in aboutActionLinks"
+                          :key="link.title"
+                          :prepend-icon="link.icon"
+                          :href="link.href"
                           target="_blank"
                           rel="noopener noreferrer"
                           variant="tonal"
                           color="primary"
                           block
                         >
-                          {{ resource.title }}
+                          {{ link.title }}
                         </v-btn>
                       </div>
                     </v-sheet>
@@ -1081,12 +1103,32 @@ const previewTargetDimensions = computed<{ width: number; height: number } | nul
 
 const activeView = computed<AppView>(() => activeNavigation.value);
 const logsText = computed(() => logLines.value.join("\n"));
+const aboutActionLinks: Array<{ title: string; icon: string; href: string }> = [
+  {
+    title: "The Last Outpost Workshop",
+    icon: "mdi-youtube",
+    href: "https://www.youtube.com/@thelastoutpostworkshop",
+  },
+  {
+    title: "Request Feature on GitHub",
+    icon: "mdi-source-repository",
+    href: "https://github.com/thelastoutpostworkshop/video_conversion",
+  },
+  {
+    title: "Buy Me a Coffee",
+    icon: "mdi-coffee-outline",
+    href: "https://buymeacoffee.com/thelastoutpostworkshop",
+  },
+];
 const aboutHighlights = [
   "Converts source files to GIF, MJPEG, AVI, or MP3 outputs.",
+  "Runs FFmpeg locally in your browser, powered by your own computer.",
+  "Conversion speed depends on your hardware and source media complexity.",
   "Applies board sizing, orientation, and scale mode before export.",
   "Supports trim range controls and live preview frame generation.",
-  "Keeps FFmpeg processing in-browser to avoid server uploads.",
-  "Captures a full session log with copy and download actions.",
+  "Free to use, with optional support via Buy Me a Coffee.",
+  "Feature requests and feedback are welcome on the GitHub repository.",
+  "Built by The Last Outpost Workshop.",
 ];
 const isDarkTheme = computed(() => theme.global.current.value.dark);
 const themeToggleIcon = computed(() =>
