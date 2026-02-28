@@ -432,7 +432,7 @@
                 </section>
               </v-card-text>
             </v-card>
-            <v-card v-else rounded="lg" elevation="4" class="panel-card logs-view-card">
+            <v-card v-else-if="activeView === 'logs'" rounded="lg" elevation="4" class="panel-card logs-view-card">
               <v-card-title class="d-flex align-center">
                 <div class="text-h6">Session Log</div>
                 <v-spacer />
@@ -473,6 +473,63 @@
                   variant="outlined"
                   class="log-output logs-view-output"
                 />
+              </v-card-text>
+            </v-card>
+            <v-card v-else rounded="lg" elevation="4" class="panel-card">
+              <v-card-title class="d-flex align-center flex-wrap ga-3">
+                <div>
+                  <div class="text-h6">About Video Conversion Studio</div>
+                  <div class="text-caption text-medium-emphasis">
+                    Browser-first FFmpeg workflows for board-ready media exports.
+                  </div>
+                </div>
+                <v-spacer />
+                <v-chip
+                  size="small"
+                  color="primary"
+                  variant="tonal"
+                  prepend-icon="mdi-shield-check-outline"
+                >
+                  Local-first processing
+                </v-chip>
+              </v-card-title>
+              <v-divider />
+              <v-card-text>
+                <v-row dense class="about-grid">
+                  <v-col cols="12" md="7">
+                    <v-sheet class="pa-4 about-surface" rounded="lg" border>
+                      <div class="text-subtitle-1 font-weight-medium mb-2">What this app does</div>
+                      <v-list density="compact" class="bg-transparent px-0">
+                        <v-list-item
+                          v-for="item in aboutHighlights"
+                          :key="item"
+                          :title="item"
+                          prepend-icon="mdi-check-circle-outline"
+                        />
+                      </v-list>
+                    </v-sheet>
+                  </v-col>
+                  <v-col cols="12" md="5">
+                    <v-sheet class="pa-4 about-surface" rounded="lg" border>
+                      <div class="text-subtitle-1 font-weight-medium mb-2">Quick links</div>
+                      <div class="about-link-stack">
+                        <v-btn
+                          v-for="resource in resourceLinks"
+                          :key="resource.title"
+                          :prepend-icon="resource.icon"
+                          :href="resource.href"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="tonal"
+                          color="primary"
+                          block
+                        >
+                          {{ resource.title }}
+                        </v-btn>
+                      </div>
+                    </v-sheet>
+                  </v-col>
+                </v-row>
               </v-card-text>
             </v-card>
           </v-col>
@@ -565,7 +622,7 @@ type OutputFormat = VideoOutputFormat | "mp3";
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
-type AppNavigationId = "boards" | "workspace" | "logs";
+type AppNavigationId = "boards" | "workspace" | "logs" | "about";
 type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
 type ProcessingProgressMode = "reliable" | "estimated";
@@ -608,6 +665,7 @@ const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string 
   { id: "boards", title: "Board Catalog", icon: "mdi-view-grid-outline" },
   { id: "workspace", title: "Workspace", icon: "mdi-file-cog-outline" },
   { id: "logs", title: "Session Log", icon: "mdi-text-box-search-outline" },
+  { id: "about", title: "About", icon: "mdi-information-outline" },
 ];
 
 const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
@@ -1036,6 +1094,13 @@ const previewTargetDimensions = computed<{ width: number; height: number } | nul
 
 const activeView = computed<AppView>(() => activeNavigation.value);
 const logsText = computed(() => logLines.value.join("\n"));
+const aboutHighlights = [
+  "Converts source files to GIF, MJPEG, AVI, or MP3 outputs.",
+  "Applies board sizing, orientation, and scale mode before export.",
+  "Supports trim range controls and live preview frame generation.",
+  "Keeps FFmpeg processing in-browser to avoid server uploads.",
+  "Captures a full session log with copy and download actions.",
+];
 const isDarkTheme = computed(() => theme.global.current.value.dark);
 const themeToggleIcon = computed(() =>
   isDarkTheme.value ? "mdi-weather-sunny" : "mdi-weather-night"
@@ -2209,6 +2274,20 @@ onBeforeUnmount(() => {
 .workspace-subsection {
   background: rgba(var(--v-theme-surface), 0.36);
   border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
+}
+
+.about-grid {
+  row-gap: 12px;
+}
+
+.about-surface {
+  background: rgba(var(--v-theme-surface), 0.38);
+  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
+}
+
+.about-link-stack {
+  display: grid;
+  gap: 8px;
 }
 
 .section-target-grid {
