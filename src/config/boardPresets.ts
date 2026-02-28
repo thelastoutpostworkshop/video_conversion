@@ -65,7 +65,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    notes: "320x820 Pixels 262K Color, SD Card, WiFi and Bluetooth 5.",
+    notes: "320x820 Pixels 262K Color, Micro SD Card reader, WiFi and Bluetooth 5.",
   },
   {
     id: "jc4827w543",
@@ -91,7 +91,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    notes: "ESP32-S3 8M PSRAM 4M FLASH RGB 65K true-to-life colours, SD Card, capacitive or resistance touch.",
+    notes: "ESP32-S3 8M PSRAM 4M FLASH RGB 65K true-to-life colours, Micro SD Card reader, capacitive or resistance touch.",
   },
   {
     id: "esp32-c6-lcd-1_47",
@@ -118,11 +118,11 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 20,
     quality: 6,
-    notes: "ESP32-C6 1.47inch Display Development Board, 172×320, 262K Color, 160MHz Single-core Processor, Supports WiFi 6 & Bluetooth 5, Onboard Antenna, Micro SD card reader",
+    notes: "ESP32-C6, 172×320, 262K Color, 160MHz Single-core Processor, Supports WiFi 6 & Bluetooth 5, Onboard Antenna, Micro SD card reader",
   },
   {
     id: "ESP32-S3-1.43-AMOLED",
-    name: "Waveshare ESP32-S3 1.43\" AMOLED Round",
+    name: "Waveshare ESP32-S3 1.43\" AMOLED",
     imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
     roundDisplay: true,
     amazonUrl: "https://amzn.to/41VszVi",
@@ -146,7 +146,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 18,
     quality: 7,
-    notes: "ESP32-S3 1.43inch AMOLED Display Development Board, 466×466, QSPI Interface Round Display, Accelerometer And Gyroscope Sensor Micro SD card reader",
+    notes: "ESP32-S3 16Mb Flash, 8Mb psram, 466×466, 16.7M Color, AccelerometerAnd Gyroscope Sensor, Micro SD card reader",
   },
   {
     id: "ESP32-2432S028",
