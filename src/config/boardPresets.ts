@@ -110,14 +110,14 @@ export const BOARD_PRESETS: BoardPreset[] = [
       "https://s.click.aliexpress.com/e/_okJAvee",
     projectLinks: [
       {
-        label: "Community projects",
-        url: "https://github.com/search?q=ESP32-C6+1.47+LCD&type=repositories",
+        label: "Video player",
+        url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_video_player",
       },
     ],
     demoVideoLinks: [
       {
-        label: "Video demos",
-        url: "https://www.youtube.com/results?search_query=Waveshare+ESP32-C6+1.47+LCD+demo",
+        label: "Video player",
+        url: "https://www.youtube.com/watch?v=JqQEG0eipic",
       },
     ],
     width: 172,
