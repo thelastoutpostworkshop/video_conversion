@@ -253,7 +253,7 @@
                 >
                   <div v-if="hasBuyLinks(imagePreviewPreset)" class="board-catalog-link-group">
                     <div class="text-caption board-catalog-link-group-title">
-                      Buy board
+                      Buy this board
                     </div>
                     <div class="board-catalog-link-row">
                       <v-btn
