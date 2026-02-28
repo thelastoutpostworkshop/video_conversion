@@ -656,7 +656,7 @@ export class MediaProcessingService {
       args.push("-t", `${durationSeconds}`);
     }
     const quality = options?.quality ?? 3;
-    args.push("-q:v", `${quality}`);
+    args.push("-pix_fmt", "yuv420p", "-q:v", `${quality}`);
     return this.runTranscode(file, "mjpeg", args, onProgress, onLog, signal);
   }
 
