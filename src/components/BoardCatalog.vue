@@ -8,16 +8,29 @@
         </div>
       </div>
       <v-spacer />
-      <v-text-field
-        v-model="searchQuery"
-        density="compact"
-        variant="outlined"
-        hide-details
-        clearable
-        prepend-inner-icon="mdi-magnify"
-        label="Search boards"
-        class="board-catalog-search"
-      />
+      <div class="board-catalog-header-actions">
+        <v-text-field
+          v-model="searchQuery"
+          density="compact"
+          variant="outlined"
+          hide-details
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          label="Search boards"
+          class="board-catalog-search"
+        />
+        <v-btn
+          href="https://github.com/thelastoutpostworkshop/video_conversion/issues/new/choose"
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-plus-circle-outline"
+          class="board-catalog-request-btn"
+        >
+          Request a board
+        </v-btn>
+      </div>
     </v-card-title>
 
     <v-divider />
@@ -441,9 +454,20 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   min-height: 68vh;
 }
 
+.board-catalog-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .board-catalog-search {
   min-width: 220px;
   max-width: 320px;
+}
+
+.board-catalog-request-btn {
+  white-space: nowrap;
 }
 
 .board-catalog-subtitle {
@@ -726,9 +750,17 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 @media (max-width: 640px) {
+  .board-catalog-header-actions {
+    width: 100%;
+  }
+
   .board-catalog-search {
     min-width: 100%;
     max-width: 100%;
+  }
+
+  .board-catalog-request-btn {
+    width: 100%;
   }
 
   .board-catalog-actions {
