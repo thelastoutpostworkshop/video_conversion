@@ -283,43 +283,54 @@
                     </div>
                   </div>
 
-                  <div v-if="imagePreviewPreset.projectLinks?.length" class="board-catalog-link-group">
+                  <div v-if="previewProjects.length" class="board-catalog-link-group">
                     <div class="text-caption board-catalog-link-group-title">
                       Projects
                     </div>
-                    <div class="board-catalog-link-row">
-                      <v-btn
-                        v-for="(project, index) in imagePreviewPreset.projectLinks"
+                    <div class="board-catalog-project-grid">
+                      <v-card
+                        v-for="(project, index) in previewProjects"
                         :key="`${imagePreviewPreset.id}-dialog-project-${index}`"
-                        :href="project.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        size="small"
-                        variant="text"
-                        prepend-icon="mdi-source-repository"
+                        variant="tonal"
+                        class="board-catalog-project-card"
                       >
-                        {{ project.label }}
-                      </v-btn>
-                    </div>
-                  </div>
-
-                  <div v-if="imagePreviewPreset.demoVideoLinks?.length" class="board-catalog-link-group">
-                    <div class="text-caption board-catalog-link-group-title">
-                      Demo videos
-                    </div>
-                    <div class="board-catalog-link-row">
-                      <v-btn
-                        v-for="(video, index) in imagePreviewPreset.demoVideoLinks"
-                        :key="`${imagePreviewPreset.id}-dialog-video-${index}`"
-                        :href="video.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        size="small"
-                        variant="text"
-                        prepend-icon="mdi-play-circle-outline"
-                      >
-                        {{ video.label }}
-                      </v-btn>
+                        <v-img
+                          :src="toPublicAssetPath(project.imagePath)"
+                          :alt="`${project.name} preview`"
+                          height="96"
+                          cover
+                          class="board-catalog-project-image"
+                        />
+                        <v-card-text class="board-catalog-project-body">
+                          <div class="board-catalog-project-title">
+                            {{ project.name }}
+                          </div>
+                          <div class="board-catalog-link-row">
+                            <v-btn
+                              :href="project.url"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              size="small"
+                              variant="text"
+                              prepend-icon="mdi-source-repository"
+                            >
+                              Project
+                            </v-btn>
+                            <v-btn
+                              v-for="(demo, demoIndex) in project.demos"
+                              :key="`${imagePreviewPreset.id}-dialog-project-${index}-demo-${demoIndex}`"
+                              :href="demo.url"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              size="small"
+                              variant="text"
+                              prepend-icon="mdi-play-circle-outline"
+                            >
+                              {{ demo.label }}
+                            </v-btn>
+                          </div>
+                        </v-card-text>
+                      </v-card>
                     </div>
                   </div>
                 </div>
@@ -334,7 +345,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { BoardPreset } from "@/config/boardPresets";
+import type { BoardPreset, BoardReferenceLink } from "@/config/boardPresets";
 
 type TargetSetupMode = "preset" | "custom";
 
@@ -365,19 +376,101 @@ const emit = defineEmits<{
 const searchQuery = ref<string | null>("");
 const imagePreviewPreset = ref<BoardPreset | null>(null);
 
+interface BoardPreviewProject {
+  name: string;
+  url: string;
+  imagePath: string;
+  demos: BoardReferenceLink[];
+}
+
+const normalizeReferenceLinks = (
+  links: BoardReferenceLink[] | undefined
+): BoardReferenceLink[] =>
+  (links ?? [])
+    .filter(
+      (link) =>
+        typeof link.label === "string" &&
+        link.label.trim().length > 0 &&
+        typeof link.url === "string" &&
+        link.url.trim().length > 0
+    )
+    .map((link) => ({ label: link.label.trim(), url: link.url.trim() }));
+
+const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
+  const projectEntries = (preset.projects ?? [])
+    .filter(
+      (project) =>
+        typeof project.name === "string" &&
+        project.name.trim().length > 0 &&
+        typeof project.url === "string" &&
+        project.url.trim().length > 0
+    )
+    .map((project) => ({
+      name: project.name.trim(),
+      url: project.url.trim(),
+      imagePath:
+        typeof project.imagePath === "string" && project.imagePath.trim().length > 0
+          ? project.imagePath.trim()
+          : preset.imagePath,
+      demos: normalizeReferenceLinks(project.demos),
+    }));
+  if (projectEntries.length > 0) {
+    return projectEntries;
+  }
+
+  const legacyProjects = normalizeReferenceLinks(preset.projectLinks);
+  const legacyDemos = normalizeReferenceLinks(preset.demoVideoLinks);
+  if (legacyProjects.length === 0 && legacyDemos.length === 0) {
+    return [];
+  }
+
+  if (legacyProjects.length === 0) {
+    return legacyDemos.map((demo) => ({
+      name: demo.label,
+      url: demo.url,
+      imagePath: preset.imagePath,
+      demos: [demo],
+    }));
+  }
+
+  const legacyDemoMap = new Map<string, BoardReferenceLink[]>();
+  for (const demo of legacyDemos) {
+    const key = demo.label.trim().toLowerCase();
+    const bucket = legacyDemoMap.get(key) ?? [];
+    bucket.push(demo);
+    legacyDemoMap.set(key, bucket);
+  }
+
+  return legacyProjects.map((project) => {
+    const key = project.label.trim().toLowerCase();
+    const matchingDemos = legacyDemoMap.get(key) ?? [];
+    const demos =
+      matchingDemos.length > 0 ? matchingDemos : legacyDemos.length === 1 ? legacyDemos : [];
+    return {
+      name: project.label,
+      url: project.url,
+      imagePath: preset.imagePath,
+      demos,
+    };
+  });
+};
+
 const filteredPresets = computed(() => {
   const query = (searchQuery.value ?? "").trim().toLowerCase();
   if (!query) {
     return props.presets;
   }
   return props.presets.filter((preset) => {
+    const projectTokens = buildPreviewProjects(preset).flatMap((project) => [
+      project.name,
+      ...project.demos.map((demo) => demo.label),
+    ]);
     const searchableText = [
       preset.id,
       preset.name,
       preset.notes,
       `${preset.width}x${preset.height}`,
-      ...(preset.projectLinks ?? []).map((link) => link.label),
-      ...(preset.demoVideoLinks ?? []).map((link) => link.label),
+      ...projectTokens,
     ]
       .join(" ")
       .toLowerCase();
@@ -385,7 +478,15 @@ const filteredPresets = computed(() => {
   });
 });
 
+const previewProjects = computed(() => {
+  const preset = imagePreviewPreset.value;
+  return preset ? buildPreviewProjects(preset) : [];
+});
+
 const toPublicAssetPath = (assetPath: string): string => {
+  if (/^(?:[a-z]+:)?\/\//i.test(assetPath) || assetPath.startsWith("data:")) {
+    return assetPath;
+  }
   const normalized = assetPath.replace(/^\/+/, "");
   const baseUrl = import.meta.env.BASE_URL ?? "/";
   return baseUrl.endsWith("/") ? `${baseUrl}${normalized}` : `${baseUrl}/${normalized}`;
@@ -399,8 +500,7 @@ const hasBuyLinks = (preset: BoardPreset): boolean =>
 
 const hasSupportingLinks = (preset: BoardPreset): boolean =>
   hasBuyLinks(preset) ||
-  Boolean(preset.projectLinks?.length) ||
-  Boolean(preset.demoVideoLinks?.length);
+  buildPreviewProjects(preset).length > 0;
 
 const openImagePreview = (preset: BoardPreset) => {
   imagePreviewPreset.value = preset;
@@ -700,6 +800,31 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-preview-links {
   margin-top: 0;
   padding-top: 0;
+}
+
+.board-catalog-project-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.board-catalog-project-card {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: rgba(var(--v-theme-surface), 0.36);
+}
+
+.board-catalog-project-image {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+}
+
+.board-catalog-project-body {
+  padding: 10px 12px !important;
+}
+
+.board-catalog-project-title {
+  font-size: 0.83rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
 }
 
 .board-catalog-custom {

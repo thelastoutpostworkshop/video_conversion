@@ -10,6 +10,13 @@ export interface BoardReferenceLink {
   url: string;
 }
 
+export interface BoardProject {
+  name: string;
+  url: string;
+  imagePath: string;
+  demos?: BoardReferenceLink[];
+}
+
 export interface TargetProfileBase {
   width: number;
   height: number;
@@ -27,6 +34,8 @@ export interface BoardPreset {
   roundDisplay?: boolean;
   amazonUrl?: string;
   aliexpressUrl?: string;
+  projects?: BoardProject[];
+  // Legacy flat link fields kept for backward compatibility with older preset JSON.
   projectLinks?: BoardReferenceLink[];
   demoVideoLinks?: BoardReferenceLink[];
   width: number;
@@ -47,16 +56,17 @@ export const BOARD_PRESETS: BoardPreset[] = [
       "https://amzn.to/4689Mbm",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_c4S9IVQB",
-    projectLinks: [
+    projects: [
       {
-        label: "Community projects",
+        name: "Community projects",
         url: "https://github.com/search?q=ESP32-S3+3.16+display&type=repositories",
-      },
-    ],
-    demoVideoLinks: [
-      {
-        label: "Video demos",
-        url: "https://www.youtube.com/results?search_query=Waveshare+ESP32-S3+3.16+demo",
+        imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
+        demos: [
+          {
+            label: "Video demos",
+            url: "https://www.youtube.com/results?search_query=Waveshare+ESP32-S3+3.16+demo",
+          },
+        ],
       },
     ],
     width: 320,
@@ -73,24 +83,28 @@ export const BOARD_PRESETS: BoardPreset[] = [
     imagePath: "board-catalog/JC4827W543.png",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oEHbBud",
-    projectLinks: [
+    projects: [
       {
-        label: "Animated GIF",
+        name: "Animated GIF",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
+        imagePath: "board-catalog/JC4827W543.png",
+        demos: [
+          {
+            label: "Demo video",
+            url: "https://youtu.be/mnOzfRFQJIM?t=456",
+          },
+        ],
       },
       {
-        label: "AVI Player",
+        name: "AVI Player",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
-      },
-    ],
-    demoVideoLinks: [
-      {
-        label: "Animated GIF",
-        url: "https://youtu.be/mnOzfRFQJIM?t=456",
-      },
-      {
-        label: "AVI Player",
-        url: "https://youtu.be/mnOzfRFQJIM?t=622",
+        imagePath: "board-catalog/JC4827W543.png",
+        demos: [
+          {
+            label: "Demo video",
+            url: "https://youtu.be/mnOzfRFQJIM?t=622",
+          },
+        ],
       },
     ],
     width: 480,
@@ -108,16 +122,17 @@ export const BOARD_PRESETS: BoardPreset[] = [
     amazonUrl: "https://amzn.to/3ZzfcZr",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_okJAvee",
-    projectLinks: [
+    projects: [
       {
-        label: "Video player",
+        name: "Video player",
         url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_video_player",
-      },
-    ],
-    demoVideoLinks: [
-      {
-        label: "Video player",
-        url: "https://www.youtube.com/watch?v=JqQEG0eipic",
+        imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
+        demos: [
+          {
+            label: "Demo video",
+            url: "https://www.youtube.com/watch?v=JqQEG0eipic",
+          },
+        ],
       },
     ],
     width: 172,
@@ -136,16 +151,17 @@ export const BOARD_PRESETS: BoardPreset[] = [
     amazonUrl: "https://amzn.to/41VszVi",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_ondyHh3",
-    projectLinks: [
+    projects: [
       {
-        label: "Community projects",
+        name: "Community projects",
         url: "https://github.com/search?q=ESP32-S3+1.43+AMOLED&type=repositories",
-      },
-    ],
-    demoVideoLinks: [
-      {
-        label: "Video demos",
-        url: "https://www.youtube.com/results?search_query=ESP32-S3+1.43+AMOLED+demo",
+        imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
+        demos: [
+          {
+            label: "Video demos",
+            url: "https://www.youtube.com/results?search_query=ESP32-S3+1.43+AMOLED+demo",
+          },
+        ],
       },
     ],
     width: 466,
@@ -163,16 +179,17 @@ export const BOARD_PRESETS: BoardPreset[] = [
     amazonUrl: "https://amzn.to/4kAyDJh",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oCVWMbC",
-    projectLinks: [
+    projects: [
       {
-        label: "Community projects",
+        name: "Community projects",
         url: "https://github.com/search?q=ESP32-2432S028+display&type=repositories",
-      },
-    ],
-    demoVideoLinks: [
-      {
-        label: "Video demos",
-        url: "https://www.youtube.com/results?search_query=ESP32-2432S028+demo",
+        imagePath: "board-catalog/ESP32-2432S028.png",
+        demos: [
+          {
+            label: "Video demos",
+            url: "https://www.youtube.com/results?search_query=ESP32-2432S028+demo",
+          },
+        ],
       },
     ],
     width: 320,
@@ -190,16 +207,17 @@ export const BOARD_PRESETS: BoardPreset[] = [
     amazonUrl: "https://amzn.to/3CJjbHy",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_c3cFGvxV",
-    projectLinks: [
+    projects: [
       {
-        label: "Community projects",
+        name: "Community projects",
         url: "https://github.com/search?q=GC9A01+ESP32+project&type=repositories",
-      },
-    ],
-    demoVideoLinks: [
-      {
-        label: "Video demos",
-        url: "https://www.youtube.com/results?search_query=GC9A01+ESP32+demo",
+        imagePath: "board-catalog/GC9A01.png",
+        demos: [
+          {
+            label: "Video demos",
+            url: "https://www.youtube.com/results?search_query=GC9A01+ESP32+demo",
+          },
+        ],
       },
     ],
     roundDisplay: true,
