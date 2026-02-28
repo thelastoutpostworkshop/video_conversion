@@ -151,38 +151,47 @@
                     </v-card>
 
                     <div>
-                    <div
-                      v-if="hasBoardSelection"
-                      class="preview-board-context d-flex align-center flex-wrap ga-2 mb-2"
-                    >
-                      <v-chip
-                        color="info"
-                        variant="tonal"
-                        size="small"
-                        prepend-icon="mdi-monitor-dashboard"
+                      <v-sheet
+                        v-if="hasBoardSelection"
+                        class="preview-board-context px-3 py-2 mb-2"
+                        rounded="lg"
+                        border
                       >
-                        {{ workspaceBoardSummary }}
-                      </v-chip>
-                      <v-btn
-                        size="x-small"
-                        variant="tonal"
-                        prepend-icon="mdi-view-grid-outline"
-                        :disabled="processing"
-                        @click="navigateToView('boards')"
-                      >
-                        Change board
-                      </v-btn>
-                    </div>
-                    <PreviewFrameSurface
-                      :preview-frame-url="previewFrameUrl"
-                      :preview-frame-busy="previewFrameBusy"
-                      :has-source-file="Boolean(sourceFile)"
-                      :is-video-source="isVideoSource"
-                      :is-video-output="isVideoOutput"
-                      :round-display="workspaceRoundDisplay"
-                      :target-width="previewTargetDimensions?.width ?? null"
-                      :target-height="previewTargetDimensions?.height ?? null"
-                    />
+                        <div class="d-flex align-center flex-wrap ga-2">
+                          <div class="d-flex align-center ga-2">
+                            <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
+                            <span class="text-caption text-medium-emphasis">Target display</span>
+                          </div>
+                          <v-chip
+                            color="info"
+                            variant="tonal"
+                            size="large"
+                            class="preview-board-chip"
+                          >
+                            {{ workspaceBoardSummary }}
+                          </v-chip>
+                          <v-spacer />
+                          <v-btn
+                            size="small"
+                            variant="tonal"
+                            prepend-icon="mdi-view-grid-outline"
+                            :disabled="processing"
+                            @click="navigateToView('boards')"
+                          >
+                            Change board
+                          </v-btn>
+                        </div>
+                      </v-sheet>
+                      <PreviewFrameSurface
+                        :preview-frame-url="previewFrameUrl"
+                        :preview-frame-busy="previewFrameBusy"
+                        :has-source-file="Boolean(sourceFile)"
+                        :is-video-source="isVideoSource"
+                        :is-video-output="isVideoOutput"
+                        :round-display="workspaceRoundDisplay"
+                        :target-width="previewTargetDimensions?.width ?? null"
+                        :target-height="previewTargetDimensions?.height ?? null"
+                      />
                     </div>
 
                     <v-sheet class="workspace-subsection mt-4 pa-3" rounded="lg" border>
@@ -2289,7 +2298,13 @@ onBeforeUnmount(() => {
 }
 
 .preview-board-context {
-  min-height: 26px;
+  min-height: 48px;
+  background: rgba(var(--v-theme-surface), 0.42);
+  border-color: rgba(var(--v-theme-on-surface), 0.12) !important;
+}
+
+.preview-board-chip {
+  font-weight: 600;
 }
 
 .workspace-section {
@@ -2414,6 +2429,10 @@ onBeforeUnmount(() => {
 @media (max-width: 959px) {
   .app-nav-target {
     scroll-margin-top: 84px;
+  }
+
+  .preview-board-context .v-btn {
+    width: 100%;
   }
 }
 </style>
