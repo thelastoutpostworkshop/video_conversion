@@ -57,15 +57,6 @@
         :title="themeToggleLabel"
         @click="toggleTheme"
       />
-      <v-chip
-        v-if="!mdAndDown && hasBoardSelection"
-        color="info"
-        variant="tonal"
-        size="small"
-        prepend-icon="mdi-monitor-dashboard"
-      >
-        {{ workspaceBoardSummary }}
-      </v-chip>
     </v-app-bar>
 
     <v-main class="app-main">
@@ -97,27 +88,6 @@
                   <div class="text-caption text-medium-emphasis">
                     Board, source, settings, and export in one flow.
                   </div>
-                </div>
-                <v-spacer />
-                <div class="d-flex align-center ga-2 workspace-title-controls">
-                  <v-chip
-                    v-if="hasBoardSelection"
-                    color="info"
-                    variant="tonal"
-                    size="small"
-                    prepend-icon="mdi-monitor-dashboard"
-                  >
-                    {{ workspaceBoardSummary }}
-                  </v-chip>
-                  <v-btn
-                    size="small"
-                    variant="tonal"
-                    prepend-icon="mdi-view-grid-outline"
-                    :disabled="processing"
-                    @click="navigateToView('boards')"
-                  >
-                    Change board
-                  </v-btn>
                 </div>
               </v-card-title>
 
@@ -200,6 +170,28 @@
                     </v-card>
 
                     <div>
+                    <div
+                      v-if="hasBoardSelection"
+                      class="preview-board-context d-flex align-center flex-wrap ga-2 mb-2"
+                    >
+                      <v-chip
+                        color="info"
+                        variant="tonal"
+                        size="small"
+                        prepend-icon="mdi-monitor-dashboard"
+                      >
+                        {{ workspaceBoardSummary }}
+                      </v-chip>
+                      <v-btn
+                        size="x-small"
+                        variant="tonal"
+                        prepend-icon="mdi-view-grid-outline"
+                        :disabled="processing"
+                        @click="navigateToView('boards')"
+                      >
+                        Change board
+                      </v-btn>
+                    </div>
                     <PreviewFrameSurface
                       :preview-frame-url="previewFrameUrl"
                       :preview-frame-busy="previewFrameBusy"
@@ -2146,8 +2138,8 @@ onBeforeUnmount(() => {
   gap: 2px;
 }
 
-.workspace-title-controls {
-  min-height: 32px;
+.preview-board-context {
+  min-height: 26px;
 }
 
 .workspace-section {
