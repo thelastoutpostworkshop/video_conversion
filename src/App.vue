@@ -1,12 +1,6 @@
 ﻿<template>
   <v-app>
-    <v-navigation-drawer
-      v-model="drawerOpen"
-      :temporary="mdAndDown"
-      :permanent="!mdAndDown"
-      width="280"
-      class="app-navigation"
-    >
+    <v-navigation-drawer permanent width="280" class="app-navigation">
       <div class="pa-4">
         <div class="text-overline text-medium-emphasis">Navigation</div>
         <v-list nav density="comfortable" class="mt-2">
@@ -45,7 +39,6 @@
     </v-navigation-drawer>
 
     <v-app-bar class="app-bar" flat>
-      <v-app-bar-nav-icon @click="drawerOpen = !drawerOpen" />
       <v-toolbar-title class="font-weight-medium">
         Video Conversion Studio
       </v-toolbar-title>
@@ -529,7 +522,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useDisplay, useTheme } from "vuetify";
+import { useTheme } from "vuetify";
 import BoardCatalog from "@/components/BoardCatalog.vue";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
 import SourceFileInput from "@/components/SourceFileInput.vue";
@@ -657,10 +650,8 @@ const selectedBoardPresetId = ref<string>("");
 const customBoardWidth = ref<number | null>(null);
 const customBoardHeight = ref<number | null>(null);
 const customBoardValidationMessage = ref<string | null>(null);
-const drawerOpen = ref(true);
 const activeNavigation = ref<AppNavigationId>("boards");
 
-const { mdAndDown } = useDisplay();
 const theme = useTheme();
 
 const {
@@ -1059,9 +1050,6 @@ const navigateToView = (viewId: AppNavigationId) => {
     return;
   }
   activeNavigation.value = viewId;
-  if (mdAndDown.value) {
-    drawerOpen.value = false;
-  }
 };
 
 const toNullableNumber = (value: string | number | null): number | null => {
@@ -1256,9 +1244,6 @@ const selectBoardFromCatalog = (presetId: string) => {
   }
   persistBoardSelection();
   activeNavigation.value = "workspace";
-  if (mdAndDown.value) {
-    drawerOpen.value = false;
-  }
 };
 
 const applySizingDefaults = () => {
@@ -1285,9 +1270,6 @@ const selectCustomBoard = () => {
   persistBoardSelection();
   appendLog(`[app] Using custom board target ${width.value}x${height.value}.`);
   activeNavigation.value = "workspace";
-  if (mdAndDown.value) {
-    drawerOpen.value = false;
-  }
 };
 
 const appendLog = (message: string) => {
@@ -1950,14 +1932,6 @@ const downloadOutput = () => {
   link.click();
   link.remove();
 };
-
-watch(
-  mdAndDown,
-  (isMobile) => {
-    drawerOpen.value = !isMobile;
-  },
-  { immediate: true }
-);
 
 watch(
   () => theme.global.name.value,
