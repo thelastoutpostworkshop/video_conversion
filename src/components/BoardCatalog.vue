@@ -298,7 +298,6 @@
                           :src="toPublicAssetPath(project.imagePath)"
                           :alt="`${project.name} preview`"
                           height="96"
-                          cover
                           class="board-catalog-project-image"
                         />
                         <v-card-text class="board-catalog-project-body">
@@ -814,6 +813,12 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-project-image {
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: rgba(var(--v-theme-surface), 0.62);
+}
+
+.board-catalog-project-image :deep(.v-img__img) {
+  object-fit: contain !important;
+  object-position: center center;
 }
 
 .board-catalog-project-body {
