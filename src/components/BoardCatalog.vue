@@ -51,7 +51,13 @@
               :src="toPublicAssetPath(preset.imagePath)"
               :alt="preset.name"
               height="164"
-              class="board-catalog-image"
+              class="board-catalog-image board-catalog-image--previewable"
+              role="button"
+              tabindex="0"
+              :aria-label="`Open larger image of ${preset.name}`"
+              @click.stop="openImagePreview(preset)"
+              @keydown.enter.prevent.stop="openImagePreview(preset)"
+              @keydown.space.prevent.stop="openImagePreview(preset)"
             >
               <div class="board-catalog-size-overlay">
                 {{ preset.width }}x{{ preset.height }}
@@ -259,6 +265,39 @@
         </v-card-text>
       </v-card>
     </v-card-text>
+
+    <v-dialog
+      :model-value="Boolean(imagePreviewPreset)"
+      max-width="940"
+      @update:model-value="handleImagePreviewModelUpdate"
+    >
+      <v-card rounded="lg" class="board-catalog-preview-dialog">
+        <v-card-title class="d-flex align-center ga-2">
+          <div class="text-subtitle-1">
+            {{ imagePreviewPreset?.name }}
+          </div>
+          <v-spacer />
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            @click="closeImagePreview"
+          />
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="board-catalog-preview-dialog-body">
+          <v-img
+            v-if="imagePreviewPreset"
+            :src="toPublicAssetPath(imagePreviewPreset.imagePath)"
+            :alt="`${imagePreviewPreset.name} preview`"
+            class="board-catalog-preview-image"
+          >
+            <div class="board-catalog-size-overlay board-catalog-size-overlay--dialog">
+              {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
+            </div>
+          </v-img>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -292,6 +331,7 @@ const emit = defineEmits<{
 
 const searchQuery = ref<string | null>("");
 const expandedSupportingPresetId = ref<string | null>(null);
+const imagePreviewPreset = ref<BoardPreset | null>(null);
 
 const filteredPresets = computed(() => {
   const query = (searchQuery.value ?? "").trim().toLowerCase();
@@ -336,6 +376,20 @@ const isSupportingLinksOpen = (presetId: string): boolean =>
 const toggleSupportingLinks = (presetId: string) => {
   expandedSupportingPresetId.value =
     expandedSupportingPresetId.value === presetId ? null : presetId;
+};
+
+const openImagePreview = (preset: BoardPreset) => {
+  imagePreviewPreset.value = preset;
+};
+
+const closeImagePreview = () => {
+  imagePreviewPreset.value = null;
+};
+
+const handleImagePreviewModelUpdate = (isOpen: boolean) => {
+  if (!isOpen) {
+    closeImagePreview();
+  }
 };
 
 const selectPreset = (presetId: string) => {
@@ -435,6 +489,15 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.2));
 }
 
+.board-catalog-image--previewable {
+  cursor: zoom-in;
+}
+
+.board-catalog-image--previewable:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.9);
+  outline-offset: -2px;
+}
+
 .board-catalog-size-overlay {
   position: absolute;
   left: 10px;
@@ -507,6 +570,42 @@ const updateCustomBoardHeight = (value: string | number | null) => {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.board-catalog-preview-dialog-body {
+  padding: 12px !important;
+}
+
+.board-catalog-preview-image {
+  min-height: min(72vh, 680px);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      140% 90% at 10% 10%,
+      rgba(var(--v-theme-primary), 0.26),
+      transparent 55%
+    ),
+    radial-gradient(
+      120% 100% at 92% 80%,
+      rgba(var(--v-theme-secondary), 0.22),
+      transparent 58%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(var(--v-theme-surface-variant), 0.58) 0%,
+      rgba(var(--v-theme-surface), 0.44) 100%
+    );
+}
+
+.board-catalog-preview-image :deep(.v-img__img) {
+  object-fit: contain !important;
+  object-position: center center;
+}
+
+.board-catalog-size-overlay--dialog {
+  font-size: 1.06rem;
 }
 
 @media (max-width: 640px) {
