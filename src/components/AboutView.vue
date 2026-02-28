@@ -170,7 +170,7 @@ const aboutTrustPoints = [
 
 const aboutActionLinks: Array<{ title: string; icon: string; href: string }> = [
   {
-    title: "Watch demos",
+    title: "Watch tutorial",
     icon: "mdi-youtube",
     href: "https://www.youtube.com/@thelastoutpostworkshop",
   },
