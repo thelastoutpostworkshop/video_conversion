@@ -231,7 +231,7 @@
               <div class="board-catalog-preview-focus">
                 <div class="board-catalog-preview-focus-header">
                   <div class="board-catalog-preview-header-top">
-                    <div>
+                    <div class="board-catalog-preview-header-copy">
                       <div class="board-catalog-preview-name">
                         {{ imagePreviewPreset.name }}
                       </div>
@@ -280,6 +280,15 @@
                       Screen {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
                     </v-chip>
                     <v-chip
+                      v-if="previewProjects.length"
+                      size="small"
+                      variant="tonal"
+                      color="info"
+                    >
+                      <v-icon icon="mdi-view-grid-outline" size="14" class="me-1" />
+                      {{ previewProjects.length }} project{{ previewProjects.length > 1 ? "s" : "" }}
+                    </v-chip>
+                    <v-chip
                       v-if="imagePreviewPreset.roundDisplay"
                       size="small"
                       variant="tonal"
@@ -294,7 +303,10 @@
                   <div class="board-catalog-preview-links">
                     <div v-if="previewProjects.length" class="board-catalog-link-group">
                       <div class="board-catalog-link-group-title board-catalog-project-list-title">
-                        The Last Outpost Projects available ({{ previewProjects.length }})
+                        <span>The Last Outpost projects</span>
+                        <v-chip size="small" color="primary" variant="tonal">
+                          {{ previewProjects.length }}
+                        </v-chip>
                       </div>
                       <div class="board-catalog-project-grid">
                         <v-card
@@ -323,23 +335,29 @@
                                 v-if="project.hoverImagePath && !isProjectHovered(imagePreviewPreset.id, index)"
                                 class="board-catalog-project-hover-hint"
                               >
-                                Hover to play preview
+                                Hover for animated preview
                               </div>
                             </v-img>
                             <div class="board-catalog-project-body">
-                              <div class="board-catalog-project-title">
-                                {{ project.name }}
+                              <div class="board-catalog-project-head">
+                                <div class="board-catalog-project-title">
+                                  {{ project.name }}
+                                </div>
+                                <div class="board-catalog-project-description">
+                                  {{ project.description }}
+                                </div>
                               </div>
-                              <div class="board-catalog-link-row">
+                              <div class="board-catalog-link-row board-catalog-link-row--project">
                                 <v-btn
                                   :href="project.url"
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   size="small"
-                                  variant="text"
+                                  variant="flat"
+                                  color="primary"
                                   prepend-icon="mdi-source-repository"
                                 >
-                                  Project
+                                  Open project
                                 </v-btn>
                                 <v-btn
                                   v-for="(demo, demoIndex) in project.demos"
@@ -348,7 +366,8 @@
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   size="small"
-                                  variant="text"
+                                  variant="tonal"
+                                  color="secondary"
                                   prepend-icon="mdi-play-circle-outline"
                                 >
                                   {{ demo.label }}
@@ -415,6 +434,7 @@ const imagePreviewPreset = ref<BoardPreset | null>(null);
 
 interface BoardPreviewProject {
   name: string;
+  description: string;
   url: string;
   imagePath: string;
   hoverImagePath: string | null;
@@ -434,6 +454,18 @@ const normalizeReferenceLinks = (
     )
     .map((link) => ({ label: link.label.trim(), url: link.url.trim() }));
 
+const buildProjectDescription = (
+  explicitDescription: string | undefined,
+  tutorialCount: number
+): string => {
+  if (typeof explicitDescription === "string" && explicitDescription.trim().length > 0) {
+    return explicitDescription.trim();
+  }
+  return tutorialCount > 0
+    ? `Open-source project with ${tutorialCount} tutorial${tutorialCount > 1 ? "s" : ""}.`
+    : "Open-source project tailored for this board.";
+};
+
 const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
   const projectEntries = (preset.projects ?? [])
     .filter(
@@ -442,20 +474,24 @@ const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
         project.name.trim().length > 0 &&
         typeof project.url === "string" &&
         project.url.trim().length > 0
-    )
-    .map((project) => ({
-      imagePath:
-        typeof project.imagePath === "string" && project.imagePath.trim().length > 0
-          ? project.imagePath.trim()
-          : preset.imagePath,
-      hoverImagePath:
-        typeof project.hoverImagePath === "string" && project.hoverImagePath.trim().length > 0
-          ? project.hoverImagePath.trim()
-          : null,
-      name: project.name.trim(),
-      url: project.url.trim(),
-      demos: normalizeReferenceLinks(project.demos),
-    }));
+      )
+    .map((project) => {
+      const demos = normalizeReferenceLinks(project.demos);
+      return {
+        imagePath:
+          typeof project.imagePath === "string" && project.imagePath.trim().length > 0
+            ? project.imagePath.trim()
+            : preset.imagePath,
+        hoverImagePath:
+          typeof project.hoverImagePath === "string" && project.hoverImagePath.trim().length > 0
+            ? project.hoverImagePath.trim()
+            : null,
+        name: project.name.trim(),
+        description: buildProjectDescription(project.description, demos.length),
+        url: project.url.trim(),
+        demos,
+      };
+    });
   if (projectEntries.length > 0) {
     return projectEntries;
   }
@@ -469,6 +505,7 @@ const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
   if (legacyProjects.length === 0) {
     return legacyDemos.map((demo) => ({
       name: demo.label,
+      description: buildProjectDescription(undefined, 1),
       url: demo.url,
       imagePath: preset.imagePath,
       hoverImagePath: null,
@@ -491,6 +528,7 @@ const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
       matchingDemos.length > 0 ? matchingDemos : legacyDemos.length === 1 ? legacyDemos : [];
     return {
       name: project.label,
+      description: buildProjectDescription(undefined, demos.length),
       url: project.url,
       imagePath: preset.imagePath,
       hoverImagePath: null,
@@ -776,10 +814,14 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 .board-catalog-project-list-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   font-size: 1.02rem;
   font-weight: 800;
   color: rgba(var(--v-theme-on-surface), 0.92);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .board-catalog-link-row {
@@ -790,7 +832,7 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 .board-catalog-preview-dialog-body {
-  padding: 12px !important;
+  padding: 14px !important;
 }
 
 .board-catalog-preview-layout {
@@ -799,30 +841,30 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-preview-focus {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 14px;
   background:
     radial-gradient(
-      120% 70% at 10% 0%,
-      rgba(var(--v-theme-primary), 0.16),
-      transparent 52%
+      130% 75% at 8% -10%,
+      rgba(var(--v-theme-primary), 0.24),
+      transparent 56%
     ),
     linear-gradient(
       135deg,
-      rgba(var(--v-theme-surface-variant), 0.36) 0%,
-      rgba(var(--v-theme-surface), 0.48) 100%
+      rgba(var(--v-theme-surface-variant), 0.44) 0%,
+      rgba(var(--v-theme-surface), 0.56) 100%
     );
 }
 
 .board-catalog-preview-focus-header {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.14);
   background:
     linear-gradient(
       180deg,
-      rgba(var(--v-theme-surface), 0.88) 0%,
-      rgba(var(--v-theme-surface), 0.68) 100%
+      rgba(var(--v-theme-surface), 0.92) 0%,
+      rgba(var(--v-theme-surface), 0.74) 100%
     );
   backdrop-filter: blur(8px);
 }
@@ -830,20 +872,25 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-preview-header-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: 16px;
   align-items: start;
 }
 
+.board-catalog-preview-header-copy {
+  max-width: 760px;
+}
+
 .board-catalog-preview-buy-panel {
-  min-width: 220px;
-  border: 1px solid rgba(var(--v-theme-primary), 0.34);
-  border-radius: 10px;
-  padding: 10px;
+  min-width: 212px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.28);
+  border-radius: 12px;
+  padding: 11px;
   background: linear-gradient(
     160deg,
-    rgba(var(--v-theme-primary), 0.16) 0%,
-    rgba(var(--v-theme-surface), 0.14) 100%
+    rgba(var(--v-theme-primary), 0.2) 0%,
+    rgba(var(--v-theme-surface), 0.22) 100%
   );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .board-catalog-buy-row {
@@ -855,25 +902,25 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-preview-name {
   color: rgb(var(--v-theme-on-surface));
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .board-catalog-preview-description {
-  margin-top: 6px;
-  color: rgba(var(--v-theme-on-surface), 0.86);
-  font-size: 0.88rem;
-  line-height: 1.35;
+  margin-top: 8px;
+  color: rgba(var(--v-theme-on-surface), 0.9);
+  font-size: 0.92rem;
+  line-height: 1.42;
 }
 
 .board-catalog-preview-meta-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .board-catalog-size-chip {
@@ -882,11 +929,11 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 .board-catalog-preview-details {
-  margin-top: 12px;
+  margin-top: 14px;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  border-radius: 10px;
-  padding: 12px;
-  background: rgba(var(--v-theme-surface), 0.4);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(var(--v-theme-surface), 0.5);
 }
 
 .board-catalog-preview-links {
@@ -896,25 +943,47 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-project-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .board-catalog-project-card {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  background: rgba(var(--v-theme-surface), 0.42);
+  border-radius: 12px;
+  background: rgba(var(--v-theme-surface), 0.52);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
   overflow: hidden;
+}
+
+.board-catalog-project-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--v-theme-primary), 0.28);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+}
+
+.board-catalog-project-card:focus-within {
+  border-color: rgba(var(--v-theme-primary), 0.55);
+  box-shadow: 0 0 0 1px rgba(var(--v-theme-primary), 0.45);
 }
 
 .board-catalog-project-content {
   display: grid;
-  grid-template-columns: minmax(280px, 46%) minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 43%) minmax(0, 1fr);
   align-items: stretch;
 }
 
 .board-catalog-project-image {
-  min-height: 192px;
+  min-height: 196px;
   border-right: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  background: rgba(var(--v-theme-surface), 0.62);
+  background:
+    radial-gradient(
+      130% 90% at 0% 0%,
+      rgba(var(--v-theme-primary), 0.22),
+      transparent 62%
+    ),
+    rgba(var(--v-theme-surface), 0.66);
 }
 
 .board-catalog-project-image :deep(.v-img__img) {
@@ -927,11 +996,11 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   right: 10px;
   bottom: 10px;
   z-index: 2;
-  padding: 4px 8px;
+  padding: 5px 9px;
   border-radius: 999px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
-  background: rgba(var(--v-theme-surface), 0.76);
-  color: rgba(var(--v-theme-on-surface), 0.84);
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  background: rgba(var(--v-theme-surface), 0.8);
+  color: rgba(var(--v-theme-on-surface), 0.9);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -940,18 +1009,37 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 .board-catalog-project-body {
-  padding: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  justify-content: center;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.board-catalog-project-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .board-catalog-project-title {
-  font-size: 1.02rem;
-  font-weight: 700;
+  font-size: 1.08rem;
+  font-weight: 800;
   letter-spacing: 0.01em;
-  line-height: 1.25;
+  line-height: 1.3;
+  color: rgba(var(--v-theme-on-surface), 0.95);
+}
+
+.board-catalog-project-description {
+  color: rgba(var(--v-theme-on-surface), 0.78);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  max-width: 58ch;
+}
+
+.board-catalog-link-row--project {
+  gap: 10px;
+  align-items: center;
 }
 
 .board-catalog-custom {
@@ -1009,6 +1097,24 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
     min-height: 168px;
     border-right: none;
     border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  }
+
+  .board-catalog-project-body {
+    gap: 12px;
+  }
+
+  .board-catalog-project-title {
+    font-size: 1.02rem;
+  }
+
+  .board-catalog-link-row--project {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .board-catalog-link-row--project :deep(.v-btn) {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .board-catalog-header-actions {

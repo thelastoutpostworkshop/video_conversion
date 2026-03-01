@@ -12,6 +12,7 @@ export interface BoardReferenceLink {
 
 export interface BoardProject {
   name: string;
+  description?: string;
   url: string;
   imagePath: string;
   hoverImagePath?: string;
@@ -60,6 +61,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     projects: [
       {
         name: "Community projects",
+        description:
+          "Community repositories and examples you can adapt for this display.",
         url: "https://github.com/search?q=ESP32-S3+3.16+display&type=repositories",
         imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
         demos: [
@@ -87,6 +90,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     projects: [
       {
         name: "Animated GIF",
+        description:
+          "Displays animated GIF files from SD storage with smooth playback on the screen.",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
         imagePath: "board-catalog/JC4827W543/animated_gif_still.png",
         hoverImagePath: "board-catalog/JC4827W543/animated_gif_demo.gif",
@@ -99,6 +104,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
       },
       {
         name: "AVI Player",
+        description:
+          "Plays AVI videos from SD card and renders frames directly on the display.",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
         imagePath: "board-catalog/JC4827W543/avi_still.png",
         hoverImagePath: "board-catalog/JC4827W543/avi_demo.gif",
@@ -128,6 +135,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     projects: [
       {
         name: "Video player",
+        description:
+          "Compact ESP32-C6 video player example tuned for this 1.47-inch LCD board.",
         url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_video_player",
         imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
         demos: [
@@ -157,6 +166,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     projects: [
       {
         name: "Community projects",
+        description:
+          "Community projects and demos for the 1.43-inch AMOLED ESP32-S3 display.",
         url: "https://github.com/search?q=ESP32-S3+1.43+AMOLED&type=repositories",
         imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
         demos: [
@@ -185,6 +196,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     projects: [
       {
         name: "Community projects",
+        description:
+          "Browse open-source examples for the ESP32-2432S028 display module.",
         url: "https://github.com/search?q=ESP32-2432S028+display&type=repositories",
         imagePath: "board-catalog/ESP32-2432S028.png",
         demos: [
@@ -213,6 +226,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     projects: [
       {
         name: "Community projects",
+        description:
+          "Starter projects and demo videos for GC9A01 round display builds.",
         url: "https://github.com/search?q=GC9A01+ESP32+project&type=repositories",
         imagePath: "board-catalog/GC9A01.png",
         demos: [
