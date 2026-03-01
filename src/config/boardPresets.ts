@@ -201,22 +201,23 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "ESP32-S3-1.43-AMOLED",
     name: "Waveshare ESP32-S3 1.43\" AMOLED",
-    imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
+    imagePath: "board-catalog/esp32-s3-touch-amoled-1.43/esp32-s3-touch-amoled-1.43.png",
     roundDisplay: true,
     amazonUrl: "https://amzn.to/41VszVi",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_ondyHh3",
     projects: [
       {
-        name: "Community projects",
+        name: "X-Wing Game!",
         description:
           "Community projects and demos for the 1.43-inch AMOLED ESP32-S3 display.",
-        url: "https://github.com/search?q=ESP32-S3+1.43+AMOLED&type=repositories",
-        imagePath: "board-catalog/esp32-s3-touch-amoled-1.43.png",
+        url: "https://github.com/thelastoutpostworkshop/waveshare_esp32s3_1.43_amoled_xwing_game",
+        imagePath: "board-catalog/esp32-s3-touch-amoled-1.43/xwing_still.png",
+        hoverImagePath: "board-catalog/esp32-s3-touch-amoled-1.43/xwing_demo.gif",
         demos: [
           {
-            label: "Video demos",
-            url: "https://www.youtube.com/results?search_query=ESP32-S3+1.43+AMOLED+demo",
+            label: "Tutorial",
+            url: "https://youtu.be/eDDZ7O_mwxU",
           },
         ],
       },
