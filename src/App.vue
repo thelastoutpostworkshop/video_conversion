@@ -167,7 +167,7 @@
                             :max="previewSecondMax"
                             :step="previewSecondsStep"
                             :disabled="isPreviewSliderDisabled"
-                            color="info"
+                            color="warning"
                             base-color="transparent"
                             density="compact"
                             thumb-label
@@ -771,6 +771,7 @@ const logLines = ref<string[]>([]);
 let convertAbortController: AbortController | null = null;
 let processingUiTimer: ReturnType<typeof setInterval> | null = null;
 const cancelRequested = ref(false);
+const initializePreviewAtMidpointPending = ref(false);
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
@@ -1926,6 +1927,23 @@ const syncPreviewWithinTrimRange = () => {
   previewSecondModel.value = clamped;
 };
 
+const initializePreviewAtMidpoint = () => {
+  if (!initializePreviewAtMidpointPending.value || !hasPreviewSource.value) {
+    return false;
+  }
+  const duration = sourceDurationSeconds.value;
+  const hasDuration =
+    typeof duration === "number" && Number.isFinite(duration) && duration > 0;
+  if (hasDuration) {
+    previewSecondModel.value = clampPreviewSecond(duration / 2);
+  } else {
+    previewSecondModel.value = previewSecondMin.value;
+  }
+  initializePreviewAtMidpointPending.value = false;
+  schedulePreviewFrameRefresh(50);
+  return true;
+};
+
 const hasPreviewSource = computed(
   () => Boolean(sourceFile.value) && isVideoSource.value && isVideoOutput.value
 );
@@ -2352,10 +2370,21 @@ watch([previewSecondsMax, previewSecondMin, previewSecondMax], () => {
   syncPreviewWithinTrimRange();
 });
 
+watch(
+  [sourceDurationSeconds, sourceMetadataLoading, hasPreviewSource],
+  ([, metadataLoading, hasSource]) => {
+    if (!initializePreviewAtMidpointPending.value || metadataLoading || !hasSource) {
+      return;
+    }
+    void initializePreviewAtMidpoint();
+  }
+);
+
 watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
   clearPreviewFrame();
+  initializePreviewAtMidpointPending.value = false;
   customCropEnabled.value = false;
   customCropRect.value = null;
   processingError.value = null;
@@ -2374,8 +2403,11 @@ watch(sourceFile, (file) => {
   outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
 
   if (isVideoSource.value && isVideoOutput.value) {
-    previewSecondModel.value = previewSecondMin.value;
-    schedulePreviewFrameRefresh(50);
+    previewFrameSeconds.value = null;
+    initializePreviewAtMidpointPending.value = true;
+    if (!sourceMetadataLoading.value) {
+      void initializePreviewAtMidpoint();
+    }
   }
 });
 
@@ -2386,6 +2418,20 @@ watch(outputFormat, (format) => {
     return;
   }
   outputFileName.value = buildDefaultOutputName(sourceFile.value.name, format);
+});
+
+watch(isVideoOutput, (isVideo) => {
+  if (!isVideo) {
+    initializePreviewAtMidpointPending.value = false;
+    return;
+  }
+  if (!sourceFile.value || !isVideoSource.value || typeof previewFrameSeconds.value === "number") {
+    return;
+  }
+  initializePreviewAtMidpointPending.value = true;
+  if (!sourceMetadataLoading.value) {
+    void initializePreviewAtMidpoint();
+  }
 });
 
 watch(targetSetupMode, (mode) => {
@@ -2584,6 +2630,8 @@ onBeforeUnmount(() => {
 }
 
 .timeline-range-slider {
+  position: relative;
+  z-index: 2;
   margin-top: -2px;
   margin-bottom: -6px;
 }
@@ -2602,6 +2650,7 @@ onBeforeUnmount(() => {
   inset: 0;
   margin: -2px 0 -6px;
   pointer-events: none;
+  z-index: 5;
 }
 
 .timeline-preview-slider :deep(.v-slider-track__background),
@@ -2616,8 +2665,11 @@ onBeforeUnmount(() => {
 }
 
 .timeline-preview-slider :deep(.v-slider-thumb__surface) {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  background-color: rgb(var(--v-theme-warning)) !important;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-warning), 0.34);
 }
 
 .timeline-slider-stack--inactive {

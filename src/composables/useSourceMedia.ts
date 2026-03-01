@@ -123,6 +123,7 @@ export const useSourceMedia = () => {
       !probeAbortController.signal.aborted;
 
     sourceMetadataLoading.value = true;
+    sourceMetadata.value = null;
     sourceMetadataError.value = null;
     try {
       let metadata: VideoMetadataResult | null = null;
