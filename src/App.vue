@@ -120,35 +120,90 @@
                   <v-col cols="12" md="8">
                     <v-card
                       variant="tonal"
-                      class="preview-time-card"
-                      :class="{ 'preview-time-card--inactive': !hasPreviewSource }"
+                      class="timeline-card"
+                      :class="{ 'timeline-card--inactive': !hasPreviewSource }"
                     >
-                      <v-card-text class="preview-time-card__body">
-                        <div class="d-flex align-center preview-time-card__header">
-                          <div class="text-subtitle-2">Preview frame position</div>
+                      <v-card-text class="timeline-card__body">
+                        <div class="d-flex align-center timeline-card__header">
+                          <div class="text-subtitle-2">Timeline trim and preview</div>
                           <v-spacer />
                           <div class="text-caption text-medium-emphasis">
                             {{ previewSecondDisplay }}
                           </div>
                         </div>
-                        <v-slider
-                          v-model="previewSecondModel"
-                          class="preview-position-slider"
-                          :class="{ 'preview-position-slider--inactive': !hasPreviewSource }"
-                          :min="previewSecondMin"
-                          :max="previewSecondMax"
-                          :step="previewSecondsStep"
-                          :disabled="isPreviewSliderDisabled"
-                          :color="previewSliderColor"
-                          base-color="grey-darken-3"
-                          density="compact"
-                          thumb-label
-                          hide-details
+                        <div class="text-caption text-medium-emphasis mb-2">
+                          {{ trimInputHelpText }}
+                        </div>
+                        <div
+                          class="timeline-slider-stack"
+                          :class="{ 'timeline-slider-stack--inactive': !hasPreviewSource }"
                         >
-                          <template #thumb-label="{ modelValue }">
-                            {{ formatDurationClock(Number(modelValue), { includeTenths: true }) }}
-                          </template>
-                        </v-slider>
+                          <v-range-slider
+                            v-model="trimRangeModel"
+                            class="timeline-range-slider"
+                            @start="onTrimRangeDragStart"
+                            @end="onTrimRangeDragEnd"
+                            :min="0"
+                            :max="trimRangeMax"
+                            :step="previewSecondsStep"
+                            :disabled="processing || !isTrimSliderAvailable"
+                            color="primary"
+                            base-color="grey-darken-3"
+                            thumb-label
+                            hide-details
+                          >
+                            <template #thumb-label="{ modelValue }">
+                              {{
+                                formatDurationClock(Number(modelValue), {
+                                  includeTenths: true,
+                                })
+                              }}
+                            </template>
+                          </v-range-slider>
+                          <v-slider
+                            v-model="previewSecondModel"
+                            class="timeline-preview-slider"
+                            :min="previewSecondMin"
+                            :max="previewSecondMax"
+                            :step="previewSecondsStep"
+                            :disabled="isPreviewSliderDisabled"
+                            color="info"
+                            base-color="transparent"
+                            density="compact"
+                            thumb-label
+                            hide-details
+                          >
+                            <template #thumb-label="{ modelValue }">
+                              {{
+                                formatDurationClock(Number(modelValue), {
+                                  includeTenths: true,
+                                })
+                              }}
+                            </template>
+                          </v-slider>
+                        </div>
+                        <div class="d-flex align-center text-caption text-medium-emphasis mt-1">
+                          <div>Start {{ trimRangeDisplayStart }}</div>
+                          <v-spacer />
+                          <div>
+                            Preview
+                            {{ formatDurationClock(previewSecondModel, { includeTenths: true }) }}
+                          </div>
+                          <v-spacer />
+                          <div>End {{ trimRangeDisplayEnd }}</div>
+                        </div>
+                        <div
+                          v-if="trimmedOutputDurationDisplay"
+                          class="text-caption text-medium-emphasis mt-1"
+                        >
+                          Output clip duration {{ trimmedOutputDurationDisplay }}
+                        </div>
+                        <div
+                          v-if="!isTrimSliderAvailable"
+                          class="text-caption text-medium-emphasis mt-1"
+                        >
+                          Trim handles are available when source duration metadata is known.
+                        </div>
                       </v-card-text>
                     </v-card>
 
@@ -381,48 +436,8 @@
                             />
                           </v-col>
                           <v-col cols="12">
-                            <div class="text-caption text-medium-emphasis mb-2">
-                              {{ trimInputHelpText }}
-                            </div>
-                          </v-col>
-                          <v-col cols="12">
-                            <v-range-slider
-                              v-model="trimRangeModel"
-                              @start="onTrimRangeDragStart"
-                              @end="onTrimRangeDragEnd"
-                              :min="0"
-                              :max="trimRangeMax"
-                              :step="previewSecondsStep"
-                              :disabled="processing || !isTrimSliderAvailable"
-                              color="primary"
-                              base-color="grey-darken-3"
-                              thumb-label
-                              hide-details
-                            >
-                              <template #thumb-label="{ modelValue }">
-                                {{
-                                  formatDurationClock(Number(modelValue), {
-                                    includeTenths: true,
-                                  })
-                                }}
-                              </template>
-                            </v-range-slider>
-                            <div class="d-flex align-center text-caption text-medium-emphasis mt-1">
-                              <div>Start {{ trimRangeDisplayStart }}</div>
-                              <v-spacer />
-                              <div>End {{ trimRangeDisplayEnd }}</div>
-                            </div>
-                            <div
-                              v-if="trimmedOutputDurationDisplay"
-                              class="text-caption text-medium-emphasis mt-1"
-                            >
-                              Output clip duration {{ trimmedOutputDurationDisplay }}
-                            </div>
-                            <div
-                              v-if="!isTrimSliderAvailable"
-                              class="text-caption text-medium-emphasis mt-1"
-                            >
-                              Trim slider is available when source duration metadata is known.
+                            <div class="text-caption text-medium-emphasis">
+                              Use the timeline above the preview to set trim range and preview frame.
                             </div>
                           </v-col>
                           <v-col cols="12">
@@ -1919,10 +1934,6 @@ const isPreviewSliderDisabled = computed(
   () => processing.value || !hasPreviewSource.value
 );
 
-const previewSliderColor = computed(() =>
-  hasPreviewSource.value ? "primary" : "grey-darken-1"
-);
-
 const previewSecondDisplay = computed(() => {
   if (!hasPreviewSource.value) {
     return "Unavailable";
@@ -2550,47 +2561,75 @@ onBeforeUnmount(() => {
   padding-left: 2px;
 }
 
-.preview-time-card {
+.timeline-card {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
-.preview-time-card__body {
+.timeline-card__body {
   padding: 10px 14px 8px !important;
 }
 
-.preview-time-card__header {
+.timeline-card__header {
   min-height: 20px;
   margin-bottom: 2px;
 }
 
-.preview-time-card--inactive {
+.timeline-card--inactive {
   background: rgba(var(--v-theme-surface), 0.32);
 }
 
-.preview-position-slider {
+.timeline-slider-stack {
+  position: relative;
+  min-height: 34px;
+}
+
+.timeline-range-slider {
   margin-top: -2px;
   margin-bottom: -6px;
 }
 
-.preview-position-slider :deep(.v-slider-track__container) {
+.timeline-range-slider :deep(.v-slider-track__container) {
   height: 4px;
 }
 
-.preview-position-slider :deep(.v-slider-thumb__surface) {
+.timeline-range-slider :deep(.v-slider-thumb__surface) {
   width: 14px;
   height: 14px;
 }
 
-.preview-position-slider--inactive {
+.timeline-preview-slider {
+  position: absolute;
+  inset: 0;
+  margin: -2px 0 -6px;
+  pointer-events: none;
+}
+
+.timeline-preview-slider :deep(.v-slider-track__background),
+.timeline-preview-slider :deep(.v-slider-track__fill) {
+  opacity: 0 !important;
+  background: transparent !important;
+}
+
+.timeline-preview-slider :deep(.v-slider-thumb),
+.timeline-preview-slider :deep(.v-slider-thumb__surface) {
+  pointer-events: auto;
+}
+
+.timeline-preview-slider :deep(.v-slider-thumb__surface) {
+  width: 16px;
+  height: 16px;
+}
+
+.timeline-slider-stack--inactive {
   opacity: 0.55;
 }
 
-.preview-position-slider--inactive :deep(.v-slider-track__background),
-.preview-position-slider--inactive :deep(.v-slider-track__fill) {
+.timeline-slider-stack--inactive :deep(.v-slider-track__background),
+.timeline-slider-stack--inactive :deep(.v-slider-track__fill) {
   background-color: rgba(var(--v-theme-on-surface), 0.24) !important;
 }
 
-.preview-position-slider--inactive :deep(.v-slider-thumb__surface) {
+.timeline-slider-stack--inactive :deep(.v-slider-thumb__surface) {
   background-color: rgba(var(--v-theme-on-surface), 0.3) !important;
 }
 
