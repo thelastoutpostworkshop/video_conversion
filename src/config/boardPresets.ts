@@ -156,7 +156,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "esp32-c6-lcd-1_47",
     name: "Waveshare ESP32-C6 LCD 1.47\"",
-    imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
+    imagePath: "board-catalog/esp32-c6-lcd-1_47/esp32-c6-lcd-1_47.png",
     amazonUrl: "https://amzn.to/3ZzfcZr",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_okJAvee",
@@ -166,11 +166,12 @@ export const BOARD_PRESETS: BoardPreset[] = [
         description:
           "Compact ESP32-C6 video player example tuned for this 1.47-inch LCD board.",
         url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_video_player",
-        imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
+        imagePath: "board-catalog/esp32-c6-lcd-1_47/video_still.png",
+        hoverImagePath:"board-catalog/esp32-c6-lcd-1_47/video_demo.gif",
         demos: [
           {
-            label: "Demo video",
-            url: "https://www.youtube.com/watch?v=JqQEG0eipic",
+            label: "Tutorial",
+            url: "https://youtu.be/JqQEG0eipic?t=103",
           },
         ],
       },
@@ -182,8 +183,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
         imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
         demos: [
           {
-            label: "Demo video",
-            url: "https://www.youtube.com/watch?v=JqQEG0eipic",
+            label: "Tutorial",
+            url: "https://youtu.be/JqQEG0eipic?t=616",
           },
         ],
       },
