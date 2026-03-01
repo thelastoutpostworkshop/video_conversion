@@ -117,6 +117,20 @@ export const BOARD_PRESETS: BoardPreset[] = [
         ],
       },
       {
+        name: "Internet Radio",
+        description:
+          "Listen to live radio stations of your choice using LVGL 9!",
+        url: "https://github.com/thelastoutpostworkshop/JC4827W543_radio_lvgl",
+        imagePath: "board-catalog/JC4827W543/radio_still.png",
+        hoverImagePath: "board-catalog/JC4827W543/radio_demo.gif",
+        demos: [
+          {
+            label: "Tutorial",
+            url: "https://youtu.be/mnOzfRFQJIM?t=858",
+          },
+        ],
+      },
+      {
         name: "Wifi Analyzer",
         description:
           "Handy Wi-Fi Analyzer app, perfect for scanning local networks.",
