@@ -178,7 +178,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Crypto Monitor",
         description:
-          "Compact ESP32-C6 video player example tuned for this 1.47-inch LCD board.",
+          "Turns the ESP32-C6-LCD-1.47 into a standalone crypto dashboard built with LVGL 9.  It connects to Wi-Fi, fetches live prices from Binance, and displays a compact UI with a line chart, price cards, and daily percentage movement",
         url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_LVGL9_Crypto_Monitor",
         imagePath: "board-catalog/esp32-c6-lcd-1_47/crypto_still.png",
         hoverImagePath: "board-catalog/esp32-c6-lcd-1_47/crypto_demo.gif",
