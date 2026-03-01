@@ -964,7 +964,7 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-project-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .board-catalog-project-card {
@@ -991,12 +991,12 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-project-content {
   display: grid;
-  grid-template-columns: minmax(280px, 43%) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 50%) minmax(0, 1fr);
   align-items: stretch;
 }
 
 .board-catalog-project-image {
-  min-height: 196px;
+  min-height: 176px;
   border-right: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   background:
     radial-gradient(
@@ -1030,36 +1030,44 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 .board-catalog-project-body {
-  padding: 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  justify-content: space-between;
+  gap: 10px;
+  justify-content: flex-start;
 }
 
 .board-catalog-project-head {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .board-catalog-project-title {
-  font-size: 1.08rem;
-  font-weight: 500;
+  font-size: 1.03rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1.25;
   color: rgba(var(--v-theme-on-surface), 0.95);
 }
 
 .board-catalog-project-description {
   color: rgba(var(--v-theme-on-surface), 0.78);
-  font-size: 0.9rem;
-  line-height: 1.45;
-  max-width: 58ch;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .board-catalog-link-row--project {
-  gap: 10px;
-  align-items: center;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.board-catalog-link-row--project :deep(.v-btn) {
+  min-width: 0;
 }
 
 .board-catalog-custom {
