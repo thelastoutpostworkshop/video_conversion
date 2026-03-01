@@ -14,6 +14,7 @@ export interface BoardProject {
   name: string;
   url: string;
   imagePath: string;
+  hoverImagePath?: string;
   demos?: BoardReferenceLink[];
 }
 
@@ -88,6 +89,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
         name: "Animated GIF",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
         imagePath: "board-catalog/JC4827W543_animated_gif.gif",
+        hoverImagePath: "board-catalog/JC4827W543_animated_gif.gif",
         demos: [
           {
             label: "Tutorial",

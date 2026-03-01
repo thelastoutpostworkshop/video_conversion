@@ -302,13 +302,30 @@
                           :key="`${imagePreviewPreset.id}-dialog-project-${index}`"
                           variant="tonal"
                           class="board-catalog-project-card"
+                          @mouseenter="setProjectHovered(imagePreviewPreset.id, index)"
+                          @mouseleave="clearProjectHovered(imagePreviewPreset.id, index)"
                         >
                           <div class="board-catalog-project-content">
                             <v-img
-                              :src="toPublicAssetPath(project.imagePath)"
+                              :src="
+                                toPublicAssetPath(
+                                  resolveProjectPreviewImagePath(
+                                    imagePreviewPreset.id,
+                                    index,
+                                    project
+                                  )
+                                )
+                              "
                               :alt="`${project.name} preview`"
                               class="board-catalog-project-image"
-                            />
+                            >
+                              <div
+                                v-if="project.hoverImagePath && !isProjectHovered(imagePreviewPreset.id, index)"
+                                class="board-catalog-project-hover-hint"
+                              >
+                                Hover to play preview
+                              </div>
+                            </v-img>
                             <div class="board-catalog-project-body">
                               <div class="board-catalog-project-title">
                                 {{ project.name }}
@@ -400,6 +417,7 @@ interface BoardPreviewProject {
   name: string;
   url: string;
   imagePath: string;
+  hoverImagePath: string | null;
   demos: BoardReferenceLink[];
 }
 
@@ -426,12 +444,16 @@ const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
         project.url.trim().length > 0
     )
     .map((project) => ({
-      name: project.name.trim(),
-      url: project.url.trim(),
       imagePath:
         typeof project.imagePath === "string" && project.imagePath.trim().length > 0
           ? project.imagePath.trim()
           : preset.imagePath,
+      hoverImagePath:
+        typeof project.hoverImagePath === "string" && project.hoverImagePath.trim().length > 0
+          ? project.hoverImagePath.trim()
+          : null,
+      name: project.name.trim(),
+      url: project.url.trim(),
       demos: normalizeReferenceLinks(project.demos),
     }));
   if (projectEntries.length > 0) {
@@ -449,6 +471,7 @@ const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
       name: demo.label,
       url: demo.url,
       imagePath: preset.imagePath,
+      hoverImagePath: null,
       demos: [demo],
     }));
   }
@@ -470,6 +493,7 @@ const buildPreviewProjects = (preset: BoardPreset): BoardPreviewProject[] => {
       name: project.label,
       url: project.url,
       imagePath: preset.imagePath,
+      hoverImagePath: null,
       demos,
     };
   });
@@ -503,6 +527,33 @@ const previewProjects = computed(() => {
   return preset ? buildPreviewProjects(preset) : [];
 });
 
+const hoveredProjectKey = ref<string | null>(null);
+
+const buildProjectHoverKey = (presetId: string, index: number) => `${presetId}-${index}`;
+
+const setProjectHovered = (presetId: string, index: number) => {
+  hoveredProjectKey.value = buildProjectHoverKey(presetId, index);
+};
+
+const clearProjectHovered = (presetId: string, index: number) => {
+  const key = buildProjectHoverKey(presetId, index);
+  if (hoveredProjectKey.value === key) {
+    hoveredProjectKey.value = null;
+  }
+};
+
+const isProjectHovered = (presetId: string, index: number) =>
+  hoveredProjectKey.value === buildProjectHoverKey(presetId, index);
+
+const resolveProjectPreviewImagePath = (
+  presetId: string,
+  index: number,
+  project: BoardPreviewProject
+) =>
+  isProjectHovered(presetId, index) && project.hoverImagePath
+    ? project.hoverImagePath
+    : project.imagePath;
+
 const toPublicAssetPath = (assetPath: string): string => {
   if (/^(?:[a-z]+:)?\/\//i.test(assetPath) || assetPath.startsWith("data:")) {
     return assetPath;
@@ -523,10 +574,12 @@ const hasSupportingLinks = (preset: BoardPreset): boolean =>
   buildPreviewProjects(preset).length > 0;
 
 const openImagePreview = (preset: BoardPreset) => {
+  hoveredProjectKey.value = null;
   imagePreviewPreset.value = preset;
 };
 
 const closeImagePreview = () => {
+  hoveredProjectKey.value = null;
   imagePreviewPreset.value = null;
 };
 
@@ -867,6 +920,23 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-project-image :deep(.v-img__img) {
   object-fit: contain !important;
   object-position: center center;
+}
+
+.board-catalog-project-hover-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
+  background: rgba(var(--v-theme-surface), 0.76);
+  color: rgba(var(--v-theme-on-surface), 0.84);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .board-catalog-project-body {
