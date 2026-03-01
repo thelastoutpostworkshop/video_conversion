@@ -207,39 +207,75 @@ const parseMetadataFromLogs = (logs: string[]): VideoMetadataResult | null => {
   };
 };
 
-const parsePngDimensions = (
-  data: Uint8Array
-): { width: number; height: number } | null => {
-  if (data.length < 24) {
+const parsePositiveNumber = (rawValue: unknown): number | null => {
+  const value =
+    typeof rawValue === "number"
+      ? rawValue
+      : typeof rawValue === "string" && rawValue.trim()
+        ? Number(rawValue)
+        : NaN;
+  if (!Number.isFinite(value) || value <= 0) {
     return null;
   }
-  const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  for (let i = 0; i < pngSignature.length; i += 1) {
-    if (data[i] !== pngSignature[i]) {
+  return value;
+};
+
+const parseDurationNumber = (rawValue: unknown): number | null => {
+  if (rawValue === null || rawValue === undefined) {
+    return null;
+  }
+  const value =
+    typeof rawValue === "number"
+      ? rawValue
+      : typeof rawValue === "string" && rawValue.trim()
+        ? Number(rawValue)
+        : NaN;
+  if (!Number.isFinite(value) || value < 0) {
+    return null;
+  }
+  return value;
+};
+
+const parseMetadataFromFfprobeOutput = (
+  rawOutput: string
+): VideoMetadataResult | null => {
+  if (!rawOutput.trim()) {
+    return null;
+  }
+
+  try {
+    const parsedUnknown = JSON.parse(rawOutput) as {
+      streams?: Array<{ width?: unknown; height?: unknown }>;
+      format?: { duration?: unknown };
+    };
+    const streams = Array.isArray(parsedUnknown.streams)
+      ? parsedUnknown.streams
+      : [];
+    const streamWithDimensions =
+      streams.find((stream) => {
+        const width = parsePositiveNumber(stream.width);
+        const height = parsePositiveNumber(stream.height);
+        return width !== null && height !== null;
+      }) ?? null;
+
+    if (!streamWithDimensions) {
       return null;
     }
-  }
-  const chunkType = String.fromCharCode(
-    data[12] ?? 0,
-    data[13] ?? 0,
-    data[14] ?? 0,
-    data[15] ?? 0
-  );
-  if (chunkType !== "IHDR") {
+
+    const width = parsePositiveNumber(streamWithDimensions.width);
+    const height = parsePositiveNumber(streamWithDimensions.height);
+    if (width === null || height === null) {
+      return null;
+    }
+
+    return {
+      width: Math.round(width),
+      height: Math.round(height),
+      durationSeconds: parseDurationNumber(parsedUnknown.format?.duration),
+    };
+  } catch {
     return null;
   }
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  const width = view.getUint32(16);
-  const height = view.getUint32(20);
-  if (
-    !Number.isFinite(width) ||
-    !Number.isFinite(height) ||
-    width <= 0 ||
-    height <= 0
-  ) {
-    return null;
-  }
-  return { width, height };
 };
 
 const pickJobId = (): string => {
@@ -563,8 +599,11 @@ export class MediaProcessingService {
     const ffmpeg = this.ffmpeg;
 
     const jobId = pickJobId();
-    const safeInputName = `${jobId}-${file.name}`;
-    const probeOutputName = `${jobId}-probe-frame.png`;
+    const inputExt = getFileExtension(file.name);
+    const safeInputName = inputExt
+      ? `${jobId}-input.${inputExt}`
+      : `${jobId}-input.bin`;
+    const probeOutputName = `${jobId}-probe.json`;
     const logs: string[] = [];
     const inputExtension = getFileExtension(file.name);
     const forceMjpegInput =
@@ -618,46 +657,58 @@ export class MediaProcessingService {
       const writeOptions = signal ? { signal } : undefined;
       await race(ffmpeg.writeFile(safeInputName, await fetchFile(file), writeOptions));
       const inputArgs = forceMjpegInput
-        ? ["-f", "mjpeg", "-i", safeInputName]
-        : ["-i", safeInputName];
+        ? ["-f", "mjpeg", safeInputName]
+        : [safeInputName];
       const probeArgs = [
-        "-hide_banner",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height:format=duration",
+        "-of",
+        "json",
         ...inputArgs,
-        "-map",
-        "0:v:0",
-        "-frames:v",
-        "1",
-        "-f",
-        "image2",
-        "-update",
-        "1",
+        "-o",
         probeOutputName,
       ];
       if (onLog) {
-        onLog(`[app] probe ${probeArgs.join(" ")}`);
+        const displayInputArgs = forceMjpegInput
+          ? ["-f", "mjpeg", file.name]
+          : [file.name];
+        onLog(
+          `[app] ffprobe -v error -select_streams v:0 -show_entries stream=width,height:format=duration -of json ${displayInputArgs.join(
+            " "
+          )} -o probe.json`
+        );
       }
 
-      await race(ffmpeg.exec(probeArgs, undefined, writeOptions));
-      const rawFrameData = await race(ffmpeg.readFile(probeOutputName));
-      const frameData =
-        typeof rawFrameData === "string"
-          ? new TextEncoder().encode(rawFrameData)
-          : rawFrameData instanceof Uint8Array
-            ? rawFrameData
-            : new Uint8Array(rawFrameData);
-      const dimensions = parsePngDimensions(frameData);
-      if (!dimensions) {
-        const parsed = parseMetadataFromLogs(logs);
-        if (parsed) {
-          return parsed;
+      const exitCode = await race(ffmpeg.ffprobe(probeArgs, undefined, writeOptions));
+      if (typeof exitCode === "number" && exitCode !== 0) {
+        const failureLog = pickFailureLogLine(logs);
+        if (failureLog) {
+          throw new Error(`FFprobe exited with code ${exitCode}. ${failureLog}`);
         }
-        throw new Error("Failed to parse metadata from FFmpeg output.");
+        throw new Error(`FFprobe exited with code ${exitCode}.`);
       }
-      return {
-        width: dimensions.width,
-        height: dimensions.height,
-        durationSeconds: parseDurationFromLogs(logs),
-      };
+      const rawProbeOutput = await race(ffmpeg.readFile(probeOutputName, "utf8"));
+      const probeOutput =
+        typeof rawProbeOutput === "string"
+          ? rawProbeOutput
+          : new TextDecoder().decode(
+              rawProbeOutput instanceof Uint8Array
+                ? rawProbeOutput
+                : new Uint8Array(rawProbeOutput)
+            );
+      const parsedProbeMetadata = parseMetadataFromFfprobeOutput(probeOutput);
+      if (parsedProbeMetadata) {
+        return parsedProbeMetadata;
+      }
+      const parsedFallbackMetadata = parseMetadataFromLogs(logs);
+      if (parsedFallbackMetadata) {
+        return parsedFallbackMetadata;
+      }
+      throw new Error("Failed to parse metadata from FFprobe output.");
     } finally {
       if (signal && abortHandler) {
         signal.removeEventListener("abort", abortHandler);

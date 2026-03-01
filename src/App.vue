@@ -1621,11 +1621,16 @@ const selectCustomBoard = () => {
   activeNavigation.value = "workspace";
 };
 
+const maxLogLineCount = 300;
+const ffmpegProgressLogThrottleMs = 350;
+
 const appendLog = (message: string) => {
   const timestamp = new Date().toLocaleTimeString();
   const entry = `[${timestamp}] ${message}`;
-  const next = [...logLines.value, entry];
-  logLines.value = next.slice(Math.max(0, next.length - 300));
+  logLines.value.push(entry);
+  if (logLines.value.length > maxLogLineCount) {
+    logLines.value.splice(0, logLines.value.length - maxLogLineCount);
+  }
 };
 
 const bumpProcessingUiTick = () => {
@@ -1748,6 +1753,17 @@ const isDetailedProcessingActivityLine = (line: string | null): boolean =>
   typeof line === "string" &&
   /\bFrame\s+\d+\b/i.test(line) &&
   (/\bEncoded\b/i.test(line) || /\bSpeed\b/i.test(line));
+
+const isHighFrequencyFfmpegProgressLine = (message: string): boolean => {
+  if (!message || !message.trim()) {
+    return false;
+  }
+  const normalized = message
+    .replace(/^\[(?:stderr|stdout|fferr|ffout)\]\s*/i, "")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+  return /\bframe=\s*\d+\b/i.test(normalized) || /\btime=\s*[^\s]+\b/i.test(normalized);
+};
 
 const createLogFileName = (): string => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -2213,6 +2229,7 @@ const runConversion = async () => {
   processingError.value = null;
   clearOutput();
   cancelRequested.value = false;
+  let lastProgressLogAtMs = 0;
 
   const onProgress: MediaProgressCallback = (progressEvent) => {
     markProcessingActivity();
@@ -2249,6 +2266,15 @@ const runConversion = async () => {
     }
   };
   const onLog: MediaLogCallback = (message) => {
+    const isHighFrequencyProgress = isHighFrequencyFfmpegProgressLine(message);
+    if (isHighFrequencyProgress) {
+      const now = Date.now();
+      if (now - lastProgressLogAtMs < ffmpegProgressLogThrottleMs) {
+        markProcessingActivity();
+        return;
+      }
+      lastProgressLogAtMs = now;
+    }
     appendLog(message);
     markProcessingActivity();
     const summary = summarizeProcessingLogLine(message);
