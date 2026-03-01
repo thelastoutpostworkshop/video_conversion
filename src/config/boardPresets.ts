@@ -87,7 +87,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Animated GIF",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
-        imagePath: "board-catalog/animation gif cinema.gif",
+        imagePath: "board-catalog/JC4827W543_animated_gif.gif",
         demos: [
           {
             label: "Tutorial",
@@ -98,7 +98,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "AVI Player",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
-        imagePath: "board-catalog/JC4827W543.png",
+        imagePath: "board-catalog/JC4827W543_avi file demo cinema.gif",
         demos: [
           {
             label: "Tutorial",
