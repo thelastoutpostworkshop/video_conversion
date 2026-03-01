@@ -296,41 +296,52 @@
                           variant="tonal"
                           class="board-catalog-project-card"
                         >
-                          <v-img
-                            :src="toPublicAssetPath(project.imagePath)"
-                            :alt="`${project.name} preview`"
-                            height="96"
-                            class="board-catalog-project-image"
-                          />
-                          <v-card-text class="board-catalog-project-body">
-                            <div class="board-catalog-project-title">
-                              {{ project.name }}
+                          <div class="board-catalog-project-content">
+                            <v-img
+                              :src="toPublicAssetPath(project.imagePath)"
+                              :alt="`${project.name} preview`"
+                              class="board-catalog-project-image"
+                            />
+                            <div class="board-catalog-project-body">
+                              <div class="board-catalog-project-heading">
+                                <v-chip
+                                  size="x-small"
+                                  variant="tonal"
+                                  color="primary"
+                                  class="board-catalog-project-index-chip"
+                                >
+                                  Project {{ index + 1 }}
+                                </v-chip>
+                                <div class="board-catalog-project-title">
+                                  {{ project.name }}
+                                </div>
+                              </div>
+                              <div class="board-catalog-link-row">
+                                <v-btn
+                                  :href="project.url"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  size="small"
+                                  variant="text"
+                                  prepend-icon="mdi-source-repository"
+                                >
+                                  Project
+                                </v-btn>
+                                <v-btn
+                                  v-for="(demo, demoIndex) in project.demos"
+                                  :key="`${imagePreviewPreset.id}-dialog-project-${index}-demo-${demoIndex}`"
+                                  :href="demo.url"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  size="small"
+                                  variant="text"
+                                  prepend-icon="mdi-play-circle-outline"
+                                >
+                                  {{ demo.label }}
+                                </v-btn>
+                              </div>
                             </div>
-                            <div class="board-catalog-link-row">
-                              <v-btn
-                                :href="project.url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                size="small"
-                                variant="text"
-                                prepend-icon="mdi-source-repository"
-                              >
-                                Project
-                              </v-btn>
-                              <v-btn
-                                v-for="(demo, demoIndex) in project.demos"
-                                :key="`${imagePreviewPreset.id}-dialog-project-${index}-demo-${demoIndex}`"
-                                :href="demo.url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                size="small"
-                                variant="text"
-                                prepend-icon="mdi-play-circle-outline"
-                              >
-                                {{ demo.label }}
-                              </v-btn>
-                            </div>
-                          </v-card-text>
+                          </div>
                         </v-card>
                       </div>
                     </div>
@@ -797,16 +808,24 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-project-grid {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .board-catalog-project-card {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  background: rgba(var(--v-theme-surface), 0.36);
+  background: rgba(var(--v-theme-surface), 0.42);
+  overflow: hidden;
+}
+
+.board-catalog-project-content {
+  display: grid;
+  grid-template-columns: minmax(280px, 46%) minmax(0, 1fr);
+  align-items: stretch;
 }
 
 .board-catalog-project-image {
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  min-height: 192px;
+  border-right: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   background: rgba(var(--v-theme-surface), 0.62);
 }
 
@@ -816,14 +835,28 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 .board-catalog-project-body {
-  padding: 10px 12px !important;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.board-catalog-project-heading {
+  display: grid;
+  gap: 6px;
+}
+
+.board-catalog-project-index-chip {
+  justify-self: start;
+  font-weight: 700;
 }
 
 .board-catalog-project-title {
-  font-size: 0.83rem;
+  font-size: 1.02rem;
   font-weight: 700;
   letter-spacing: 0.01em;
-  margin-bottom: 4px;
+  line-height: 1.25;
 }
 
 .board-catalog-custom {
@@ -864,6 +897,16 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 @media (max-width: 640px) {
+  .board-catalog-project-content {
+    grid-template-columns: 1fr;
+  }
+
+  .board-catalog-project-image {
+    min-height: 168px;
+    border-right: none;
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  }
+
   .board-catalog-header-actions {
     width: 100%;
   }
