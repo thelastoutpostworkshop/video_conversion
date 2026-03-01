@@ -119,7 +119,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Internet Radio",
         description:
-          "Listen to live radio stations of your choice using LVGL 9!",
+          "Turns a JC4827W543 touchscreen board into a standalone internet radio using LVGL v9 for the interface and ESP32 Audio for stream playback.  At startup, it connects to Wi-Fi, loads station data from an SD card JSON file, and lets the user browse/play stations from the touch UI.",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_radio_lvgl",
         imagePath: "board-catalog/JC4827W543/radio_still.png",
         hoverImagePath: "board-catalog/JC4827W543/radio_demo.gif",
