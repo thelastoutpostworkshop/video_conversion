@@ -91,7 +91,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Animated GIF",
         description:
-          "Displays animated GIF files stored on a SD card.",
+          "Touch-driven animated GIF browser/player for the JC4827W543 display using an ESP32-S3, SD card storage, and optional PSRAM acceleration",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
         imagePath: "board-catalog/JC4827W543/animated_gif_still.png",
         hoverImagePath: "board-catalog/JC4827W543/animated_gif_demo.gif",
