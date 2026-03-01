@@ -6,6 +6,7 @@ export interface VideoTranscodeOptions {
   height?: number;
   orientation?: VideoOrientation;
   scaleMode?: VideoScaleMode;
+  cropRegion?: VideoCropRegion;
   fps?: number;
   quality?: number;
   durationSeconds?: number;
@@ -32,6 +33,12 @@ export interface VideoMetadataResult {
 
 export type VideoOrientation = "none" | "cw90" | "ccw90" | "flip180";
 export type VideoScaleMode = "fit" | "fill" | "stretch";
+export interface VideoCropRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 export interface MediaProgressInfo {
   percent: number;
   timeUs: number | null;
@@ -87,22 +94,42 @@ const buildVideoFilter = (options?: VideoTranscodeOptions): string | null => {
     filters.push("hflip", "vflip");
   }
 
+  const cropRegion = options?.cropRegion;
+  const hasCustomCrop =
+    typeof cropRegion?.width === "number" &&
+    Number.isFinite(cropRegion.width) &&
+    cropRegion.width > 0 &&
+    typeof cropRegion?.height === "number" &&
+    Number.isFinite(cropRegion.height) &&
+    cropRegion.height > 0;
+  if (hasCustomCrop) {
+    const cropX = Math.max(0, Math.floor(cropRegion?.x ?? 0));
+    const cropY = Math.max(0, Math.floor(cropRegion?.y ?? 0));
+    const cropWidth = Math.max(1, Math.floor(cropRegion?.width ?? 1));
+    const cropHeight = Math.max(1, Math.floor(cropRegion?.height ?? 1));
+    filters.push(`crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}`);
+  }
+
   const width = options?.width ?? null;
   const height = options?.height ?? null;
   if (width && height) {
-    const scaleMode = options?.scaleMode;
-    if (scaleMode === "stretch") {
+    if (hasCustomCrop) {
       filters.push(`scale=${width}:${height}`);
-    } else if (scaleMode === "fill") {
-      filters.push(
-        `scale=${width}:${height}:force_original_aspect_ratio=increase:force_divisible_by=1,crop=${width}:${height}`
-      );
-    } else if (scaleMode === "fit") {
-      filters.push(
-        `scale=${width}:${height}:force_original_aspect_ratio=decrease:force_divisible_by=1,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
-      );
     } else {
-      filters.push(`scale=${width}:${height}`);
+      const scaleMode = options?.scaleMode;
+      if (scaleMode === "stretch") {
+        filters.push(`scale=${width}:${height}`);
+      } else if (scaleMode === "fill") {
+        filters.push(
+          `scale=${width}:${height}:force_original_aspect_ratio=increase:force_divisible_by=1,crop=${width}:${height}`
+        );
+      } else if (scaleMode === "fit") {
+        filters.push(
+          `scale=${width}:${height}:force_original_aspect_ratio=decrease:force_divisible_by=1,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
+        );
+      } else {
+        filters.push(`scale=${width}:${height}`);
+      }
     }
   }
 

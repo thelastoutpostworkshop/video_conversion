@@ -193,6 +193,13 @@
                         :round-display="workspaceRoundDisplay"
                         :target-width="previewTargetDimensions?.width ?? null"
                         :target-height="previewTargetDimensions?.height ?? null"
+                        :crop-enabled="customCropEnabled && supportsCustomCrop"
+                        :crop-rect="customCropRect"
+                        :crop-aspect-ratio="customCropTargetAspectRatio"
+                        :crop-interactive="
+                          customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
+                        "
+                        @update:crop-rect="onCustomCropRectUpdate"
                       />
                       <div class="d-flex justify-end mt-2">
                         <v-tooltip text="Download preview image" location="top">
@@ -320,6 +327,35 @@
                               density="comfortable"
                               :disabled="processing || outputSizeMode !== 'custom'"
                             />
+                          </v-col>
+                          <v-col cols="12">
+                            <v-switch
+                              v-model="customCropEnabled"
+                              color="primary"
+                              density="comfortable"
+                              label="Custom crop box"
+                              hide-details
+                              :disabled="processing || !supportsCustomCrop"
+                            />
+                            <div class="text-caption text-medium-emphasis mt-1">
+                              {{ customCropHint }}
+                            </div>
+                          </v-col>
+                          <v-col v-if="customCropEnabled" cols="12">
+                            <div class="d-flex align-center flex-wrap ga-2">
+                              <v-btn
+                                size="small"
+                                variant="tonal"
+                                prepend-icon="mdi-crop-free"
+                                :disabled="processing || !canResetCustomCrop"
+                                @click="resetCustomCropRect"
+                              >
+                                Reset crop
+                              </v-btn>
+                              <span class="text-caption text-medium-emphasis">
+                                {{ customCropSummary }}
+                              </span>
+                            </div>
                           </v-col>
 
                           <v-col cols="12" sm="6">
@@ -552,6 +588,7 @@ import type {
   AudioTranscodeOptions,
   MediaLogCallback,
   MediaProgressCallback,
+  VideoCropRegion,
   VideoOrientation,
   VideoScaleMode,
   VideoTranscodeOptions,
@@ -593,6 +630,13 @@ interface PersistedConversionPreferences {
   outputFormat: OutputFormat;
   orientation: VideoOrientation;
   scaleMode: VideoScaleMode;
+}
+
+interface NormalizedCropRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 const formatItems: Array<{ title: string; value: OutputFormat }> = [
@@ -667,6 +711,8 @@ const outputSizeMode = ref<OutputSizeMode>("custom");
 const width = ref<number | null>(null);
 const height = ref<number | null>(null);
 const scaleMode = ref<VideoScaleMode>("fit");
+const customCropEnabled = ref(false);
+const customCropRect = ref<NormalizedCropRect | null>(null);
 const orientation = ref<VideoOrientation>("none");
 const fps = ref<number | null>(20);
 const quality = ref<number | null>(5);
@@ -994,25 +1040,6 @@ const trimValidationMessage = computed(() => {
   return "End time must be greater than start time.";
 });
 
-const canConvert = computed(() => {
-  if (!hasBoardSelection.value) {
-    return false;
-  }
-  if (!sourceFile.value || processing.value || previewFrameBusy.value) {
-    return false;
-  }
-  if (hasTrimInputError.value) {
-    return false;
-  }
-  if (hasRangeError.value) {
-    return false;
-  }
-  if (outputSizeMode.value === "custom" && isVideoOutput.value) {
-    return Boolean(width.value && width.value > 0 && height.value && height.value > 0);
-  }
-  return true;
-});
-
 const previewTargetDimensions = computed<{ width: number; height: number } | null>(() => {
   if (!isVideoOutput.value) {
     return null;
@@ -1045,6 +1072,192 @@ const previewTargetDimensions = computed<{ width: number; height: number } | nul
   }
 
   return { width: targetWidth, height: targetHeight };
+});
+
+const orientedSourceDimensions = computed<{ width: number; height: number } | null>(() => {
+  const metadata = sourceMetadata.value;
+  if (!metadata) {
+    return null;
+  }
+
+  let orientedWidth = metadata.width;
+  let orientedHeight = metadata.height;
+  if (orientation.value === "cw90" || orientation.value === "ccw90") {
+    const swappedWidth = orientedHeight;
+    orientedHeight = orientedWidth;
+    orientedWidth = swappedWidth;
+  }
+  return {
+    width: orientedWidth,
+    height: orientedHeight,
+  };
+});
+
+const customCropTargetAspectRatio = computed<number | null>(() => {
+  const target = previewTargetDimensions.value;
+  if (!target || target.width <= 0 || target.height <= 0) {
+    return null;
+  }
+  return target.width / target.height;
+});
+
+const supportsCustomCrop = computed(
+  () =>
+    isVideoOutput.value &&
+    outputSizeMode.value === "custom" &&
+    scaleMode.value === "fill" &&
+    Boolean(orientedSourceDimensions.value) &&
+    Boolean(customCropTargetAspectRatio.value)
+);
+
+const previewOutputSizeMode = computed<OutputSizeMode>(() =>
+  customCropEnabled.value && supportsCustomCrop.value ? "original" : outputSizeMode.value
+);
+
+const clampUnit = (value: number) => Math.min(1, Math.max(0, value));
+
+const normalizeCropRect = (rect: NormalizedCropRect): NormalizedCropRect => {
+  const minSize = 0.02;
+  const constrainedWidth = Math.min(1, Math.max(minSize, clampUnit(rect.width)));
+  const constrainedHeight = Math.min(1, Math.max(minSize, clampUnit(rect.height)));
+  return {
+    x: Math.min(1 - constrainedWidth, clampUnit(rect.x)),
+    y: Math.min(1 - constrainedHeight, clampUnit(rect.y)),
+    width: constrainedWidth,
+    height: constrainedHeight,
+  };
+};
+
+const createCenteredCropRect = (
+  sourceWidth: number,
+  sourceHeight: number,
+  targetAspectRatio: number
+): NormalizedCropRect => {
+  if (
+    !Number.isFinite(sourceWidth) ||
+    !Number.isFinite(sourceHeight) ||
+    sourceWidth <= 0 ||
+    sourceHeight <= 0 ||
+    !Number.isFinite(targetAspectRatio) ||
+    targetAspectRatio <= 0
+  ) {
+    return { x: 0, y: 0, width: 1, height: 1 };
+  }
+
+  const sourceAspect = sourceWidth / sourceHeight;
+  let cropWidth = 1;
+  let cropHeight = 1;
+  if (sourceAspect > targetAspectRatio) {
+    cropWidth = targetAspectRatio / sourceAspect;
+  } else {
+    cropHeight = sourceAspect / targetAspectRatio;
+  }
+  return normalizeCropRect({
+    x: (1 - cropWidth) / 2,
+    y: (1 - cropHeight) / 2,
+    width: cropWidth,
+    height: cropHeight,
+  });
+};
+
+const toPixelCropRegion = (
+  rect: NormalizedCropRect,
+  dimensions: { width: number; height: number }
+): VideoCropRegion => {
+  const sourceWidth = Math.max(1, Math.round(dimensions.width));
+  const sourceHeight = Math.max(1, Math.round(dimensions.height));
+  const normalized = normalizeCropRect(rect);
+  const cropWidth = Math.max(1, Math.min(sourceWidth, Math.round(normalized.width * sourceWidth)));
+  const cropHeight = Math.max(
+    1,
+    Math.min(sourceHeight, Math.round(normalized.height * sourceHeight))
+  );
+  const cropX = Math.max(0, Math.min(sourceWidth - cropWidth, Math.round(normalized.x * sourceWidth)));
+  const cropY = Math.max(
+    0,
+    Math.min(sourceHeight - cropHeight, Math.round(normalized.y * sourceHeight))
+  );
+  return {
+    x: cropX,
+    y: cropY,
+    width: cropWidth,
+    height: cropHeight,
+  };
+};
+
+const resetCustomCropRect = () => {
+  const dimensions = orientedSourceDimensions.value;
+  const targetAspectRatio = customCropTargetAspectRatio.value;
+  if (!dimensions || !targetAspectRatio) {
+    customCropRect.value = null;
+    return;
+  }
+  customCropRect.value = createCenteredCropRect(
+    dimensions.width,
+    dimensions.height,
+    targetAspectRatio
+  );
+};
+
+const onCustomCropRectUpdate = (rect: NormalizedCropRect) => {
+  customCropRect.value = normalizeCropRect(rect);
+};
+
+const activeCustomCropRegion = computed<VideoCropRegion | null>(() => {
+  if (!customCropEnabled.value || !supportsCustomCrop.value || !customCropRect.value) {
+    return null;
+  }
+  const dimensions = orientedSourceDimensions.value;
+  if (!dimensions) {
+    return null;
+  }
+  return toPixelCropRegion(customCropRect.value, dimensions);
+});
+
+const customCropSummary = computed(() => {
+  const region = activeCustomCropRegion.value;
+  const dimensions = orientedSourceDimensions.value;
+  if (!region || !dimensions) {
+    return "Drag and resize the crop box in the preview area.";
+  }
+  return `${region.width}x${region.height} at (${region.x}, ${region.y}) on ${dimensions.width}x${dimensions.height}`;
+});
+
+const canResetCustomCrop = computed(() => Boolean(supportsCustomCrop.value && customCropRect.value));
+
+const customCropHint = computed(() => {
+  if (scaleMode.value !== "fill") {
+    return "Set Scale mode to Fill (crop) to enable manual crop-box selection.";
+  }
+  if (!supportsCustomCrop.value) {
+    return "Load a video and keep a custom target size selected to enable custom crop controls.";
+  }
+  return "Enable custom crop, then drag or resize the overlay box in the preview.";
+});
+
+const canConvert = computed(() => {
+  if (!hasBoardSelection.value) {
+    return false;
+  }
+  if (!sourceFile.value || processing.value || previewFrameBusy.value) {
+    return false;
+  }
+  if (hasTrimInputError.value) {
+    return false;
+  }
+  if (hasRangeError.value) {
+    return false;
+  }
+  if (outputSizeMode.value === "custom" && isVideoOutput.value) {
+    const hasTargetDimensions = Boolean(width.value && width.value > 0 && height.value && height.value > 0);
+    if (!hasTargetDimensions) {
+      return false;
+    }
+  }
+  if (customCropEnabled.value && supportsCustomCrop.value && !activeCustomCropRegion.value) {
+    return false;
+  }
+  return true;
 });
 
 const activeView = computed<AppView>(() => activeNavigation.value);
@@ -1634,7 +1847,7 @@ const {
   isVideoSource,
   isVideoOutput,
   processing,
-  outputSizeMode,
+  outputSizeMode: previewOutputSizeMode,
   width,
   height,
   orientation,
@@ -1831,6 +2044,10 @@ const buildVideoOptions = (): VideoTranscodeOptions => {
   const options: VideoTranscodeOptions = {
     orientation: orientation.value,
   };
+  const cropRegion = activeCustomCropRegion.value;
+  if (cropRegion) {
+    options.cropRegion = cropRegion;
+  }
   if (outputSizeMode.value === "custom" && width.value && height.value) {
     options.width = Math.max(1, Math.round(width.value));
     options.height = Math.max(1, Math.round(height.value));
@@ -2072,6 +2289,51 @@ watch([outputFormat, orientation, scaleMode], () => {
   persistConversionPreferences();
 });
 
+watch(customCropEnabled, (enabled) => {
+  if (!enabled) {
+    customCropRect.value = null;
+    schedulePreviewFrameRefresh(50);
+    return;
+  }
+  if (!supportsCustomCrop.value) {
+    customCropEnabled.value = false;
+    customCropRect.value = null;
+    return;
+  }
+  resetCustomCropRect();
+  schedulePreviewFrameRefresh(50);
+});
+
+watch(supportsCustomCrop, (supported) => {
+  if (!supported) {
+    if (customCropEnabled.value) {
+      customCropEnabled.value = false;
+    }
+    customCropRect.value = null;
+    schedulePreviewFrameRefresh(50);
+    return;
+  }
+  if (customCropEnabled.value && !customCropRect.value) {
+    resetCustomCropRect();
+    schedulePreviewFrameRefresh(50);
+  }
+});
+
+watch(
+  [
+    () => orientedSourceDimensions.value?.width ?? 0,
+    () => orientedSourceDimensions.value?.height ?? 0,
+    () => customCropTargetAspectRatio.value ?? 0,
+    orientation,
+  ],
+  () => {
+    if (!customCropEnabled.value || !supportsCustomCrop.value) {
+      return;
+    }
+    resetCustomCropRect();
+  }
+);
+
 watch([previewSecondsMax, previewSecondMin, previewSecondMax], () => {
   if (isTrimRangeDragging.value) {
     return;
@@ -2083,6 +2345,8 @@ watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
   clearPreviewFrame();
+  customCropEnabled.value = false;
+  customCropRect.value = null;
   processingError.value = null;
   processingProgress.value = 0;
   isTrimRangeDragging.value = false;

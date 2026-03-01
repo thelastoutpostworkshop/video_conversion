@@ -15,7 +15,7 @@ interface UsePreviewFrameOptions {
   isVideoSource: ComputedRef<boolean> | Ref<boolean>;
   isVideoOutput: ComputedRef<boolean> | Ref<boolean>;
   processing: Ref<boolean>;
-  outputSizeMode: Ref<OutputSizeMode>;
+  outputSizeMode: ComputedRef<OutputSizeMode> | Ref<OutputSizeMode>;
   width: Ref<number | null>;
   height: Ref<number | null>;
   orientation: Ref<VideoOrientation>;
