@@ -105,7 +105,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "AVI Player",
         description:
-          "Plays any AVI videos with sound stored on a SD card.",
+          "Plays any AVI videos with sound stored on a SD card, shows a simple file picker UI, and plays the selected video with audio",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
         imagePath: "board-catalog/JC4827W543/avi_still.png",
         hoverImagePath: "board-catalog/JC4827W543/avi_demo.gif",
