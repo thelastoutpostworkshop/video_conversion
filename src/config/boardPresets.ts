@@ -151,7 +151,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 15,
     quality: 7,
-    notes: "Discover the all-in-one JC4827W543 ESP32-S3 development board! Create a Wi-Fi analysis, display animated GIFs, play AVI videos with sound, build GUIs with LVGL 9, and stream live internet radio. ESP32-S3 8M PSRAM 4M FLASH RGB 65K true-to-life colours, Micro SD Card reader, capacitive or resistance touch.",
+    notes: "Discover the all-in-one JC4827W543 ESP32-S3 development board! With 8Mb PSRAM, 4Mb FLASH Memory, RGB 65K true-to-life colours, Micro SD Card reader, capacitive or resistance touch.",
   },
   {
     id: "esp32-c6-lcd-1_47",
