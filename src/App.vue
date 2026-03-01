@@ -2594,7 +2594,6 @@ onMounted(() => {
   if (persistedBoardSelection?.mode === "preset" && persistedBoardSelection.presetId) {
     targetSetupMode.value = "preset";
     selectedBoardPresetId.value = persistedBoardSelection.presetId;
-    activeNavigation.value = "workspace";
   }
   if (
     persistedBoardSelection?.mode === "custom" &&
@@ -2607,7 +2606,6 @@ onMounted(() => {
     customBoardWidth.value = width.value;
     customBoardHeight.value = height.value;
     customBoardRoundDisplay.value = persistedBoardSelection.roundDisplay === true;
-    activeNavigation.value = "workspace";
   }
   applySizingDefaults();
   const persistedPreferences = loadPersistedConversionPreferences();
