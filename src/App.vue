@@ -194,6 +194,24 @@
                         :target-width="previewTargetDimensions?.width ?? null"
                         :target-height="previewTargetDimensions?.height ?? null"
                       />
+                      <div class="d-flex justify-end mt-2">
+                        <v-tooltip text="Download preview image" location="top">
+                          <template #activator="{ props: tooltipProps }">
+                            <v-btn
+                              v-bind="tooltipProps"
+                              size="small"
+                              variant="tonal"
+                              icon
+                              color="primary"
+                              :disabled="!canDownloadPreviewImage"
+                              aria-label="Download preview image"
+                              @click="downloadPreviewImage"
+                            >
+                              <v-icon icon="mdi-file-download-outline" size="18" />
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                      </div>
                     </div>
 
                     <v-sheet class="workspace-subsection mt-4 pa-3" rounded="lg" border>
@@ -1550,6 +1568,13 @@ const fileBaseName = (name: string) => {
   return dotIndex > 0 ? name.slice(0, dotIndex) : name;
 };
 
+const createPreviewFileName = () => {
+  const sourceName = sourceFile.value?.name ?? "preview";
+  const previewSeconds = Math.max(0, previewSecondModel.value);
+  const secondsLabel = previewSeconds.toFixed(1).replace(".", "p");
+  return `${fileBaseName(sourceName)}-preview-${secondsLabel}s.png`;
+};
+
 const buildDefaultOutputName = (name: string, format: OutputFormat) =>
   `${fileBaseName(name)}.${outputExtensionMap[format]}`;
 
@@ -2012,6 +2037,22 @@ const downloadOutput = () => {
   const link = document.createElement("a");
   link.href = outputFileUrl.value;
   link.download = outputFileName.value || `output.${outputExtensionMap[outputFormat.value]}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
+
+const canDownloadPreviewImage = computed(
+  () => Boolean(previewFrameUrl.value) && hasPreviewSource.value && !previewFrameBusy.value
+);
+
+const downloadPreviewImage = () => {
+  if (!previewFrameUrl.value || typeof document === "undefined") {
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = previewFrameUrl.value;
+  link.download = createPreviewFileName();
   document.body.appendChild(link);
   link.click();
   link.remove();
