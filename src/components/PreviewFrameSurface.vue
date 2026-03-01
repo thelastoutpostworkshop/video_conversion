@@ -7,6 +7,8 @@
         :src="previewFrameUrl"
         alt="Generated preview frame"
         class="preview-frame-image"
+        :class="{ 'preview-frame-image--cropped': showCroppedMainPreview }"
+        :style="previewFrameImageStyle"
         @load="onPreviewImageLoad"
       />
       <div v-else-if="!hasSourceFile" class="preview-placeholder">
@@ -54,6 +56,29 @@
         <div v-if="canInteractWithCrop" class="crop-help-badge">
           Drag to move. Drag corners to resize.
         </div>
+      </div>
+
+      <div v-if="showCropPreviewActions" class="crop-preview-actions">
+        <v-btn
+          v-if="isCropPreviewApplied"
+          size="small"
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-crop"
+          @click="enterCropEditMode"
+        >
+          Edit crop
+        </v-btn>
+        <v-btn
+          v-else
+          size="small"
+          variant="flat"
+          color="primary"
+          prepend-icon="mdi-check-circle-outline"
+          @click="applyCropPreview"
+        >
+          Apply crop preview
+        </v-btn>
       </div>
 
       <div
@@ -175,13 +200,44 @@ const previewSurfaceStyle = computed<Record<string, string>>(() => {
   };
 });
 
-const canInteractWithCrop = computed(
+const normalizedCropRect = computed<NormalizedCropRect | null>(() => {
+  if (!props.cropRect) {
+    return null;
+  }
+  return normalizeCropRect(props.cropRect);
+});
+
+const isCropPreviewApplied = ref(false);
+
+const canShowCropPreview = computed(
   () =>
     props.cropEnabled === true &&
-    props.cropInteractive !== false &&
-    Boolean(props.cropRect) &&
-    Boolean(imageLayout.value)
+    Boolean(normalizedCropRect.value) &&
+    Boolean(props.previewFrameUrl) &&
+    props.isVideoOutput
 );
+
+const showCroppedMainPreview = computed(
+  () => canShowCropPreview.value && isCropPreviewApplied.value
+);
+
+const showCropPreviewActions = computed(() => canShowCropPreview.value);
+
+const previewFrameImageStyle = computed<Record<string, string>>(() => {
+  if (!showCroppedMainPreview.value) {
+    return {};
+  }
+  const rect = normalizedCropRect.value;
+  if (!rect) {
+    return {};
+  }
+  return {
+    width: `${100 / rect.width}%`,
+    height: `${100 / rect.height}%`,
+    left: `${-(rect.x / rect.width) * 100}%`,
+    top: `${-(rect.y / rect.height) * 100}%`,
+  };
+});
 
 const showCropOverlay = computed(
   () =>
@@ -189,8 +245,31 @@ const showCropOverlay = computed(
     Boolean(props.cropRect) &&
     Boolean(props.previewFrameUrl) &&
     props.isVideoOutput &&
-    Boolean(imageLayout.value)
+    Boolean(imageLayout.value) &&
+    !showCroppedMainPreview.value
 );
+
+const canInteractWithCrop = computed(
+  () => showCropOverlay.value && props.cropInteractive !== false
+);
+
+const applyCropPreview = () => {
+  if (!canShowCropPreview.value) {
+    return;
+  }
+  clearDragState();
+  isCropPreviewApplied.value = true;
+  imageLayout.value = null;
+};
+
+const enterCropEditMode = async () => {
+  if (!canShowCropPreview.value) {
+    return;
+  }
+  isCropPreviewApplied.value = false;
+  await nextTick();
+  updateImageLayout();
+};
 
 const cropOverlayStyle = computed<Record<string, string>>(() => {
   const layout = imageLayout.value;
@@ -236,7 +315,12 @@ const getAspectScale = (): number | null => {
 
 const updateImageLayout = () => {
   const imageEl = imageRef.value;
-  if (!imageEl || !props.previewFrameUrl || !props.isVideoOutput) {
+  if (
+    !imageEl ||
+    !props.previewFrameUrl ||
+    !props.isVideoOutput ||
+    showCroppedMainPreview.value
+  ) {
     imageLayout.value = null;
     return;
   }
@@ -486,7 +570,35 @@ watch(
   (enabled) => {
     if (!enabled) {
       clearDragState();
+      isCropPreviewApplied.value = false;
+      imageLayout.value = null;
+      return;
     }
+    isCropPreviewApplied.value = false;
+    void nextTick(() => {
+      updateImageLayout();
+    });
+  }
+);
+
+watch(
+  () => canShowCropPreview.value,
+  (canShow) => {
+    if (canShow) {
+      return;
+    }
+    clearDragState();
+    isCropPreviewApplied.value = false;
+    imageLayout.value = null;
+  }
+);
+
+watch(
+  () => showCroppedMainPreview.value,
+  async () => {
+    clearDragState();
+    await nextTick();
+    updateImageLayout();
   }
 );
 
@@ -549,10 +661,16 @@ onBeforeUnmount(() => {
 }
 
 .preview-frame-image {
+  position: relative;
   width: 100%;
   height: 100%;
   object-fit: contain;
   background: #000;
+}
+
+.preview-frame-image--cropped {
+  position: absolute;
+  object-fit: fill;
 }
 
 .preview-placeholder {
@@ -563,11 +681,19 @@ onBeforeUnmount(() => {
 
 .crop-overlay {
   position: absolute;
+  z-index: 2;
   pointer-events: none;
 }
 
 .crop-overlay--interactive {
   pointer-events: auto;
+}
+
+.crop-preview-actions {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 3;
 }
 
 .crop-box {
@@ -632,6 +758,7 @@ onBeforeUnmount(() => {
 .preview-busy-overlay {
   position: absolute;
   inset: 0;
+  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;

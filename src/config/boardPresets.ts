@@ -210,7 +210,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "X-Wing Game!",
         description:
-          "Community projects and demos for the 1.43-inch AMOLED ESP32-S3 display.",
+          "X-Wing Pursuit is an arcade-style reflex game built for the Waveshare ESP32-S3 1.43\" AMOLED Touch Display. You pilot an X-Wing using the onboard IMU (tilt + twist), line up over the center target, and tap the screen to score hits before time runs out. The game includes animated intro/win/lose sequences and stores your best completion time in ESP32 NVS, so your high score survives power cycles.",
         url: "https://github.com/thelastoutpostworkshop/waveshare_esp32s3_1.43_amoled_xwing_game",
         imagePath: "board-catalog/esp32-s3-touch-amoled-1.43/xwing_still.png",
         hoverImagePath: "board-catalog/esp32-s3-touch-amoled-1.43/xwing_demo.gif",
