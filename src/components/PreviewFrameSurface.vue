@@ -141,6 +141,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: "update:crop-rect", value: NormalizedCropRect): void;
+  (event: "update:crop-preview-applied", value: boolean): void;
 }>();
 
 const surfaceRef = ref<HTMLDivElement | null>(null);
@@ -600,6 +601,14 @@ watch(
     await nextTick();
     updateImageLayout();
   }
+);
+
+watch(
+  () => isCropPreviewApplied.value,
+  (applied) => {
+    emit("update:crop-preview-applied", applied);
+  },
+  { immediate: true }
 );
 
 onMounted(() => {

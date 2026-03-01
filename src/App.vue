@@ -283,6 +283,7 @@
                           customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
                         "
                         @update:crop-rect="onCustomCropRectUpdate"
+                        @update:crop-preview-applied="onCropPreviewAppliedUpdate"
                       />
                       <div class="d-flex justify-end mt-2">
                         <v-tooltip text="Download preview image" location="top">
@@ -756,6 +757,7 @@ const height = ref<number | null>(null);
 const scaleMode = ref<VideoScaleMode>("fit");
 const customCropEnabled = ref(false);
 const customCropRect = ref<NormalizedCropRect | null>(null);
+const customCropPreviewApplied = ref(false);
 const orientation = ref<VideoOrientation>("none");
 const fps = ref<number | null>(20);
 const quality = ref<number | null>(5);
@@ -1245,6 +1247,10 @@ const resetCustomCropRect = () => {
 
 const onCustomCropRectUpdate = (rect: NormalizedCropRect) => {
   customCropRect.value = normalizeCropRect(rect);
+};
+
+const onCropPreviewAppliedUpdate = (applied: boolean) => {
+  customCropPreviewApplied.value = applied;
 };
 
 const activeCustomCropRegion = computed<VideoCropRegion | null>(() => {
@@ -2396,10 +2402,102 @@ const canDownloadPreviewImage = computed(
   () => Boolean(previewFrameUrl.value) && hasPreviewSource.value && !previewFrameBusy.value
 );
 
-const downloadPreviewImage = () => {
+const shouldDownloadCroppedPreviewImage = computed(
+  () =>
+    customCropPreviewApplied.value &&
+    customCropEnabled.value &&
+    supportsCustomCrop.value &&
+    Boolean(customCropRect.value)
+);
+
+const loadImageFromUrl = (url: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to load preview image for cropping."));
+    image.src = url;
+  });
+
+const createCroppedPreviewImageBlob = async (): Promise<Blob | null> => {
+  if (
+    !previewFrameUrl.value ||
+    !customCropRect.value ||
+    typeof document === "undefined"
+  ) {
+    return null;
+  }
+  const image = await loadImageFromUrl(previewFrameUrl.value);
+  const normalized = normalizeCropRect(customCropRect.value);
+  const sourceWidth = Math.max(1, Math.round(image.naturalWidth));
+  const sourceHeight = Math.max(1, Math.round(image.naturalHeight));
+  const cropX = Math.max(0, Math.min(sourceWidth - 1, Math.round(normalized.x * sourceWidth)));
+  const cropY = Math.max(0, Math.min(sourceHeight - 1, Math.round(normalized.y * sourceHeight)));
+  const cropWidth = Math.max(
+    1,
+    Math.min(sourceWidth - cropX, Math.round(normalized.width * sourceWidth))
+  );
+  const cropHeight = Math.max(
+    1,
+    Math.min(sourceHeight - cropY, Math.round(normalized.height * sourceHeight))
+  );
+
+  const canvas = document.createElement("canvas");
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return null;
+  }
+  context.drawImage(
+    image,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    cropWidth,
+    cropHeight
+  );
+
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), "image/png");
+  });
+};
+
+const downloadBlobAsFile = (blob: Blob, fileName: string) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
+};
+
+const downloadPreviewImage = async () => {
   if (!previewFrameUrl.value || typeof document === "undefined") {
     return;
   }
+
+  if (shouldDownloadCroppedPreviewImage.value) {
+    try {
+      const croppedBlob = await createCroppedPreviewImageBlob();
+      if (croppedBlob) {
+        downloadBlobAsFile(croppedBlob, createPreviewFileName());
+        return;
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to export cropped preview image.";
+      appendLog(`[warn] ${message}`);
+    }
+  }
+
   const link = document.createElement("a");
   link.href = previewFrameUrl.value;
   link.download = createPreviewFileName();
