@@ -1055,10 +1055,8 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   color: rgba(var(--v-theme-on-surface), 0.78);
   font-size: 0.85rem;
   line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .board-catalog-link-row--project {
