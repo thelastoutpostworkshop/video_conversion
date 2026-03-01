@@ -293,8 +293,8 @@
                 <div class="board-catalog-preview-details">
                   <div class="board-catalog-preview-links">
                     <div v-if="previewProjects.length" class="board-catalog-link-group">
-                      <div class="text-caption board-catalog-link-group-title">
-                        Projects ({{ previewProjects.length }})
+                      <div class="board-catalog-link-group-title board-catalog-project-list-title">
+                        The Last Outpost Projects available ({{ previewProjects.length }})
                       </div>
                       <div class="board-catalog-project-grid">
                         <v-card
@@ -310,18 +310,8 @@
                               class="board-catalog-project-image"
                             />
                             <div class="board-catalog-project-body">
-                              <div class="board-catalog-project-heading">
-                                <v-chip
-                                  size="x-small"
-                                  variant="tonal"
-                                  color="primary"
-                                  class="board-catalog-project-index-chip"
-                                >
-                                  Project {{ index + 1 }}
-                                </v-chip>
-                                <div class="board-catalog-project-title">
-                                  {{ project.name }}
-                                </div>
+                              <div class="board-catalog-project-title">
+                                {{ project.name }}
                               </div>
                               <div class="board-catalog-link-row">
                                 <v-btn
@@ -732,6 +722,13 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   margin-bottom: 4px;
 }
 
+.board-catalog-project-list-title {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: rgba(var(--v-theme-on-surface), 0.92);
+  margin-bottom: 10px;
+}
+
 .board-catalog-link-row {
   display: flex;
   align-items: center;
@@ -878,16 +875,6 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   flex-direction: column;
   gap: 12px;
   justify-content: center;
-}
-
-.board-catalog-project-heading {
-  display: grid;
-  gap: 6px;
-}
-
-.board-catalog-project-index-chip {
-  justify-self: start;
-  font-weight: 700;
 }
 
 .board-catalog-project-title {
