@@ -87,11 +87,11 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Animated GIF",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
-        imagePath: "board-catalog/JC4827W543_animated_gif.png",
+        imagePath: "board-catalog/animation gif cinema.gif",
         demos: [
           {
-            label: "Demo video",
-            url: "https://youtu.be/mnOzfRFQJIM?t=456",
+            label: "Tutorial",
+            url: "https://youtu.be/mnOzfRFQJIM",
           },
         ],
       },
@@ -101,8 +101,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
         imagePath: "board-catalog/JC4827W543.png",
         demos: [
           {
-            label: "Demo video",
-            url: "https://youtu.be/mnOzfRFQJIM?t=622",
+            label: "Tutorial",
+            url: "https://youtu.be/mnOzfRFQJIM",
           },
         ],
       },
