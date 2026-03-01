@@ -98,7 +98,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
         demos: [
           {
             label: "Tutorial",
-            url: "https://youtu.be/mnOzfRFQJIM",
+            url: "https://youtu.be/mnOzfRFQJIM?t=303",
           },
         ],
       },
@@ -112,7 +112,21 @@ export const BOARD_PRESETS: BoardPreset[] = [
         demos: [
           {
             label: "Tutorial",
-            url: "https://youtu.be/mnOzfRFQJIM",
+            url: "https://youtu.be/mnOzfRFQJIM?t=485",
+          },
+        ],
+      },
+      {
+        name: "Wifi Analyzer",
+        description:
+          "Handy Wi-Fi Analyzer app, perfect for scanning local networks.",
+        url: "https://github.com/thelastoutpostworkshop/JC4827W543_WifiAnalyzer",
+        imagePath: "board-catalog/JC4827W543/wifi_still.png",
+        hoverImagePath: "board-catalog/JC4827W543/wifi_demo.gif",
+        demos: [
+          {
+            label: "Tutorial",
+            url: "https://youtu.be/mnOzfRFQJIM?t=122",
           },
         ],
       },
