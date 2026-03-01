@@ -81,14 +81,14 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "jc4827w543",
     name: "Guiton JC4827W543 4.3\" IPS",
-    imagePath: "board-catalog/JC4827W543.png",
+    imagePath: "board-catalog/JC4827W543/JC4827W543.png",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oEHbBud",
     projects: [
       {
         name: "Animated GIF",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
-        imagePath: "board-catalog/JC4827W543_animated_gif.gif",
+        imagePath: "board-catalog/JC4827W543/JC4827W543_animated_gif.gif",
         hoverImagePath: "board-catalog/JC4827W543_animated_gif.gif",
         demos: [
           {
@@ -100,7 +100,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "AVI Player",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
-        imagePath: "board-catalog/JC4827W543_avi file demo cinema.gif",
+        imagePath: "board-catalog/JC4827W543/JC4827W543_avi file demo cinema.gif",
         demos: [
           {
             label: "Tutorial",
