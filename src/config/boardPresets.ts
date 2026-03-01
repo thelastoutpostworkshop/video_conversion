@@ -164,7 +164,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Video player",
         description:
-          "Compact ESP32-C6 video player example tuned for this 1.47-inch LCD board.",
+          "Turns the ESP32-C6-LCD-1.47 board into a standalone MJPEG media player. The firmware scans the SD card for `.mjpeg` files in `/mjpeg`, decodes them frame-by-frame, and renders video on the LCD in a continuous loop. A hardware button lets you skip to the next clip during playback.",
         url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_video_player",
         imagePath: "board-catalog/esp32-c6-lcd-1_47/video_still.png",
         hoverImagePath: "board-catalog/esp32-c6-lcd-1_47/video_demo.gif",
