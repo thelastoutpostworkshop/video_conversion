@@ -167,7 +167,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
           "Compact ESP32-C6 video player example tuned for this 1.47-inch LCD board.",
         url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_video_player",
         imagePath: "board-catalog/esp32-c6-lcd-1_47/video_still.png",
-        hoverImagePath:"board-catalog/esp32-c6-lcd-1_47/video_demo.gif",
+        hoverImagePath: "board-catalog/esp32-c6-lcd-1_47/video_demo.gif",
         demos: [
           {
             label: "Tutorial",
@@ -179,8 +179,9 @@ export const BOARD_PRESETS: BoardPreset[] = [
         name: "Crypto Monitor",
         description:
           "Compact ESP32-C6 video player example tuned for this 1.47-inch LCD board.",
-        url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_video_player",
-        imagePath: "board-catalog/esp32-c6-lcd-1_47.png",
+        url: "https://github.com/thelastoutpostworkshop/ESP32-C6-LCD-1.47_LVGL9_Crypto_Monitor",
+        imagePath: "board-catalog/esp32-c6-lcd-1_47/crypto_still.png",
+        hoverImagePath: "board-catalog/esp32-c6-lcd-1_47/crypto_demo.gif",
         demos: [
           {
             label: "Tutorial",
