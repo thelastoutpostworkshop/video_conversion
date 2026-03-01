@@ -242,11 +242,20 @@
                     <div
                       v-if="hasBuyLinks(imagePreviewPreset)"
                       class="board-catalog-preview-buy-panel"
+                      :class="{
+                        'board-catalog-preview-buy-panel--single':
+                          getBuyLinkCount(imagePreviewPreset) === 1,
+                      }"
                     >
                       <div class="text-caption board-catalog-link-group-title mb-1">
                         Buy this board
                       </div>
-                      <div class="board-catalog-buy-row">
+                      <div
+                        class="board-catalog-buy-row"
+                        :class="{
+                          'board-catalog-buy-row--single': getBuyLinkCount(imagePreviewPreset) === 1,
+                        }"
+                      >
                         <v-btn
                           v-if="imagePreviewPreset.amazonUrl"
                           :href="imagePreviewPreset.amazonUrl"
@@ -607,6 +616,9 @@ const isPresetSelected = (presetId: string) =>
 const hasBuyLinks = (preset: BoardPreset): boolean =>
   Boolean(preset.amazonUrl || preset.aliexpressUrl);
 
+const getBuyLinkCount = (preset: BoardPreset): number =>
+  (preset.amazonUrl ? 1 : 0) + (preset.aliexpressUrl ? 1 : 0);
+
 const hasSupportingLinks = (preset: BoardPreset): boolean =>
   hasBuyLinks(preset) ||
   buildPreviewProjects(preset).length > 0;
@@ -893,11 +905,21 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.board-catalog-preview-buy-panel--single {
+  min-width: 0;
+  width: fit-content;
+}
+
 .board-catalog-buy-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.board-catalog-buy-row--single :deep(.v-btn) {
+  min-width: 140px;
+  justify-content: center;
 }
 
 .board-catalog-preview-name {
