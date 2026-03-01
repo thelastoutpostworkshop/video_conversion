@@ -230,15 +230,54 @@
             <div class="board-catalog-preview-layout">
               <div class="board-catalog-preview-focus">
                 <div class="board-catalog-preview-focus-header">
-                  <div class="board-catalog-preview-name">
-                    {{ imagePreviewPreset.name }}
-                  </div>
-                  <div class="board-catalog-preview-description">
-                    {{ imagePreviewPreset.notes }}
+                  <div class="board-catalog-preview-header-top">
+                    <div>
+                      <div class="board-catalog-preview-name">
+                        {{ imagePreviewPreset.name }}
+                      </div>
+                      <div class="board-catalog-preview-description">
+                        {{ imagePreviewPreset.notes }}
+                      </div>
+                    </div>
+                    <div
+                      v-if="hasBuyLinks(imagePreviewPreset)"
+                      class="board-catalog-preview-buy-panel"
+                    >
+                      <div class="text-caption board-catalog-link-group-title mb-1">
+                        Buy this board
+                      </div>
+                      <div class="board-catalog-buy-row">
+                        <v-btn
+                          v-if="imagePreviewPreset.amazonUrl"
+                          :href="imagePreviewPreset.amazonUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="small"
+                          variant="flat"
+                          color="warning"
+                          prepend-icon="mdi-cart-outline"
+                        >
+                          Amazon
+                        </v-btn>
+                        <v-btn
+                          v-if="imagePreviewPreset.aliexpressUrl"
+                          :href="imagePreviewPreset.aliexpressUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="small"
+                          variant="flat"
+                          color="red-accent-2"
+                          prepend-icon="mdi-shopping-outline"
+                        >
+                          AliExpress
+                        </v-btn>
+                      </div>
+                    </div>
                   </div>
                   <div class="board-catalog-preview-meta-row">
-                    <v-chip size="small" variant="tonal" color="info">
-                      {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
+                    <v-chip class="board-catalog-size-chip" variant="flat" color="primary">
+                      <v-icon icon="mdi-aspect-ratio" size="15" class="me-1" />
+                      Screen {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
                     </v-chip>
                     <v-chip
                       v-if="imagePreviewPreset.roundDisplay"
@@ -253,41 +292,9 @@
 
                 <div class="board-catalog-preview-details">
                   <div class="board-catalog-preview-links">
-                    <div v-if="hasBuyLinks(imagePreviewPreset)" class="board-catalog-link-group">
-                      <div class="text-caption board-catalog-link-group-title">
-                        Buy this board
-                      </div>
-                      <div class="board-catalog-link-row">
-                        <v-btn
-                          v-if="imagePreviewPreset.amazonUrl"
-                          :href="imagePreviewPreset.amazonUrl"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          size="small"
-                          variant="tonal"
-                          color="warning"
-                          prepend-icon="mdi-cart-outline"
-                        >
-                          Amazon
-                        </v-btn>
-                        <v-btn
-                          v-if="imagePreviewPreset.aliexpressUrl"
-                          :href="imagePreviewPreset.aliexpressUrl"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          size="small"
-                          variant="tonal"
-                          color="red-accent-2"
-                          prepend-icon="mdi-shopping-outline"
-                        >
-                          AliExpress
-                        </v-btn>
-                      </div>
-                    </div>
-
                     <div v-if="previewProjects.length" class="board-catalog-link-group">
                       <div class="text-caption board-catalog-link-group-title">
-                        Projects
+                        Projects ({{ previewProjects.length }})
                       </div>
                       <div class="board-catalog-project-grid">
                         <v-card
@@ -770,6 +777,32 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   backdrop-filter: blur(8px);
 }
 
+.board-catalog-preview-header-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.board-catalog-preview-buy-panel {
+  min-width: 220px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.34);
+  border-radius: 10px;
+  padding: 10px;
+  background: linear-gradient(
+    160deg,
+    rgba(var(--v-theme-primary), 0.16) 0%,
+    rgba(var(--v-theme-surface), 0.14) 100%
+  );
+}
+
+.board-catalog-buy-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .board-catalog-preview-name {
   color: rgb(var(--v-theme-on-surface));
   font-size: 1rem;
@@ -791,6 +824,11 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
+}
+
+.board-catalog-size-chip {
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 .board-catalog-preview-details {
@@ -897,6 +935,15 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 }
 
 @media (max-width: 640px) {
+  .board-catalog-preview-header-top {
+    grid-template-columns: 1fr;
+  }
+
+  .board-catalog-preview-buy-panel {
+    min-width: 0;
+    width: 100%;
+  }
+
   .board-catalog-project-content {
     grid-template-columns: 1fr;
   }
