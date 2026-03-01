@@ -91,7 +91,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Animated GIF",
         description:
-          "Displays animated GIF files from SD storage with smooth playback on the screen.",
+          "Displays animated GIF files stored on a SD card.",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
         imagePath: "board-catalog/JC4827W543/animated_gif_still.png",
         hoverImagePath: "board-catalog/JC4827W543/animated_gif_demo.gif",
@@ -105,7 +105,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "AVI Player",
         description:
-          "Plays AVI videos from SD card and renders frames directly on the display.",
+          "Plays any AVI videos with sound stored on a SD card.",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
         imagePath: "board-catalog/JC4827W543/avi_still.png",
         hoverImagePath: "board-catalog/JC4827W543/avi_demo.gif",
