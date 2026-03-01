@@ -903,8 +903,7 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-preview-name {
   color: rgb(var(--v-theme-on-surface));
   font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-weight: 500;
   line-height: 1.15;
 }
 
@@ -1024,9 +1023,8 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 
 .board-catalog-project-title {
   font-size: 1.08rem;
-  font-weight: 800;
+  font-weight: 500;
   letter-spacing: 0.01em;
-  line-height: 1.3;
   color: rgba(var(--v-theme-on-surface), 0.95);
 }
 
