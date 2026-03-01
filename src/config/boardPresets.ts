@@ -133,7 +133,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Wifi Analyzer",
         description:
-          "Handy Wi-Fi Analyzer app, perfect for scanning local networks.",
+          "Turns the JC4827W543 into a standalone 2.4 GHz WiFi analyzer. It performs continuous WiFi scans and renders a live channel graph on the onboard display so you can quickly see network density, signal strength, and likely lower-noise channels for better WiFi planning",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_WifiAnalyzer",
         imagePath: "board-catalog/JC4827W543/wifi_still.png",
         hoverImagePath: "board-catalog/JC4827W543/wifi_demo.gif",
