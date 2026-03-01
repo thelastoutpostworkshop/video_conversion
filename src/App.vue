@@ -127,6 +127,34 @@
                         <div class="d-flex align-center timeline-card__header">
                           <div class="text-subtitle-2">Timeline trim and preview</div>
                           <v-spacer />
+                          <div class="timeline-jump-controls mr-2">
+                            <v-tooltip text="Jump preview to start" location="top">
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="x-small"
+                                  variant="text"
+                                  icon="mdi-skip-backward"
+                                  :disabled="!canJumpPreviewToStart"
+                                  aria-label="Jump preview to start time"
+                                  @click="jumpPreviewToStart"
+                                />
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip text="Jump preview to end time" location="top">
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="x-small"
+                                  variant="text"
+                                  icon="mdi-skip-forward"
+                                  :disabled="!canJumpPreviewToEnd"
+                                  aria-label="Jump preview to end time"
+                                  @click="jumpPreviewToEnd"
+                                />
+                              </template>
+                            </v-tooltip>
+                          </div>
                           <div class="text-caption text-medium-emphasis">
                             {{ previewSecondDisplay }}
                           </div>
@@ -1952,6 +1980,56 @@ const isPreviewSliderDisabled = computed(
   () => processing.value || !hasPreviewSource.value
 );
 
+const previewJumpStartTarget = computed(() => {
+  const parsedStart = parsedStartTimeSeconds.value;
+  if (typeof parsedStart === "number") {
+    return clampPreviewSecond(parsedStart);
+  }
+  if (typeof startSeconds.value === "number") {
+    return clampPreviewSecond(startSeconds.value);
+  }
+  return clampPreviewSecond(0);
+});
+
+const previewJumpEndTarget = computed(() => {
+  const parsedEnd = parsedEndTimeSeconds.value;
+  if (typeof parsedEnd === "number") {
+    return Math.max(previewJumpStartTarget.value, clampPreviewSecond(parsedEnd));
+  }
+  if (typeof endSeconds.value === "number") {
+    return Math.max(previewJumpStartTarget.value, clampPreviewSecond(endSeconds.value));
+  }
+  return Math.max(previewJumpStartTarget.value, clampPreviewSecond(previewSecondsMax.value));
+});
+
+const canJumpPreviewToStart = computed(
+  () =>
+    !isPreviewSliderDisabled.value &&
+    Math.abs(previewSecondModel.value - previewJumpStartTarget.value) > 0.001
+);
+
+const canJumpPreviewToEnd = computed(
+  () =>
+    !isPreviewSliderDisabled.value &&
+    Math.abs(previewSecondModel.value - previewJumpEndTarget.value) > 0.001
+);
+
+const jumpPreviewToStart = () => {
+  if (isPreviewSliderDisabled.value) {
+    return;
+  }
+  previewSecondModel.value = previewJumpStartTarget.value;
+  schedulePreviewFrameRefresh(50);
+};
+
+const jumpPreviewToEnd = () => {
+  if (isPreviewSliderDisabled.value) {
+    return;
+  }
+  previewSecondModel.value = previewJumpEndTarget.value;
+  schedulePreviewFrameRefresh(50);
+};
+
 const previewSecondDisplay = computed(() => {
   if (!hasPreviewSource.value) {
     return "Unavailable";
@@ -2618,6 +2696,16 @@ onBeforeUnmount(() => {
 .timeline-card__header {
   min-height: 20px;
   margin-bottom: 2px;
+}
+
+.timeline-jump-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.timeline-jump-controls :deep(.v-btn) {
+  color: rgba(var(--v-theme-on-surface), 0.78);
 }
 
 .timeline-card--inactive {
