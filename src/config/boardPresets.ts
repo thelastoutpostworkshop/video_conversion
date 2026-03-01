@@ -100,7 +100,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "AVI Player",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_avi_player",
-        imagePath: "board-catalog/JC4827W543/JC4827W543_avi file demo cinema.gif",
+        imagePath: "board-catalog/JC4827W543/avi_still.png",
+        hoverImagePath: "board-catalog/JC4827W543/JC4827W543_avi file demo cinema.gif",
         demos: [
           {
             label: "Tutorial",
