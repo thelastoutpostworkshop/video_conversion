@@ -88,8 +88,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
       {
         name: "Animated GIF",
         url: "https://github.com/thelastoutpostworkshop/JC4827W543_AnimatedGIF",
-        imagePath: "board-catalog/JC4827W543/JC4827W543_animated_gif.gif",
-        hoverImagePath: "board-catalog/JC4827W543_animated_gif.gif",
+        imagePath: "board-catalog/JC4827W543/animated_gif_still.png",
+        hoverImagePath: "board-catalog/JC4827W543/JC4827W543_animated_gif.gif",
         demos: [
           {
             label: "Tutorial",
