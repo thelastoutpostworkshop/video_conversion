@@ -228,7 +228,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     scaleMode: "fit",
     fps: 18,
     quality: 7,
-    notes: "ESP32-S3 16Mb Flash, 8Mb psram, 466×466, 16.7M Color, AccelerometerAnd Gyroscope Sensor, Micro SD card reader",
+    notes: "ESP32-S3 16Mb Flash, 8Mb psram, 466×466, 16.7M Color, Acceleromete And Gyroscope Sensor, Micro SD card reader",
   },
   {
     id: "ESP32-2432S028",
