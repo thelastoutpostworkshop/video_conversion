@@ -278,7 +278,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "GC9A01",
     name: "GC9A01 1.28\" Round Display",
-    imagePath: "board-catalog/GC9A01.png",
+    imagePath: "board-catalog/GC9A01/GC9A01.png",
     amazonUrl: "https://amzn.to/3CJjbHy",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_c3cFGvxV",
@@ -288,7 +288,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
         description:
           "Starter projects and demo videos for GC9A01 round display builds.",
         url: "https://github.com/search?q=GC9A01+ESP32+project&type=repositories",
-        imagePath: "board-catalog/GC9A01.png",
+        imagePath: "board-catalog/GC9A01/GC9A01.png",
         demos: [
           {
             label: "Video demos",
