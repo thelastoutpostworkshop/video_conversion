@@ -221,6 +221,20 @@ export const BOARD_PRESETS: BoardPreset[] = [
           },
         ],
       },
+      {
+        name: "Surface Level",
+        description:
+          "Ready-to-run digital surface level example using LVGL 9. It combines the onboard AMOLED screen, capacitive touch controller, and QMI8658 6-axis IMU to create a responsive level interface with a moving bubble, angle readouts, and a target indicator when the device is close to level.",
+        url: "https://github.com/thelastoutpostworkshop/waveshare_esp32s3_1.43_amoled_lvgl9",
+        imagePath: "board-catalog/esp32-s3-touch-amoled-1.43/surface_level_still.png",
+        hoverImagePath: "board-catalog/esp32-s3-touch-amoled-1.43/surface_level_demo.gif",
+        demos: [
+          {
+            label: "Tutorial",
+            url: "https://youtu.be/HT6sG39-vrk",
+          },
+        ],
+      },
     ],
     width: 466,
     height: 466,
