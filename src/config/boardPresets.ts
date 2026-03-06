@@ -247,21 +247,22 @@ export const BOARD_PRESETS: BoardPreset[] = [
   {
     id: "ESP32-2432S028",
     name: "2.8\" Cheap Yellow Display ESP32-2432S028",
-    imagePath: "board-catalog/ESP32-2432S028.png",
+    imagePath: "board-catalog/ESP32-2432S028/ESP32-2432S028.png",
     amazonUrl: "https://amzn.to/4kAyDJh",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oCVWMbC",
     projects: [
       {
-        name: "Community projects",
+        name: "Video Player",
         description:
-          "Browse open-source examples for the ESP32-2432S028 display module.",
-        url: "https://github.com/search?q=ESP32-2432S028+display&type=repositories",
-        imagePath: "board-catalog/ESP32-2432S028.png",
+          "Turns the Cheap Yellow Display with the ILI9341 controller into a standalone SD-card video player. The sketch scans a /mjpeg folder on the SD card, loads Motion JPEG (.mjpeg) files, and plays them back full-screen on the built-in 240x320 display. It is designed for simple offline playback with minimal setup: copy converted MJPEG files to the card, power the board, and the videos play in sequence on a loop",
+        url: "https://github.com/thelastoutpostworkshop/esp32-2432S028_video_player",
+        imagePath: "board-catalog/ESP32-2432S028/video_still.png",
+        hoverImagePath: "board-catalog/ESP32-2432S028/video_demo.gif",
         demos: [
           {
-            label: "Video demos",
-            url: "https://www.youtube.com/results?search_query=ESP32-2432S028+demo",
+            label: "Tutorial",
+            url: "https://youtu.be/jYcxUgxz9ks",
           },
         ],
       },
