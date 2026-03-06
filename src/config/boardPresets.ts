@@ -288,8 +288,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
         description:
           "Bring your visual creativity to life with this detailed tutorial on animating GIFs using a unique round display with GC9A01 driver and ESP32. You'll find all you need here to adapt your animated GIFs for the round display, wire them with an ESP32, and code them into being. Explore two versatile ways to use animated GIFs: utilizing ESP32 memory or using a convenient SD Card method.",
         url: "https://github.com/thelastoutpostworkshop/animated_gif_memory",
-        imagePath: "board-catalog/GC9A01/GC9A01.png",
-        hoverImagePath: "board-catalog/GC9A01/GC9A01.png",
+        imagePath: "board-catalog/GC9A01/gif_memory_still.png",
+        hoverImagePath: "board-catalog/GC9A01/gif_memory_demo.gif",
         demos: [
           {
             label: "Tutorial",
