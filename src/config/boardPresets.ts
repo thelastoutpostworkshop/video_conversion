@@ -284,6 +284,20 @@ export const BOARD_PRESETS: BoardPreset[] = [
       "https://s.click.aliexpress.com/e/_c3cFGvxV",
     projects: [
       {
+        name: "Uncanny Eyes!",
+        description:
+          "Master the Round display on ESP 32 and GC9A01 driver with the TFT_eSPI library and and bring uncanny eyes to life, not just on one but two on two displays! It's time to add a whole new dimension to your electronic projects",
+        url: "https://github.com/thelastoutpostworkshop/ESP32LCDRound240x240Eyes",
+        imagePath: "board-catalog/GC9A01/gif_sdcard_still.png",
+        hoverImagePath: "board-catalog/GC9A01/gif_sdcard_demo.gif",
+        demos: [
+          {
+            label: "Tutorial",
+            url: "https://youtu.be/pmCc7z_Mi8I",
+          },
+        ],
+      },
+      {
         name: "Bring GIFs to Life: Animating from memory",
         description:
           "Bring your visual creativity to life with this detailed tutorial on animating GIFs using a unique round display with GC9A01 driver and ESP32. You'll find all you need here to adapt your animated GIFs for the round display, wire them with an ESP32, and code them into being. Explore two versatile ways to use animated GIFs: utilizing ESP32 memory or using a convenient SD Card method.",
@@ -311,6 +325,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
           },
         ],
       },
+
     ],
     roundDisplay: true,
     width: 240,
