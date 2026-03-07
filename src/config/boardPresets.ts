@@ -288,8 +288,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
         description:
           "Master the Round display on ESP 32 and GC9A01 driver with the TFT_eSPI library and and bring uncanny eyes to life, not just on one but two on two displays! It's time to add a whole new dimension to your electronic projects",
         url: "https://github.com/thelastoutpostworkshop/ESP32LCDRound240x240Eyes",
-        imagePath: "board-catalog/GC9A01/gif_sdcard_still.png",
-        hoverImagePath: "board-catalog/GC9A01/gif_sdcard_demo.gif",
+        imagePath: "board-catalog/GC9A01/eyes_still.png",
+        hoverImagePath: "board-catalog/GC9A01/eyes_demo.gif",
         demos: [
           {
             label: "Tutorial",
