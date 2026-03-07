@@ -864,6 +864,44 @@ export class MediaProcessingService {
     });
   }
 
+  async renderVideoMotionPreview(
+    file: File,
+    options?: Pick<
+      VideoTranscodeOptions,
+      | "width"
+      | "height"
+      | "orientation"
+      | "scaleMode"
+      | "cropRegion"
+      | "fps"
+      | "startSeconds"
+      | "durationSeconds"
+    >,
+    onLog?: MediaLogCallback,
+    signal?: AbortSignal
+  ): Promise<MediaProcessingResult> {
+    const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
+    const { preInputArgs, postInputArgs } = resolveTrimWindowArgs({
+      startSeconds: options?.startSeconds,
+      durationSeconds: options?.durationSeconds,
+    });
+    const filterParts: string[] = [];
+    const previewFps =
+      typeof options?.fps === "number" && Number.isFinite(options.fps) && options.fps > 0
+        ? Math.max(1, Math.min(15, Math.round(options.fps)))
+        : 12;
+    filterParts.push(`fps=${previewFps}`);
+    const scaleFilter = buildVideoFilter(options);
+    if (scaleFilter) {
+      filterParts.push(scaleFilter);
+    }
+    args.push("-vf", filterParts.join(","));
+    args.push(...postInputArgs, "-loop", "0");
+    return this.runTranscode(file, "gif", args, undefined, onLog, signal, {
+      preInputArgs,
+    });
+  }
+
   async transcodeAudioToMp3(
     file: File,
     options?: AudioTranscodeOptions,

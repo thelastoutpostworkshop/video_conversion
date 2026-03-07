@@ -15,6 +15,7 @@ interface UsePreviewFrameOptions {
   isVideoSource: ComputedRef<boolean> | Ref<boolean>;
   isVideoOutput: ComputedRef<boolean> | Ref<boolean>;
   processing: Ref<boolean>;
+  externalBusy?: Ref<boolean>;
   outputSizeMode: ComputedRef<OutputSizeMode> | Ref<OutputSizeMode>;
   width: Ref<number | null>;
   height: Ref<number | null>;
@@ -31,6 +32,7 @@ export const usePreviewFrame = ({
   isVideoSource,
   isVideoOutput,
   processing,
+  externalBusy,
   outputSizeMode,
   width,
   height,
@@ -79,7 +81,7 @@ export const usePreviewFrame = ({
       }
       return;
     }
-    if (previewFrameBusy.value || processing.value) {
+    if (previewFrameBusy.value || processing.value || externalBusy?.value) {
       previewRefreshQueued = true;
       return;
     }
@@ -146,10 +148,16 @@ export const usePreviewFrame = ({
       return;
     }
 
+    if (externalBusy?.value) {
+      clearPreviewDebounce();
+      previewRefreshQueued = true;
+      return;
+    }
+
     clearPreviewDebounce();
     previewDebounceTimer = setTimeout(() => {
       previewDebounceTimer = null;
-      if (previewFrameBusy.value) {
+      if (previewFrameBusy.value || externalBusy?.value) {
         previewRefreshQueued = true;
         return;
       }
@@ -185,12 +193,23 @@ export const usePreviewFrame = ({
   );
 
   watch(previewFrameBusy, (isBusy) => {
-    if (isBusy || !previewRefreshQueued) {
+    if (isBusy || externalBusy?.value || !previewRefreshQueued) {
       return;
     }
     previewRefreshQueued = false;
     schedulePreviewFrameRefresh(50);
   });
+
+  watch(
+    () => externalBusy?.value ?? false,
+    (isBusy) => {
+      if (isBusy || !previewRefreshQueued) {
+        return;
+      }
+      previewRefreshQueued = false;
+      schedulePreviewFrameRefresh(50);
+    }
+  );
 
   onBeforeUnmount(() => {
     clearPreviewDebounce();

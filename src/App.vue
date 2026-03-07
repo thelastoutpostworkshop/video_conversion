@@ -92,7 +92,7 @@
                   <v-col cols="12" md="8">
                     <SourceFileInput
                       v-model="sourceFile"
-                      :disabled="processing || previewFrameBusy"
+                      :disabled="processing || previewFrameBusy || previewMotionBusy"
                     />
                   </v-col>
                   <v-col cols="12" md="4">
@@ -118,122 +118,20 @@
 
                 <v-row dense class="mt-2">
                   <v-col cols="12" md="8">
-                    <v-card
-                      variant="tonal"
-                      class="timeline-card"
-                      :class="{ 'timeline-card--inactive': !hasPreviewSource }"
-                    >
-                      <v-card-text class="timeline-card__body">
-                        <div class="d-flex align-center timeline-card__header">
-                          <div class="text-subtitle-2">Timeline trim and preview</div>
-                          <v-spacer />
-                          <div class="timeline-jump-controls mr-2">
-                            <v-tooltip text="Jump preview to start" location="top">
-                              <template #activator="{ props: tooltipProps }">
-                                <v-btn
-                                  v-bind="tooltipProps"
-                                  size="x-small"
-                                  variant="text"
-                                  icon="mdi-skip-backward"
-                                  :disabled="!canJumpPreviewToStart"
-                                  aria-label="Jump preview to start time"
-                                  @click="jumpPreviewToStart"
-                                />
-                              </template>
-                            </v-tooltip>
-                            <v-tooltip text="Jump preview to end time" location="top">
-                              <template #activator="{ props: tooltipProps }">
-                                <v-btn
-                                  v-bind="tooltipProps"
-                                  size="x-small"
-                                  variant="text"
-                                  icon="mdi-skip-forward"
-                                  :disabled="!canJumpPreviewToEnd"
-                                  aria-label="Jump preview to end time"
-                                  @click="jumpPreviewToEnd"
-                                />
-                              </template>
-                            </v-tooltip>
-                          </div>
-                          <div class="text-caption text-medium-emphasis">
-                            {{ previewSecondDisplay }}
-                          </div>
-                        </div>
-                        <div class="text-caption text-medium-emphasis mb-2">
-                          {{ trimInputHelpText }}
-                        </div>
-                        <div
-                          class="timeline-slider-stack"
-                          :class="{ 'timeline-slider-stack--inactive': !hasPreviewSource }"
-                        >
-                          <v-range-slider
-                            v-model="trimRangeModel"
-                            class="timeline-range-slider"
-                            @start="onTrimRangeDragStart"
-                            @end="onTrimRangeDragEnd"
-                            :min="0"
-                            :max="trimRangeMax"
-                            :step="previewSecondsStep"
-                            :disabled="processing || !isTrimSliderAvailable"
-                            color="primary"
-                            base-color="grey-darken-3"
-                            thumb-label
-                            hide-details
-                          >
-                            <template #thumb-label="{ modelValue }">
-                              {{
-                                formatDurationClock(Number(modelValue), {
-                                  includeTenths: true,
-                                })
-                              }}
-                            </template>
-                          </v-range-slider>
-                          <v-slider
-                            v-model="previewSecondModel"
-                            class="timeline-preview-slider"
-                            :min="previewSecondMin"
-                            :max="previewSecondMax"
-                            :step="previewSecondsStep"
-                            :disabled="isPreviewSliderDisabled"
-                            color="warning"
-                            base-color="transparent"
-                            density="compact"
-                            thumb-label
-                            hide-details
-                          >
-                            <template #thumb-label="{ modelValue }">
-                              {{
-                                formatDurationClock(Number(modelValue), {
-                                  includeTenths: true,
-                                })
-                              }}
-                            </template>
-                          </v-slider>
-                        </div>
-                        <div class="d-flex align-center text-caption text-medium-emphasis mt-1">
-                          <div>Start {{ trimRangeDisplayStart }}</div>
-                          <v-spacer />
-                          <div>
-                            Preview
-                            {{ formatDurationClock(previewSecondModel, { includeTenths: true }) }}
-                          </div>
-                          <v-spacer />
-                          <div>End {{ trimRangeDisplayEnd }}</div>
-                        </div>
-                        <div
-                          v-if="trimmedOutputDurationDisplay"
-                          class="text-caption text-medium-emphasis mt-1"
-                        >
-                          Output clip duration {{ trimmedOutputDurationDisplay }}
-                        </div>
-                        <div
-                          v-if="!isTrimSliderAvailable"
-                          class="text-caption text-medium-emphasis mt-1"
-                        >
-                          Trim handles are available when source duration metadata is known.
-                        </div>
-                      </v-card-text>
-                    </v-card>
+                    <TrimVideoPlayer
+                      v-model:trim-range="trimRangeModel"
+                      :source-file="sourceFile"
+                      :is-video-source="isVideoSource"
+                      :is-video-output="isVideoOutput"
+                      :duration-seconds="sourceDurationSeconds ?? trimPlayerDurationSeconds"
+                      :output-preview-seconds="previewSecondModel"
+                      :preview-frame-busy="previewFrameBusy"
+                      :motion-preview-busy="previewMotionBusy"
+                      :disabled="processing"
+                      @sync-output-preview="syncOutputPreviewToTime"
+                      @generate-motion-preview="generateMotionPreviewFromPlayer"
+                      @duration-detected="onTrimPlayerDurationDetected"
+                    />
 
                     <div>
                       <v-sheet
@@ -265,6 +163,76 @@
                           >
                             Change board
                           </v-btn>
+                        </div>
+                      </v-sheet>
+                      <div v-if="isVideoOutput">
+                        <v-sheet
+                          class="motion-preview-header px-3 py-2 mb-2"
+                          rounded="lg"
+                          border
+                        >
+                          <div class="d-flex align-center flex-wrap ga-2">
+                            <div>
+                              <div class="text-caption text-medium-emphasis">Processed motion preview</div>
+                              <div class="text-body-2">
+                                {{
+                                  previewMotionStartSeconds === null ||
+                                  previewMotionDurationSeconds === null
+                                    ? "Not generated"
+                                    : `${formatDurationClock(previewMotionStartSeconds, {
+                                        includeTenths: true,
+                                      })} for ${formatDurationClock(previewMotionDurationSeconds, {
+                                        includeTenths: true,
+                                      })}`
+                                }}
+                              </div>
+                            </div>
+                            <v-spacer />
+                            <div class="text-caption text-medium-emphasis">
+                              Generate this from the trim player above. It uses the current output
+                              crop, scale, and orientation settings.
+                            </div>
+                          </div>
+                        </v-sheet>
+                        <PreviewMotionSurface
+                          :preview-motion-url="previewMotionUrl"
+                          :preview-motion-busy="previewMotionBusy"
+                          :has-source-file="Boolean(sourceFile)"
+                          :is-video-source="isVideoSource"
+                          :is-video-output="isVideoOutput"
+                          :round-display="workspaceRoundDisplay"
+                          :target-width="previewTargetDimensions?.width ?? null"
+                          :target-height="previewTargetDimensions?.height ?? null"
+                        />
+                        <v-alert
+                          v-if="previewMotionError"
+                          type="warning"
+                          variant="tonal"
+                          class="mt-2"
+                        >
+                          {{ previewMotionError }}
+                        </v-alert>
+                      </div>
+                      <v-sheet
+                        v-if="isVideoOutput"
+                        class="output-preview-header px-3 py-2 mt-3 mb-2"
+                        rounded="lg"
+                        border
+                      >
+                        <div class="d-flex align-center flex-wrap ga-2">
+                          <div>
+                            <div class="text-caption text-medium-emphasis">
+                              Processed still frame
+                            </div>
+                            <div class="text-body-2">
+                              {{ formatDurationClock(previewSecondModel, { includeTenths: true }) }}
+                            </div>
+                          </div>
+                          <v-spacer />
+                          <div class="text-caption text-medium-emphasis">
+                            Use "Update output frame" above to sync this still with the source
+                            player for crop and framing checks.
+                          </div>
                         </div>
                       </v-sheet>
                       <PreviewFrameSurface
@@ -384,7 +352,7 @@
                               item-value="value"
                               label="Output format"
                               density="comfortable"
-                              :disabled="processing || previewFrameBusy"
+                              :disabled="processing || previewFrameBusy || previewMotionBusy"
                             />
                           </v-col>
                         </v-row>
@@ -466,7 +434,8 @@
                           </v-col>
                           <v-col cols="12">
                             <div class="text-caption text-medium-emphasis">
-                              Use the timeline above the preview to set trim range and preview frame.
+                              Use the trim player above to set start and end, then fine-tune the
+                              exact values here if needed.
                             </div>
                           </v-col>
                           <v-col cols="12">
@@ -627,7 +596,9 @@ import { useTheme } from "vuetify";
 import AboutView from "@/components/AboutView.vue";
 import BoardCatalog from "@/components/BoardCatalog.vue";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
+import PreviewMotionSurface from "@/components/PreviewMotionSurface.vue";
 import SourceFileInput from "@/components/SourceFileInput.vue";
+import TrimVideoPlayer from "@/components/TrimVideoPlayer.vue";
 import type {
   AudioTranscodeOptions,
   MediaLogCallback,
@@ -765,7 +736,6 @@ const startSeconds = ref<number | null>(null);
 const endSeconds = ref<number | null>(null);
 const startTimeInput = ref("");
 const endTimeInput = ref("");
-const isTrimRangeDragging = ref(false);
 const mp3Bitrate = ref<number | null>(128);
 const targetSetupMode = ref<TargetSetupMode>("preset");
 const selectedBoardPresetId = ref<string>("");
@@ -802,6 +772,12 @@ let convertAbortController: AbortController | null = null;
 let processingUiTimer: ReturnType<typeof setInterval> | null = null;
 const cancelRequested = ref(false);
 const initializePreviewAtMidpointPending = ref(false);
+const trimPlayerDurationSeconds = ref<number | null>(null);
+const previewMotionUrl = ref<string | null>(null);
+const previewMotionBusy = ref(false);
+const previewMotionError = ref<string | null>(null);
+const previewMotionStartSeconds = ref<number | null>(null);
+const previewMotionDurationSeconds = ref<number | null>(null);
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
@@ -987,20 +963,8 @@ const commitEndTimeInput = () => {
   return true;
 };
 
-const trimInputHelpText = computed(() => {
-  const duration = sourceDurationSeconds.value;
-  if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
-    return `Use hh:mm:ss (or seconds). Source duration: ${formatDurationClock(duration, {
-      includeTenths: true,
-    })}`;
-  }
-  return "Use hh:mm:ss (or seconds).";
-});
-
-const trimRangeMax = computed(() => sourceDurationSeconds.value ?? previewSecondsMax.value);
-
-const isTrimSliderAvailable = computed(
-  () => hasPreviewSource.value && sourceDurationSeconds.value !== null
+const trimRangeMax = computed(
+  () => sourceDurationSeconds.value ?? trimPlayerDurationSeconds.value ?? previewSecondsMax.value
 );
 
 const trimRangeModel = computed<[number, number]>({
@@ -1033,41 +997,6 @@ const trimRangeModel = computed<[number, number]>({
     endTimeInput.value = formatDurationClock(clampedEnd, { includeTenths: true });
   },
 });
-
-const trimRangeDisplayStart = computed(() =>
-  formatDurationClock(trimRangeModel.value[0], { includeTenths: true })
-);
-
-const trimRangeDisplayEnd = computed(() =>
-  formatDurationClock(trimRangeModel.value[1], { includeTenths: true })
-);
-
-const trimmedOutputDurationSeconds = computed<number | null>(() => {
-  const sourceDuration = sourceDurationSeconds.value;
-  if (typeof sourceDuration !== "number" || !Number.isFinite(sourceDuration) || sourceDuration <= 0) {
-    return null;
-  }
-  const [start, end] = trimRangeModel.value;
-  const duration = Math.max(0, end - start);
-  return Number.isFinite(duration) ? duration : null;
-});
-
-const trimmedOutputDurationDisplay = computed(() => {
-  const duration = trimmedOutputDurationSeconds.value;
-  if (typeof duration !== "number") {
-    return null;
-  }
-  return formatDurationClock(duration, { includeTenths: true });
-});
-
-const onTrimRangeDragStart = () => {
-  isTrimRangeDragging.value = true;
-};
-
-const onTrimRangeDragEnd = () => {
-  isTrimRangeDragging.value = false;
-  syncPreviewWithinTrimRange();
-};
 
 const hasRangeError = computed(() => {
   if (
@@ -1289,7 +1218,7 @@ const canConvert = computed(() => {
   if (!hasBoardSelection.value) {
     return false;
   }
-  if (!sourceFile.value || processing.value || previewFrameBusy.value) {
+  if (!sourceFile.value || processing.value || previewFrameBusy.value || previewMotionBusy.value) {
     return false;
   }
   if (hasTrimInputError.value) {
@@ -1913,6 +1842,7 @@ const {
   isVideoSource,
   isVideoOutput,
   processing,
+  externalBusy: previewMotionBusy,
   outputSizeMode: previewOutputSizeMode,
   width,
   height,
@@ -1925,69 +1855,42 @@ const {
 });
 
 const previewSecondsMax = computed(() => {
-  const duration = sourceMetadata.value?.durationSeconds;
+  const duration = sourceDurationSeconds.value ?? trimPlayerDurationSeconds.value;
   if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
     return Math.max(0.5, Number(duration.toFixed(1)));
   }
   return 30;
 });
 
-const previewSecondsStep = computed(() =>
-  previewSecondsMax.value <= 30 ? 0.1 : 0.5
-);
-
-const previewSecondMin = computed(() => trimRangeModel.value[0]);
-
-const previewSecondMax = computed(() => {
-  const trimEnd = trimRangeModel.value[1];
-  const fallback = previewSecondsMax.value;
-  return trimEnd >= previewSecondMin.value ? trimEnd : fallback;
-});
-
 const clampPreviewSecond = (value: number) =>
-  Math.min(previewSecondMax.value, Math.max(previewSecondMin.value, value));
+  Math.min(previewSecondsMax.value, Math.max(0, value));
 
 const previewSecondModel = computed<number>({
   get: () =>
     typeof previewFrameSeconds.value === "number"
       ? clampPreviewSecond(previewFrameSeconds.value)
-      : previewSecondMin.value,
+      : 0,
   set: (value) => {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
-      previewFrameSeconds.value = previewSecondMin.value;
+      previewFrameSeconds.value = 0;
       return;
     }
     previewFrameSeconds.value = clampPreviewSecond(parsed);
   },
 });
 
-const syncPreviewWithinTrimRange = () => {
-  if (!hasPreviewSource.value) {
-    return;
-  }
-  const current =
-    typeof previewFrameSeconds.value === "number"
-      ? previewFrameSeconds.value
-      : previewSecondMin.value;
-  const clamped = clampPreviewSecond(current);
-  if (Math.abs(clamped - current) < 0.001) {
-    return;
-  }
-  previewSecondModel.value = clamped;
-};
-
 const initializePreviewAtMidpoint = () => {
   if (!initializePreviewAtMidpointPending.value || !hasPreviewSource.value) {
     return false;
   }
-  const duration = sourceDurationSeconds.value;
+  const duration = sourceDurationSeconds.value ?? trimPlayerDurationSeconds.value;
   const hasDuration =
     typeof duration === "number" && Number.isFinite(duration) && duration > 0;
   if (hasDuration) {
     previewSecondModel.value = clampPreviewSecond(duration / 2);
   } else {
-    previewSecondModel.value = previewSecondMin.value;
+    previewSecondModel.value = 0;
   }
   initializePreviewAtMidpointPending.value = false;
   schedulePreviewFrameRefresh(50);
@@ -1998,69 +1901,151 @@ const hasPreviewSource = computed(
   () => Boolean(sourceFile.value) && isVideoSource.value && isVideoOutput.value
 );
 
-const isPreviewSliderDisabled = computed(
-  () => processing.value || !hasPreviewSource.value
-);
-
-const previewJumpStartTarget = computed(() => {
-  const parsedStart = parsedStartTimeSeconds.value;
-  if (typeof parsedStart === "number") {
-    return clampPreviewSecond(parsedStart);
-  }
-  if (typeof startSeconds.value === "number") {
-    return clampPreviewSecond(startSeconds.value);
-  }
-  return clampPreviewSecond(0);
-});
-
-const previewJumpEndTarget = computed(() => {
-  const parsedEnd = parsedEndTimeSeconds.value;
-  if (typeof parsedEnd === "number") {
-    return Math.max(previewJumpStartTarget.value, clampPreviewSecond(parsedEnd));
-  }
-  if (typeof endSeconds.value === "number") {
-    return Math.max(previewJumpStartTarget.value, clampPreviewSecond(endSeconds.value));
-  }
-  return Math.max(previewJumpStartTarget.value, clampPreviewSecond(previewSecondsMax.value));
-});
-
-const canJumpPreviewToStart = computed(
-  () =>
-    !isPreviewSliderDisabled.value &&
-    Math.abs(previewSecondModel.value - previewJumpStartTarget.value) > 0.001
-);
-
-const canJumpPreviewToEnd = computed(
-  () =>
-    !isPreviewSliderDisabled.value &&
-    Math.abs(previewSecondModel.value - previewJumpEndTarget.value) > 0.001
-);
-
-const jumpPreviewToStart = () => {
-  if (isPreviewSliderDisabled.value) {
+const onTrimPlayerDurationDetected = (durationSeconds: number | null) => {
+  if (
+    typeof durationSeconds !== "number" ||
+    !Number.isFinite(durationSeconds) ||
+    durationSeconds <= 0
+  ) {
+    trimPlayerDurationSeconds.value = null;
     return;
   }
-  previewSecondModel.value = previewJumpStartTarget.value;
-  schedulePreviewFrameRefresh(50);
+  trimPlayerDurationSeconds.value = durationSeconds;
 };
 
-const jumpPreviewToEnd = () => {
-  if (isPreviewSliderDisabled.value) {
-    return;
-  }
-  previewSecondModel.value = previewJumpEndTarget.value;
-  schedulePreviewFrameRefresh(50);
-};
-
-const previewSecondDisplay = computed(() => {
+const syncOutputPreviewToTime = (seconds: number) => {
   if (!hasPreviewSource.value) {
-    return "Unavailable";
+    return;
   }
-  return `${formatDurationClock(previewSecondModel.value, { includeTenths: true })} / ${formatDurationClock(
-    previewSecondsMax.value,
-    { includeTenths: true }
-  )}`;
-});
+  previewSecondModel.value = seconds;
+  schedulePreviewFrameRefresh(50);
+};
+
+const previewMotionMaxDurationSeconds = 3;
+const previewMotionMinDurationSeconds = 0.5;
+let previewMotionGenerationId = 0;
+
+const revokePreviewMotionUrl = () => {
+  if (!previewMotionUrl.value) {
+    return;
+  }
+  URL.revokeObjectURL(previewMotionUrl.value);
+  previewMotionUrl.value = null;
+};
+
+const clearPreviewMotion = () => {
+  revokePreviewMotionUrl();
+  previewMotionError.value = null;
+  previewMotionStartSeconds.value = null;
+  previewMotionDurationSeconds.value = null;
+};
+
+const invalidatePreviewMotion = () => {
+  previewMotionGenerationId += 1;
+  clearPreviewMotion();
+};
+
+const resolveMotionPreviewWindow = (requestedSeconds: number) => {
+  const [trimStart, trimEnd] = trimRangeModel.value;
+  const selectionStart = Math.max(0, trimStart);
+  const selectionEnd = Math.max(selectionStart, Math.min(previewSecondsMax.value, trimEnd));
+  const selectionDuration = selectionEnd - selectionStart;
+  if (selectionDuration < previewMotionMinDurationSeconds) {
+    return null;
+  }
+
+  const preferredDuration = Math.min(previewMotionMaxDurationSeconds, selectionDuration);
+  const maxStart = Math.max(selectionStart, selectionEnd - preferredDuration);
+  const normalizedRequest = Number.isFinite(requestedSeconds) ? requestedSeconds : selectionStart;
+  const startSeconds = Math.min(maxStart, Math.max(selectionStart, normalizedRequest));
+  const durationSeconds = Math.min(previewMotionMaxDurationSeconds, selectionEnd - startSeconds);
+  if (durationSeconds < previewMotionMinDurationSeconds) {
+    return null;
+  }
+
+  return {
+    startSeconds,
+    durationSeconds,
+  };
+};
+
+const buildMotionPreviewOptions = (
+  startSeconds: number,
+  durationSeconds: number
+): VideoTranscodeOptions => {
+  const options: VideoTranscodeOptions = {
+    orientation: orientation.value,
+    startSeconds,
+    durationSeconds,
+  };
+  const cropRegion = activeCustomCropRegion.value;
+  if (cropRegion) {
+    options.cropRegion = cropRegion;
+  }
+  if (outputSizeMode.value === "custom" && width.value && height.value) {
+    options.width = Math.max(1, Math.round(width.value));
+    options.height = Math.max(1, Math.round(height.value));
+    options.scaleMode = scaleMode.value;
+  }
+  const targetFps =
+    typeof fps.value === "number" && Number.isFinite(fps.value) && fps.value > 0
+      ? Math.round(fps.value)
+      : 12;
+  options.fps = Math.max(1, Math.min(15, targetFps));
+  return options;
+};
+
+const generateMotionPreviewFromPlayer = async (seconds: number) => {
+  const file = sourceFile.value;
+  if (!file || !isVideoSource.value || !isVideoOutput.value) {
+    previewMotionError.value = "Select a video file to generate a motion preview.";
+    return;
+  }
+  if (processing.value || previewFrameBusy.value || previewMotionBusy.value) {
+    return;
+  }
+
+  const previewWindow = resolveMotionPreviewWindow(seconds);
+  if (!previewWindow) {
+    previewMotionError.value = "Select at least 0.5 seconds in the trim range to preview motion.";
+    return;
+  }
+
+  const ready = await initializeFfmpeg();
+  if (!ready) {
+    return;
+  }
+
+  const requestId = ++previewMotionGenerationId;
+  previewMotionBusy.value = true;
+  previewMotionError.value = null;
+
+  try {
+    const result = await mediaProcessingService.renderVideoMotionPreview(
+      file,
+      buildMotionPreviewOptions(previewWindow.startSeconds, previewWindow.durationSeconds),
+      appendLog
+    );
+    if (requestId !== previewMotionGenerationId) {
+      return;
+    }
+
+    const previewBlob = new Blob([result.data], { type: "image/gif" });
+    const nextPreviewUrl = URL.createObjectURL(previewBlob);
+    revokePreviewMotionUrl();
+    previewMotionUrl.value = nextPreviewUrl;
+    previewMotionStartSeconds.value = previewWindow.startSeconds;
+    previewMotionDurationSeconds.value = previewWindow.durationSeconds;
+  } catch (error) {
+    if (requestId !== previewMotionGenerationId) {
+      return;
+    }
+    previewMotionError.value =
+      error instanceof Error ? error.message : "Failed to generate motion preview.";
+  } finally {
+    previewMotionBusy.value = false;
+  }
+};
 
 const hasTrimSelection = computed(() => {
   if (!isVideoOutput.value) {
@@ -2209,6 +2194,10 @@ const runConversion = async () => {
   const file = sourceFile.value;
   if (!file) {
     processingError.value = "Select a source media file.";
+    return;
+  }
+  if (previewMotionBusy.value) {
+    processingError.value = "Wait for motion preview generation to finish.";
     return;
   }
   if (!commitStartTimeInput() || !commitEndTimeInput()) {
@@ -2520,6 +2509,33 @@ watch([outputFormat, orientation, scaleMode], () => {
   persistConversionPreferences();
 });
 
+watch(
+  () => [
+    sourceFile.value?.name ?? "",
+    sourceFile.value?.size ?? 0,
+    sourceFile.value?.lastModified ?? 0,
+    isVideoSource.value,
+    isVideoOutput.value,
+    outputFormat.value,
+    outputSizeMode.value,
+    width.value ?? 0,
+    height.value ?? 0,
+    orientation.value,
+    scaleMode.value,
+    fps.value ?? 0,
+    customCropEnabled.value,
+    customCropRect.value?.x ?? 0,
+    customCropRect.value?.y ?? 0,
+    customCropRect.value?.width ?? 0,
+    customCropRect.value?.height ?? 0,
+    startSeconds.value ?? 0,
+    endSeconds.value ?? 0,
+  ],
+  () => {
+    invalidatePreviewMotion();
+  }
+);
+
 watch(customCropEnabled, (enabled) => {
   if (!enabled) {
     customCropRect.value = null;
@@ -2565,17 +2581,28 @@ watch(
   }
 );
 
-watch([previewSecondsMax, previewSecondMin, previewSecondMax], () => {
-  if (isTrimRangeDragging.value) {
+watch(previewSecondsMax, () => {
+  if (typeof previewFrameSeconds.value !== "number") {
     return;
   }
-  syncPreviewWithinTrimRange();
+  const clamped = clampPreviewSecond(previewFrameSeconds.value);
+  if (Math.abs(clamped - previewFrameSeconds.value) < 0.001) {
+    return;
+  }
+  previewFrameSeconds.value = clamped;
 });
 
 watch(
-  [sourceDurationSeconds, sourceMetadataLoading, hasPreviewSource],
-  ([, metadataLoading, hasSource]) => {
-    if (!initializePreviewAtMidpointPending.value || metadataLoading || !hasSource) {
+  [sourceDurationSeconds, trimPlayerDurationSeconds, sourceMetadataLoading, hasPreviewSource],
+  ([sourceDuration, playerDuration, metadataLoading, hasSource]) => {
+    const hasKnownDuration =
+      (typeof sourceDuration === "number" && Number.isFinite(sourceDuration) && sourceDuration > 0) ||
+      (typeof playerDuration === "number" && Number.isFinite(playerDuration) && playerDuration > 0);
+    if (
+      !initializePreviewAtMidpointPending.value ||
+      !hasSource ||
+      (metadataLoading && !hasKnownDuration)
+    ) {
       return;
     }
     void initializePreviewAtMidpoint();
@@ -2586,12 +2613,13 @@ watch(sourceFile, (file) => {
   clearPreviewDebounce();
   clearOutput();
   clearPreviewFrame();
+  invalidatePreviewMotion();
   initializePreviewAtMidpointPending.value = false;
   customCropEnabled.value = false;
   customCropRect.value = null;
   processingError.value = null;
   processingProgress.value = 0;
-  isTrimRangeDragging.value = false;
+  trimPlayerDurationSeconds.value = null;
   startSeconds.value = null;
   endSeconds.value = null;
   startTimeInput.value = "";
@@ -2724,6 +2752,7 @@ onBeforeUnmount(() => {
   clearPreviewDebounce();
   clearOutput();
   clearPreviewFrame();
+  clearPreviewMotion();
 });
 </script>
 
@@ -2807,92 +2836,10 @@ onBeforeUnmount(() => {
   padding-left: 2px;
 }
 
-.timeline-card {
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
-
-.timeline-card__body {
-  padding: 10px 14px 8px !important;
-}
-
-.timeline-card__header {
-  min-height: 20px;
-  margin-bottom: 2px;
-}
-
-.timeline-jump-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.timeline-jump-controls :deep(.v-btn) {
-  color: rgba(var(--v-theme-on-surface), 0.78);
-}
-
-.timeline-card--inactive {
-  background: rgba(var(--v-theme-surface), 0.32);
-}
-
-.timeline-slider-stack {
-  position: relative;
-  min-height: 34px;
-}
-
-.timeline-range-slider {
-  position: relative;
-  z-index: 2;
-  margin-top: -2px;
-  margin-bottom: -6px;
-}
-
-.timeline-range-slider :deep(.v-slider-track__container) {
-  height: 4px;
-}
-
-.timeline-range-slider :deep(.v-slider-thumb__surface) {
-  width: 14px;
-  height: 14px;
-}
-
-.timeline-preview-slider {
-  position: absolute;
-  inset: 0;
-  margin: -2px 0 -6px;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.timeline-preview-slider :deep(.v-slider-track__background),
-.timeline-preview-slider :deep(.v-slider-track__fill) {
-  opacity: 0 !important;
-  background: transparent !important;
-}
-
-.timeline-preview-slider :deep(.v-slider-thumb),
-.timeline-preview-slider :deep(.v-slider-thumb__surface) {
-  pointer-events: auto;
-}
-
-.timeline-preview-slider :deep(.v-slider-thumb__surface) {
-  width: 18px;
-  height: 18px;
-  background-color: rgb(var(--v-theme-warning)) !important;
-  border: 2px solid rgba(255, 255, 255, 0.96);
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-warning), 0.34);
-}
-
-.timeline-slider-stack--inactive {
-  opacity: 0.55;
-}
-
-.timeline-slider-stack--inactive :deep(.v-slider-track__background),
-.timeline-slider-stack--inactive :deep(.v-slider-track__fill) {
-  background-color: rgba(var(--v-theme-on-surface), 0.24) !important;
-}
-
-.timeline-slider-stack--inactive :deep(.v-slider-thumb__surface) {
-  background-color: rgba(var(--v-theme-on-surface), 0.3) !important;
+.motion-preview-header,
+.output-preview-header {
+  background: rgba(var(--v-theme-surface), 0.42);
+  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
 }
 
 .source-metadata-inline {
