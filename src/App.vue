@@ -92,7 +92,7 @@
                   <v-col cols="12" md="8">
                     <SourceFileInput
                       v-model="sourceFile"
-                      :disabled="processing || previewFrameBusy || previewMotionBusy"
+                      :disabled="processing || previewFrameBusy || previewJobsBusy"
                     />
                   </v-col>
                   <v-col cols="12" md="4">
@@ -121,6 +121,9 @@
                     <TrimVideoPlayer
                       v-model:trim-range="trimRangeModel"
                       :source-file="sourceFile"
+                      :source-proxy-url="sourcePreviewProxyUrl"
+                      :source-proxy-busy="sourcePreviewProxyBusy"
+                      :source-proxy-error="sourcePreviewProxyError"
                       :is-video-source="isVideoSource"
                       :is-video-output="isVideoOutput"
                       :duration-seconds="sourceDurationSeconds ?? trimPlayerDurationSeconds"
@@ -128,6 +131,7 @@
                       :preview-frame-busy="previewFrameBusy"
                       :motion-preview-busy="previewMotionBusy"
                       :disabled="processing"
+                      @request-playable-preview="generateSourcePreviewProxy"
                       @sync-output-preview="syncOutputPreviewToTime"
                       @generate-motion-preview="generateMotionPreviewFromPlayer"
                       @duration-detected="onTrimPlayerDurationDetected"
@@ -778,6 +782,12 @@ const previewMotionBusy = ref(false);
 const previewMotionError = ref<string | null>(null);
 const previewMotionStartSeconds = ref<number | null>(null);
 const previewMotionDurationSeconds = ref<number | null>(null);
+const sourcePreviewProxyUrl = ref<string | null>(null);
+const sourcePreviewProxyBusy = ref(false);
+const sourcePreviewProxyError = ref<string | null>(null);
+const previewJobsBusy = computed(
+  () => previewMotionBusy.value || sourcePreviewProxyBusy.value
+);
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
 
@@ -1218,7 +1228,7 @@ const canConvert = computed(() => {
   if (!hasBoardSelection.value) {
     return false;
   }
-  if (!sourceFile.value || processing.value || previewFrameBusy.value || previewMotionBusy.value) {
+  if (!sourceFile.value || processing.value || previewFrameBusy.value || previewJobsBusy.value) {
     return false;
   }
   if (hasTrimInputError.value) {
@@ -1842,7 +1852,7 @@ const {
   isVideoSource,
   isVideoOutput,
   processing,
-  externalBusy: previewMotionBusy,
+  externalBusy: previewJobsBusy,
   outputSizeMode: previewOutputSizeMode,
   width,
   height,
@@ -1919,6 +1929,76 @@ const syncOutputPreviewToTime = (seconds: number) => {
   }
   previewSecondModel.value = seconds;
   schedulePreviewFrameRefresh(50);
+};
+
+let sourcePreviewProxyGenerationId = 0;
+
+const revokeSourcePreviewProxyUrl = () => {
+  if (!sourcePreviewProxyUrl.value) {
+    return;
+  }
+  URL.revokeObjectURL(sourcePreviewProxyUrl.value);
+  sourcePreviewProxyUrl.value = null;
+};
+
+const clearSourcePreviewProxy = () => {
+  revokeSourcePreviewProxyUrl();
+  sourcePreviewProxyError.value = null;
+};
+
+const invalidateSourcePreviewProxy = () => {
+  sourcePreviewProxyGenerationId += 1;
+  clearSourcePreviewProxy();
+};
+
+const generateSourcePreviewProxy = async () => {
+  const file = sourceFile.value;
+  if (!file || !isVideoSource.value) {
+    sourcePreviewProxyError.value = "Select a video file to generate a playable preview.";
+    return;
+  }
+  if (processing.value || previewFrameBusy.value || previewJobsBusy.value) {
+    return;
+  }
+
+  const ready = await initializeFfmpeg();
+  if (!ready) {
+    return;
+  }
+
+  const requestId = ++sourcePreviewProxyGenerationId;
+  sourcePreviewProxyBusy.value = true;
+  sourcePreviewProxyError.value = null;
+
+  try {
+    const result = await mediaProcessingService.renderBrowserPlayableVideoProxy(
+      file,
+      {
+        fps: 12,
+        maxWidth: 640,
+        maxHeight: 360,
+      },
+      appendLog
+    );
+    if (requestId !== sourcePreviewProxyGenerationId) {
+      return;
+    }
+
+    const proxyBlob = new Blob([result.data], { type: "video/webm" });
+    const nextProxyUrl = URL.createObjectURL(proxyBlob);
+    revokeSourcePreviewProxyUrl();
+    sourcePreviewProxyUrl.value = nextProxyUrl;
+  } catch (error) {
+    if (requestId !== sourcePreviewProxyGenerationId) {
+      return;
+    }
+    sourcePreviewProxyError.value =
+      error instanceof Error
+        ? error.message
+        : "Failed to generate a playable preview video.";
+  } finally {
+    sourcePreviewProxyBusy.value = false;
+  }
 };
 
 const previewMotionMaxDurationSeconds = 3;
@@ -2001,7 +2081,7 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
     previewMotionError.value = "Select a video file to generate a motion preview.";
     return;
   }
-  if (processing.value || previewFrameBusy.value || previewMotionBusy.value) {
+  if (processing.value || previewFrameBusy.value || previewJobsBusy.value) {
     return;
   }
 
@@ -2196,8 +2276,8 @@ const runConversion = async () => {
     processingError.value = "Select a source media file.";
     return;
   }
-  if (previewMotionBusy.value) {
-    processingError.value = "Wait for motion preview generation to finish.";
+  if (previewJobsBusy.value) {
+    processingError.value = "Wait for preview generation to finish.";
     return;
   }
   if (!commitStartTimeInput() || !commitEndTimeInput()) {
@@ -2614,6 +2694,7 @@ watch(sourceFile, (file) => {
   clearOutput();
   clearPreviewFrame();
   invalidatePreviewMotion();
+  invalidateSourcePreviewProxy();
   initializePreviewAtMidpointPending.value = false;
   customCropEnabled.value = false;
   customCropRect.value = null;
@@ -2753,6 +2834,7 @@ onBeforeUnmount(() => {
   clearOutput();
   clearPreviewFrame();
   clearPreviewMotion();
+  clearSourcePreviewProxy();
 });
 </script>
 

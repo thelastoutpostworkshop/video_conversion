@@ -902,6 +902,52 @@ export class MediaProcessingService {
     });
   }
 
+  async renderBrowserPlayableVideoProxy(
+    file: File,
+    options?: {
+      fps?: number;
+      maxWidth?: number;
+      maxHeight?: number;
+    },
+    onLog?: MediaLogCallback,
+    signal?: AbortSignal
+  ): Promise<MediaProcessingResult> {
+    const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
+    const previewFps =
+      typeof options?.fps === "number" && Number.isFinite(options.fps) && options.fps > 0
+        ? Math.max(1, Math.min(15, Math.round(options.fps)))
+        : 12;
+    const maxWidth =
+      typeof options?.maxWidth === "number" && Number.isFinite(options.maxWidth) && options.maxWidth > 0
+        ? Math.max(64, Math.round(options.maxWidth))
+        : 640;
+    const maxHeight =
+      typeof options?.maxHeight === "number" &&
+      Number.isFinite(options.maxHeight) &&
+      options.maxHeight > 0
+        ? Math.max(64, Math.round(options.maxHeight))
+        : 360;
+
+    args.push(
+      "-vf",
+      `fps=${previewFps},scale=${maxWidth}:${maxHeight}:force_original_aspect_ratio=decrease:force_divisible_by=2`,
+      "-c:v",
+      "libvpx",
+      "-crf",
+      "34",
+      "-b:v",
+      "0",
+      "-deadline",
+      "realtime",
+      "-cpu-used",
+      "5",
+      "-pix_fmt",
+      "yuv420p"
+    );
+
+    return this.runTranscode(file, "webm", args, undefined, onLog, signal);
+  }
+
   async transcodeAudioToMp3(
     file: File,
     options?: AudioTranscodeOptions,

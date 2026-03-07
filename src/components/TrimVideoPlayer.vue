@@ -9,11 +9,14 @@
         <div>
           <div class="text-subtitle-2">Trim with source preview</div>
           <div class="text-caption text-medium-emphasis">
-            Play the original video, set trim points from the current frame, then update the
-            processed preview below when needed.
+            Use native playback when available, fall back to a generated scrub proxy when it is not,
+            or trim by reference time when direct playback is unavailable.
           </div>
         </div>
         <v-spacer />
+        <v-chip v-if="isUsingPreviewProxy" size="small" variant="tonal" color="info">
+          Using preview proxy
+        </v-chip>
         <v-chip size="small" variant="tonal" color="primary">
           Clip {{ formatDurationClock(selectionDurationSeconds, { includeTenths: true }) }}
         </v-chip>
@@ -21,10 +24,10 @@
 
       <div class="trim-player-stage">
         <video
-          v-if="sourceUrl && canRenderVideo"
+          v-if="activeVideoUrl && canRenderVideo"
           ref="videoRef"
           class="trim-player-video"
-          :src="sourceUrl"
+          :src="activeVideoUrl"
           controls
           preload="metadata"
           playsinline
@@ -33,9 +36,34 @@
           @pause="onVideoPause"
           @timeupdate="onVideoTimeUpdate"
           @seeked="onVideoSeeked"
+          @error="onVideoError"
         />
         <div v-else class="trim-player-placeholder">
-          {{ placeholderMessage }}
+          <div class="trim-player-placeholder-copy">
+            <div class="text-body-2 font-weight-medium">
+              {{ fallbackTitle }}
+            </div>
+            <div class="text-caption text-medium-emphasis mt-1">
+              {{ fallbackDescription }}
+            </div>
+            <div v-if="fallbackErrorMessage" class="text-caption text-warning mt-2">
+              {{ fallbackErrorMessage }}
+            </div>
+          </div>
+          <div class="trim-player-placeholder-actions mt-4">
+            <v-btn
+              v-if="showGeneratePreviewProxyAction"
+              size="small"
+              variant="tonal"
+              color="secondary"
+              prepend-icon="mdi-video-outline"
+              :loading="sourceProxyBusy"
+              :disabled="!canRequestPlayablePreview"
+              @click="requestPlayablePreview"
+            >
+              Generate playable preview
+            </v-btn>
+          </div>
         </div>
       </div>
 
@@ -55,7 +83,7 @@
           size="small"
           variant="tonal"
           color="primary"
-          :disabled="!canEditTrim"
+          :disabled="!canAdjustTrimFromReference"
           @click="setStartFromCurrentTime"
         >
           Set start
@@ -64,7 +92,7 @@
           size="small"
           variant="tonal"
           color="primary"
-          :disabled="!canEditTrim"
+          :disabled="!canAdjustTrimFromReference"
           @click="setEndFromCurrentTime"
         >
           Set end
@@ -81,7 +109,7 @@
         <v-btn
           size="small"
           variant="text"
-          :disabled="!canEditTrim"
+          :disabled="!canTrimSource"
           @click="resetTrimRange"
         >
           Reset trim
@@ -104,7 +132,7 @@
           color="info"
           prepend-icon="mdi-image-sync-outline"
           :loading="previewFrameBusy"
-          :disabled="!canEditTrim"
+          :disabled="!canAdjustTrimFromReference"
           @click="syncOutputPreview"
         >
           Update output frame
@@ -117,7 +145,7 @@
         :min="0"
         :max="sliderMaxSeconds"
         :step="sliderStepSeconds"
-        :disabled="!canEditTrim"
+        :disabled="!canTrimRangeEdit"
         color="primary"
         base-color="grey-darken-2"
         thumb-label
@@ -132,14 +160,42 @@
         </template>
       </v-range-slider>
 
+      <v-slider
+        v-if="showReferenceTimeSlider"
+        v-model="referenceTimeModel"
+        class="trim-player-reference-slider mt-2"
+        :min="0"
+        :max="sliderMaxSeconds"
+        :step="sliderStepSeconds"
+        :disabled="!canPositionReferenceTime"
+        color="info"
+        base-color="grey-darken-2"
+        thumb-label
+        hide-details
+      >
+        <template #thumb-label="{ modelValue }">
+          {{
+            formatDurationClock(Number(modelValue), {
+              includeTenths: true,
+            })
+          }}
+        </template>
+      </v-slider>
+
       <div class="d-flex align-center text-caption text-medium-emphasis mt-2">
         <div>Start {{ formatDurationClock(selectionStartSeconds, { includeTenths: true }) }}</div>
         <v-spacer />
         <div v-if="isSelectionLoopActive" class="text-warning">
           Looping selected range
         </div>
-        <div v-else-if="isVideoPlaying">
+        <div v-else-if="hasScrubbablePlayback && isVideoPlaying">
           Playing source video
+        </div>
+        <div v-else-if="showReferenceTimeSlider">
+          Reference time {{ formatDurationClock(currentTimeSeconds, { includeTenths: true }) }}
+        </div>
+        <div v-else-if="canTrimSource && !hasKnownDuration">
+          Duration unavailable. Use manual start/end fields.
         </div>
         <div v-else>
           Pause or scrub to inspect frames
@@ -154,9 +210,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 
+type PlaybackState = "idle" | "loading" | "ready" | "failed";
+
 const props = withDefaults(
   defineProps<{
     sourceFile: File | null;
+    sourceProxyUrl?: string | null;
+    sourceProxyBusy?: boolean;
+    sourceProxyError?: string | null;
     isVideoSource: boolean;
     isVideoOutput: boolean;
     trimRange: [number, number];
@@ -167,6 +228,9 @@ const props = withDefaults(
     disabled?: boolean;
   }>(),
   {
+    sourceProxyUrl: null,
+    sourceProxyBusy: false,
+    sourceProxyError: null,
     outputPreviewSeconds: null,
     previewFrameBusy: false,
     motionPreviewBusy: false,
@@ -176,6 +240,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (event: "update:trim-range", value: [number, number]): void;
+  (event: "request-playable-preview"): void;
   (event: "sync-output-preview", value: number): void;
   (event: "generate-motion-preview", value: number): void;
   (event: "duration-detected", value: number | null): void;
@@ -187,6 +252,10 @@ const currentTimeSeconds = ref(0);
 const loadedDurationSeconds = ref<number | null>(null);
 const isVideoPlaying = ref(false);
 const isSelectionLoopActive = ref(false);
+const nativePlaybackState = ref<PlaybackState>("idle");
+const nativePlaybackError = ref<string | null>(null);
+const proxyPlaybackState = ref<PlaybackState>("idle");
+const proxyPlaybackError = ref<string | null>(null);
 
 let selectionLoopFrameId: number | null = null;
 
@@ -241,6 +310,28 @@ const canRenderVideo = computed(
   () => Boolean(props.sourceFile) && props.isVideoSource && props.isVideoOutput
 );
 
+const isUsingPreviewProxy = computed(() => Boolean(props.sourceProxyUrl));
+
+const activeVideoUrl = computed(() => {
+  if (!canRenderVideo.value) {
+    return null;
+  }
+  if (props.sourceProxyUrl) {
+    if (proxyPlaybackState.value === "failed") {
+      return null;
+    }
+    return props.sourceProxyUrl;
+  }
+  if (nativePlaybackState.value === "failed") {
+    return null;
+  }
+  return sourceUrl.value;
+});
+
+const activePlaybackState = computed(() =>
+  isUsingPreviewProxy.value ? proxyPlaybackState.value : nativePlaybackState.value
+);
+
 const durationCapSeconds = computed(() => {
   const durationCandidate =
     typeof props.durationSeconds === "number" && Number.isFinite(props.durationSeconds)
@@ -254,6 +345,14 @@ const durationCapSeconds = computed(() => {
 
 const sliderMaxSeconds = computed(() => Math.max(0.1, durationCapSeconds.value));
 const sliderStepSeconds = computed(() => (sliderMaxSeconds.value <= 30 ? 0.1 : 0.5));
+
+const hasKnownDuration = computed(
+  () =>
+    (typeof props.durationSeconds === "number" && Number.isFinite(props.durationSeconds) && props.durationSeconds > 0) ||
+    (typeof loadedDurationSeconds.value === "number" &&
+      Number.isFinite(loadedDurationSeconds.value) &&
+      loadedDurationSeconds.value > 0)
+);
 
 const clampSeconds = (value: number) =>
   Math.min(sliderMaxSeconds.value, Math.max(0, Number.isFinite(value) ? value : 0));
@@ -276,16 +375,39 @@ const trimRangeModel = computed<[number, number]>({
   },
 });
 
-const canEditTrim = computed(() => canRenderVideo.value && !props.disabled);
+const canTrimSource = computed(() => canRenderVideo.value && !props.disabled);
+const hasScrubbablePlayback = computed(
+  () => Boolean(activeVideoUrl.value) && activePlaybackState.value === "ready"
+);
+const canTrimRangeEdit = computed(() => canTrimSource.value && hasKnownDuration.value);
+const canPositionReferenceTime = computed(() => canTrimSource.value && hasKnownDuration.value);
+const canAdjustTrimFromReference = computed(
+  () => canTrimSource.value && (hasScrubbablePlayback.value || canPositionReferenceTime.value)
+);
 const canPlaySelection = computed(
-  () => canEditTrim.value && selectionDurationSeconds.value > sliderStepSeconds.value
+  () =>
+    hasScrubbablePlayback.value &&
+    selectionDurationSeconds.value > sliderStepSeconds.value
 );
 const canGenerateMotionPreviewInternal = computed(
   () =>
-    canEditTrim.value &&
+    canAdjustTrimFromReference.value &&
     selectionDurationSeconds.value > 0.05 &&
     !props.previewFrameBusy &&
+    !props.sourceProxyBusy &&
     !props.motionPreviewBusy
+);
+const canRequestPlayablePreview = computed(
+  () => canTrimSource.value && !props.sourceProxyBusy && !props.previewFrameBusy && !props.motionPreviewBusy
+);
+const showGeneratePreviewProxyAction = computed(
+  () =>
+    canTrimSource.value &&
+    ((isUsingPreviewProxy.value && proxyPlaybackState.value === "failed") ||
+      (!isUsingPreviewProxy.value && nativePlaybackState.value === "failed"))
+);
+const showReferenceTimeSlider = computed(
+  () => canTrimSource.value && !hasScrubbablePlayback.value && hasKnownDuration.value
 );
 
 const outputPreviewDisplay = computed(() => {
@@ -295,7 +417,14 @@ const outputPreviewDisplay = computed(() => {
   return formatDurationClock(props.outputPreviewSeconds, { includeTenths: true });
 });
 
-const placeholderMessage = computed(() => {
+const fallbackErrorMessage = computed(() => {
+  if (isUsingPreviewProxy.value) {
+    return proxyPlaybackError.value ?? props.sourceProxyError;
+  }
+  return nativePlaybackError.value ?? props.sourceProxyError;
+});
+
+const fallbackTitle = computed(() => {
   if (!props.sourceFile) {
     return "Select a video file to trim with a live source preview.";
   }
@@ -305,7 +434,33 @@ const placeholderMessage = computed(() => {
   if (!props.isVideoOutput) {
     return "Switch to a video output format to use trim preview.";
   }
+  if (isUsingPreviewProxy.value) {
+    return "Playable preview proxy unavailable.";
+  }
+  if (nativePlaybackState.value === "failed") {
+    return "This source cannot be scrubbed directly in your browser.";
+  }
   return "Loading video preview...";
+});
+
+const fallbackDescription = computed(() => {
+  if (!props.sourceFile || !props.isVideoSource || !props.isVideoOutput) {
+    return "The trim controls will appear when a video source is available.";
+  }
+  if (isUsingPreviewProxy.value) {
+    return "The generated preview proxy could not be played. You can still trim by time below.";
+  }
+  if (nativePlaybackState.value === "failed") {
+    return "Generate a temporary playable preview to scrub the timeline, or continue with manual timestamp trimming.";
+  }
+  return "Preparing source playback...";
+});
+
+const referenceTimeModel = computed<number>({
+  get: () => clampSeconds(currentTimeSeconds.value),
+  set: (value) => {
+    currentTimeSeconds.value = clampSeconds(Number(value));
+  },
 });
 
 const getCurrentVideoTime = () => {
@@ -401,6 +556,10 @@ const toggleSelectionLoop = async () => {
   }
 };
 
+const requestPlayablePreview = () => {
+  emit("request-playable-preview");
+};
+
 const syncOutputPreview = () => {
   emit("sync-output-preview", getCurrentVideoTime());
 };
@@ -415,6 +574,13 @@ const onLoadedMetadata = () => {
     loadedDurationSeconds.value = null;
     emit("duration-detected", null);
     return;
+  }
+  if (isUsingPreviewProxy.value) {
+    proxyPlaybackState.value = "ready";
+    proxyPlaybackError.value = null;
+  } else {
+    nativePlaybackState.value = "ready";
+    nativePlaybackError.value = null;
   }
   const nextDuration = Number.isFinite(element.duration) && element.duration > 0 ? element.duration : null;
   loadedDurationSeconds.value = nextDuration;
@@ -431,6 +597,20 @@ const onLoadedMetadata = () => {
       emit("update:trim-range", [clampedStart, clampedEnd]);
     }
   }
+};
+
+const onVideoError = () => {
+  stopSelectionLoop(true);
+  isVideoPlaying.value = false;
+  loadedDurationSeconds.value = null;
+  emit("duration-detected", null);
+  if (isUsingPreviewProxy.value) {
+    proxyPlaybackState.value = "failed";
+    proxyPlaybackError.value = "The generated preview proxy could not be played.";
+    return;
+  }
+  nativePlaybackState.value = "failed";
+  nativePlaybackError.value = "This source format cannot be played directly in your browser.";
 };
 
 const onVideoPlay = () => {
@@ -463,12 +643,47 @@ watch(
     loadedDurationSeconds.value = null;
     currentTimeSeconds.value = 0;
     emit("duration-detected", null);
+    nativePlaybackState.value = file && isVideoSource && isVideoOutput ? "loading" : "idle";
+    nativePlaybackError.value = null;
+    proxyPlaybackState.value = "idle";
+    proxyPlaybackError.value = null;
     revokeSourceUrl();
     if (file && isVideoSource && isVideoOutput) {
       sourceUrl.value = URL.createObjectURL(file);
     }
   },
   { immediate: true }
+);
+
+watch(
+  () => props.sourceProxyUrl,
+  (url) => {
+    stopSelectionLoop();
+    isVideoPlaying.value = false;
+    if (!url) {
+      proxyPlaybackState.value = "idle";
+      proxyPlaybackError.value = null;
+      return;
+    }
+    proxyPlaybackState.value = "loading";
+    proxyPlaybackError.value = null;
+  }
+);
+
+watch(
+  () => props.sourceProxyBusy,
+  (busy) => {
+    if (busy) {
+      stopSelectionLoop(true);
+    }
+  }
+);
+
+watch(
+  () => sliderMaxSeconds.value,
+  () => {
+    currentTimeSeconds.value = clampSeconds(currentTimeSeconds.value);
+  }
 );
 
 watch(
@@ -535,11 +750,23 @@ onBeforeUnmount(() => {
 .trim-player-placeholder {
   min-height: 252px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px;
   text-align: center;
   color: rgba(255, 255, 255, 0.76);
+}
+
+.trim-player-placeholder-copy {
+  max-width: 520px;
+}
+
+.trim-player-placeholder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .trim-player-actions {
@@ -560,5 +787,14 @@ onBeforeUnmount(() => {
 .trim-player-slider :deep(.v-slider-thumb__surface) {
   width: 16px;
   height: 16px;
+}
+
+.trim-player-reference-slider :deep(.v-slider-track__container) {
+  height: 4px;
+}
+
+.trim-player-reference-slider :deep(.v-slider-thumb__surface) {
+  width: 14px;
+  height: 14px;
 }
 </style>
