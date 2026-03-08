@@ -187,42 +187,6 @@
                                 @update:model-value="(value) => (quality = toNullableNumber(value))"
                               />
                             </v-col>
-                            <v-col cols="12" lg="4">
-                              <div class="text-caption text-medium-emphasis workspace-setting-note">
-                                Use the trim player below to set start and end, then fine-tune the
-                                exact values here if needed.
-                              </div>
-                            </v-col>
-                            <v-col cols="12" sm="6" lg="3">
-                              <v-text-field
-                                v-model="startTimeInput"
-                                label="Start time"
-                                placeholder="hh:mm:ss or seconds"
-                                density="compact"
-                                hide-details="auto"
-                                :disabled="processing"
-                                :error="startTimeInputInvalid"
-                                :error-messages="
-                                  startTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
-                                "
-                                @blur="commitStartTimeInput"
-                              />
-                            </v-col>
-                            <v-col cols="12" sm="6" lg="3">
-                              <v-text-field
-                                v-model="endTimeInput"
-                                label="End time"
-                                placeholder="hh:mm:ss or seconds"
-                                density="compact"
-                                hide-details="auto"
-                                :disabled="processing"
-                                :error="endTimeInputInvalid"
-                                :error-messages="
-                                  endTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
-                                "
-                                @blur="commitEndTimeInput"
-                              />
-                            </v-col>
                           </template>
 
                           <v-col v-else cols="12" sm="6" lg="4">
@@ -267,10 +231,18 @@
                       :output-preview-seconds="previewSecondModel"
                       :preview-frame-busy="previewFrameBusy"
                       :motion-preview-busy="previewMotionBusy"
+                      :start-time-input="startTimeInput"
+                      :end-time-input="endTimeInput"
+                      :start-time-input-invalid="startTimeInputInvalid"
+                      :end-time-input-invalid="endTimeInputInvalid"
                       :disabled="processing"
                       @current-time-update="onTrimPlayerCurrentTimeUpdate"
                       @request-playable-preview="generateSourcePreviewProxy"
                       @select-source-file="onSourceFileSelected"
+                      @update:start-time-input="(value) => (startTimeInput = value)"
+                      @update:end-time-input="(value) => (endTimeInput = value)"
+                      @commit-start-time-input="commitStartTimeInput"
+                      @commit-end-time-input="commitEndTimeInput"
                       @duration-detected="onTrimPlayerDurationDetected"
                     />
                   </v-col>
@@ -3030,8 +3002,7 @@ onBeforeUnmount(() => {
   background: rgba(var(--v-theme-surface), 0.32);
 }
 
-.workspace-inline-hint,
-.workspace-setting-note {
+.workspace-inline-hint {
   line-height: 1.25;
 }
 

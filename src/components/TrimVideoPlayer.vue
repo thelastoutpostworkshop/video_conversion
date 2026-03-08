@@ -223,6 +223,46 @@
         <v-spacer />
         <div>End {{ formatDurationClock(selectionEndSeconds, { includeTenths: true }) }}</div>
       </div>
+
+      <div v-if="isVideoOutput" class="trim-player-manual-fields mt-3">
+        <div class="text-caption text-medium-emphasis trim-player-manual-fields__copy">
+          Fine-tune trim times directly here if you need exact start or end values.
+        </div>
+        <v-row dense class="mt-1">
+          <v-col cols="12" sm="6">
+            <v-text-field
+              :model-value="startTimeInput"
+              label="Start time"
+              placeholder="hh:mm:ss or seconds"
+              density="compact"
+              hide-details="auto"
+              :disabled="disabled"
+              :error="startTimeInputInvalid"
+              :error-messages="
+                startTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
+              "
+              @update:model-value="onStartTimeInputUpdate"
+              @blur="commitStartTimeInput"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              :model-value="endTimeInput"
+              label="End time"
+              placeholder="hh:mm:ss or seconds"
+              density="compact"
+              hide-details="auto"
+              :disabled="disabled"
+              :error="endTimeInputInvalid"
+              :error-messages="
+                endTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
+              "
+              @update:model-value="onEndTimeInputUpdate"
+              @blur="commitEndTimeInput"
+            />
+          </v-col>
+        </v-row>
+      </div>
     </v-card-text>
   </v-card>
 </template>
@@ -245,6 +285,10 @@ const props = withDefaults(
     outputPreviewSeconds?: number | null;
     previewFrameBusy?: boolean;
     motionPreviewBusy?: boolean;
+    startTimeInput?: string;
+    endTimeInput?: string;
+    startTimeInputInvalid?: boolean;
+    endTimeInputInvalid?: boolean;
     disabled?: boolean;
   }>(),
   {
@@ -254,6 +298,10 @@ const props = withDefaults(
     outputPreviewSeconds: null,
     previewFrameBusy: false,
     motionPreviewBusy: false,
+    startTimeInput: "",
+    endTimeInput: "",
+    startTimeInputInvalid: false,
+    endTimeInputInvalid: false,
     disabled: false,
   }
 );
@@ -264,6 +312,10 @@ const emit = defineEmits<{
   (event: "duration-detected", value: number | null): void;
   (event: "current-time-update", value: number): void;
   (event: "select-source-file", value: File): void;
+  (event: "update:start-time-input", value: string): void;
+  (event: "update:end-time-input", value: string): void;
+  (event: "commit-start-time-input"): void;
+  (event: "commit-end-time-input"): void;
 }>();
 
 const videoRef = ref<HTMLVideoElement | null>(null);
@@ -665,6 +717,22 @@ const requestPlayablePreview = () => {
   emit("request-playable-preview");
 };
 
+const onStartTimeInputUpdate = (value: string | null) => {
+  emit("update:start-time-input", value ?? "");
+};
+
+const onEndTimeInputUpdate = (value: string | null) => {
+  emit("update:end-time-input", value ?? "");
+};
+
+const commitStartTimeInput = () => {
+  emit("commit-start-time-input");
+};
+
+const commitEndTimeInput = () => {
+  emit("commit-end-time-input");
+};
+
 const onLoadedMetadata = () => {
   const element = videoRef.value;
   if (!element) {
@@ -913,6 +981,15 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.trim-player-manual-fields {
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  padding-top: 12px;
+}
+
+.trim-player-manual-fields__copy {
+  line-height: 1.25;
 }
 
 .trim-player-slider {
