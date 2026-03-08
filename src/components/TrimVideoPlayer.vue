@@ -9,8 +9,8 @@
         <div>
           <div class="text-subtitle-2">Trim with source preview</div>
           <div class="text-caption text-medium-emphasis">
-            Use native playback when available, fall back to a generated scrub proxy when it is not,
-            or trim by reference time when direct playback is unavailable.
+            Drop source media here, or click the preview area to choose a file. Native playback is
+            used when available, with a scrub proxy fallback when it is not.
           </div>
         </div>
         <v-spacer />
@@ -22,7 +22,17 @@
         </v-chip>
       </div>
 
-      <div class="trim-player-stage">
+      <div
+        class="trim-player-stage"
+        :class="{
+          'trim-player-stage--drop-active': isStageDragActive,
+          'trim-player-stage--selectable': canSelectSourceFile && !canRenderVideo,
+        }"
+        @dragenter.prevent="onStageDragEnter"
+        @dragover.prevent="onStageDragOver"
+        @dragleave.prevent="onStageDragLeave"
+        @drop.prevent="onStageDrop"
+      >
         <video
           v-if="activeVideoUrl && canRenderVideo"
           ref="videoRef"
@@ -38,7 +48,16 @@
           @seeked="onVideoSeeked"
           @error="onVideoError"
         />
-        <div v-else class="trim-player-placeholder">
+        <div
+          v-else
+          class="trim-player-placeholder"
+          :class="{ 'trim-player-placeholder--selectable': canSelectSourceFile }"
+          :role="canSelectSourceFile ? 'button' : undefined"
+          :tabindex="canSelectSourceFile ? 0 : undefined"
+          @click="onPlaceholderClick"
+          @keydown.enter.prevent="openSourceFilePicker"
+          @keydown.space.prevent="openSourceFilePicker"
+        >
           <div class="trim-player-placeholder-copy">
             <div class="text-body-2 font-weight-medium">
               {{ fallbackTitle }}
@@ -52,6 +71,17 @@
           </div>
           <div class="trim-player-placeholder-actions mt-4">
             <v-btn
+              v-if="showSourceSelectAction"
+              size="small"
+              variant="flat"
+              color="primary"
+              prepend-icon="mdi-tray-arrow-up"
+              :disabled="!canSelectSourceFile"
+              @click.stop="openSourceFilePicker"
+            >
+              Choose source media
+            </v-btn>
+            <v-btn
               v-if="showGeneratePreviewProxyAction"
               size="small"
               variant="tonal"
@@ -59,13 +89,26 @@
               prepend-icon="mdi-video-outline"
               :loading="sourceProxyBusy"
               :disabled="!canRequestPlayablePreview"
-              @click="requestPlayablePreview"
+              @click.stop="requestPlayablePreview"
             >
               Generate playable preview
             </v-btn>
           </div>
         </div>
+
+        <div v-if="isStageDragActive" class="trim-player-drop-overlay">
+          Drop source media here
+        </div>
       </div>
+
+      <input
+        ref="sourceFileInputRef"
+        class="trim-player-source-input"
+        type="file"
+        :accept="sourceFileAccept"
+        tabindex="-1"
+        @change="onSourceFileInputChange"
+      />
 
       <div class="d-flex align-center flex-wrap ga-2 text-caption text-medium-emphasis mt-3">
         <div>Current {{ formatDurationClock(currentTimeSeconds, { includeTenths: true }) }}</div>
@@ -244,9 +287,11 @@ const emit = defineEmits<{
   (event: "sync-output-preview", value: number): void;
   (event: "generate-motion-preview", value: number): void;
   (event: "duration-detected", value: number | null): void;
+  (event: "select-source-file", value: File): void;
 }>();
 
 const videoRef = ref<HTMLVideoElement | null>(null);
+const sourceFileInputRef = ref<HTMLInputElement | null>(null);
 const sourceUrl = ref<string | null>(null);
 const currentTimeSeconds = ref(0);
 const loadedDurationSeconds = ref<number | null>(null);
@@ -256,8 +301,12 @@ const nativePlaybackState = ref<PlaybackState>("idle");
 const nativePlaybackError = ref<string | null>(null);
 const proxyPlaybackState = ref<PlaybackState>("idle");
 const proxyPlaybackError = ref<string | null>(null);
+const isStageDragActive = ref(false);
+
+const sourceFileAccept = "video/*,audio/*,.mjpeg,.mjpg,.avi,.mov,.mkv,.mp4,.webm";
 
 let selectionLoopFrameId: number | null = null;
+let dragDepth = 0;
 
 const formatDurationClock = (
   rawSeconds: number | null | undefined,
@@ -376,6 +425,9 @@ const trimRangeModel = computed<[number, number]>({
 });
 
 const canTrimSource = computed(() => canRenderVideo.value && !props.disabled);
+const canSelectSourceFile = computed(
+  () => !props.disabled && !props.previewFrameBusy && !props.sourceProxyBusy && !props.motionPreviewBusy
+);
 const hasScrubbablePlayback = computed(
   () => Boolean(activeVideoUrl.value) && activePlaybackState.value === "ready"
 );
@@ -409,6 +461,7 @@ const showGeneratePreviewProxyAction = computed(
 const showReferenceTimeSlider = computed(
   () => canTrimSource.value && !hasScrubbablePlayback.value && hasKnownDuration.value
 );
+const showSourceSelectAction = computed(() => canSelectSourceFile.value && !canRenderVideo.value);
 
 const outputPreviewDisplay = computed(() => {
   if (typeof props.outputPreviewSeconds !== "number") {
@@ -426,13 +479,13 @@ const fallbackErrorMessage = computed(() => {
 
 const fallbackTitle = computed(() => {
   if (!props.sourceFile) {
-    return "Select a video file to trim with a live source preview.";
+    return "Drop source media here.";
   }
   if (!props.isVideoSource) {
-    return "Trim preview is available for video sources only.";
+    return "This source does not have a live trim preview.";
   }
   if (!props.isVideoOutput) {
-    return "Switch to a video output format to use trim preview.";
+    return "Switch back to a video output format to preview trimming.";
   }
   if (isUsingPreviewProxy.value) {
     return "Playable preview proxy unavailable.";
@@ -444,8 +497,14 @@ const fallbackTitle = computed(() => {
 });
 
 const fallbackDescription = computed(() => {
-  if (!props.sourceFile || !props.isVideoSource || !props.isVideoOutput) {
-    return "The trim controls will appear when a video source is available.";
+  if (!props.sourceFile) {
+    return "Drag and drop or click to choose a video or audio file.";
+  }
+  if (!props.isVideoSource) {
+    return "Drop another file here if you want a visual trim preview, or continue with audio conversion.";
+  }
+  if (!props.isVideoOutput) {
+    return "Drop another file here, or switch output format if you want to trim against a live preview.";
   }
   if (isUsingPreviewProxy.value) {
     return "The generated preview proxy could not be played. You can still trim by time below.";
@@ -455,6 +514,84 @@ const fallbackDescription = computed(() => {
   }
   return "Preparing source playback...";
 });
+
+const resetStageDragState = () => {
+  dragDepth = 0;
+  isStageDragActive.value = false;
+};
+
+const emitSelectedSourceFile = (file: File | null) => {
+  if (!file) {
+    return;
+  }
+  emit("select-source-file", file);
+  if (sourceFileInputRef.value) {
+    sourceFileInputRef.value.value = "";
+  }
+};
+
+const openSourceFilePicker = () => {
+  if (!canSelectSourceFile.value) {
+    return;
+  }
+  sourceFileInputRef.value?.click();
+};
+
+const onPlaceholderClick = () => {
+  if (!canSelectSourceFile.value) {
+    return;
+  }
+  openSourceFilePicker();
+};
+
+const onSourceFileInputChange = (event: Event) => {
+  const input = event.target as HTMLInputElement | null;
+  emitSelectedSourceFile(input?.files?.[0] ?? null);
+};
+
+const eventIncludesFiles = (event: DragEvent) =>
+  Array.from(event.dataTransfer?.types ?? []).includes("Files");
+
+const onStageDragEnter = (event: DragEvent) => {
+  if (!canSelectSourceFile.value || !eventIncludesFiles(event)) {
+    return;
+  }
+  dragDepth += 1;
+  isStageDragActive.value = true;
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "copy";
+  }
+};
+
+const onStageDragOver = (event: DragEvent) => {
+  if (!canSelectSourceFile.value || !eventIncludesFiles(event)) {
+    return;
+  }
+  isStageDragActive.value = true;
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "copy";
+  }
+};
+
+const onStageDragLeave = (event: DragEvent) => {
+  if (!eventIncludesFiles(event)) {
+    return;
+  }
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) {
+    isStageDragActive.value = false;
+  }
+};
+
+const onStageDrop = (event: DragEvent) => {
+  if (!canSelectSourceFile.value || !eventIncludesFiles(event)) {
+    resetStageDragState();
+    return;
+  }
+  const file = event.dataTransfer?.files?.[0] ?? null;
+  resetStageDragState();
+  emitSelectedSourceFile(file);
+};
 
 const referenceTimeModel = computed<number>({
   get: () => clampSeconds(currentTimeSeconds.value),
@@ -638,6 +775,7 @@ const onVideoSeeked = () => {
 watch(
   [() => props.sourceFile, () => props.isVideoSource, () => props.isVideoOutput],
   ([file, isVideoSource, isVideoOutput]) => {
+    resetStageDragState();
     stopSelectionLoop();
     isVideoPlaying.value = false;
     loadedDurationSeconds.value = null;
@@ -740,6 +878,15 @@ onBeforeUnmount(() => {
     linear-gradient(145deg, #081019 0%, #101d2d 48%, #16263a 100%);
 }
 
+.trim-player-stage--selectable {
+  cursor: copy;
+}
+
+.trim-player-stage--drop-active {
+  border-color: rgba(var(--v-theme-primary), 0.72);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.4);
+}
+
 .trim-player-video {
   display: block;
   width: 100%;
@@ -758,6 +905,10 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.76);
 }
 
+.trim-player-placeholder--selectable {
+  cursor: pointer;
+}
+
 .trim-player-placeholder-copy {
   max-width: 520px;
 }
@@ -767,6 +918,26 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
+}
+
+.trim-player-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 10, 18, 0.72);
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.trim-player-source-input {
+  display: none;
 }
 
 .trim-player-actions {

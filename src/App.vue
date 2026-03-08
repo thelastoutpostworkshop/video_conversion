@@ -88,7 +88,8 @@
                           Workspace controls
                         </div>
                         <div class="text-caption text-medium-emphasis workspace-header-copy">
-                          Source and conversion controls stay pinned while you trim and preview.
+                          Drop or click a source file in the trim preview below, then adjust the
+                          conversion settings here.
                         </div>
                       </div>
 
@@ -126,48 +127,7 @@
                     </div>
 
                     <v-row dense>
-                      <v-col cols="12" xl="5" class="d-flex flex-column ga-2">
-                        <div class="workspace-section-label">Source media</div>
-
-                        <v-row dense>
-                          <v-col cols="12" lg="8">
-                            <SourceFileInput
-                              v-model="sourceFile"
-                              :disabled="processing || previewFrameBusy || previewJobsBusy"
-                            />
-                          </v-col>
-                          <v-col cols="12" lg="4">
-                            <v-sheet
-                              class="source-metadata-inline px-3 py-2 h-100"
-                              rounded="0"
-                              border
-                            >
-                              <div class="d-flex align-center ga-2">
-                                <v-icon icon="mdi-information-outline" size="16" />
-                                <div class="text-caption text-medium-emphasis">
-                                  Source metadata
-                                </div>
-                                <v-spacer />
-                                <div class="text-caption">{{ sourceMetadataLabel }}</div>
-                              </div>
-                              <v-progress-linear
-                                v-if="sourceMetadataLoading"
-                                indeterminate
-                                height="3"
-                                class="mt-2"
-                              />
-                              <div
-                                v-if="sourceMetadataError"
-                                class="text-caption text-warning mt-2"
-                              >
-                                {{ sourceMetadataError }}
-                              </div>
-                            </v-sheet>
-                          </v-col>
-                        </v-row>
-                      </v-col>
-
-                      <v-col cols="12" xl="7">
+                      <v-col cols="12">
                         <div class="workspace-section-label mb-2">Conversion settings</div>
 
                         <v-row dense>
@@ -341,6 +301,7 @@
                       :motion-preview-busy="previewMotionBusy"
                       :disabled="processing"
                       @request-playable-preview="generateSourcePreviewProxy"
+                      @select-source-file="onSourceFileSelected"
                       @sync-output-preview="syncOutputPreviewToTime"
                       @generate-motion-preview="generateMotionPreviewFromPlayer"
                       @duration-detected="onTrimPlayerDurationDetected"
@@ -626,7 +587,6 @@ import AboutView from "@/components/AboutView.vue";
 import BoardCatalog from "@/components/BoardCatalog.vue";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
 import PreviewMotionSurface from "@/components/PreviewMotionSurface.vue";
-import SourceFileInput from "@/components/SourceFileInput.vue";
 import TrimVideoPlayer from "@/components/TrimVideoPlayer.vue";
 import type {
   AudioTranscodeOptions,
@@ -781,8 +741,6 @@ const {
   isVideoSource,
   sourceMetadata,
   sourceMetadataLoading,
-  sourceMetadataError,
-  sourceMetadataLabel,
 } = useSourceMedia();
 
 const ffmpegStatus = ref<FfmpegStatus>("idle");
@@ -1309,6 +1267,10 @@ const navigateToView = (viewId: AppNavigationId) => {
     return;
   }
   activeNavigation.value = viewId;
+};
+
+const onSourceFileSelected = (file: File) => {
+  sourceFile.value = file;
 };
 
 const toNullableNumber = (value: string | number | null): number | null => {
@@ -3029,12 +2991,6 @@ onBeforeUnmount(() => {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(var(--v-theme-on-surface), 0.72);
-}
-
-.source-metadata-inline {
-  background: rgba(var(--v-theme-surface), 0.48);
-  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
-  border-radius: 0 !important;
 }
 
 .app-nav-target {
