@@ -1894,8 +1894,6 @@ const {
   height,
   orientation,
   scaleMode,
-  fps,
-  quality,
   ensureFfmpegReady: initializeFfmpeg,
   onLog: appendLog,
 });

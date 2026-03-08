@@ -21,8 +21,6 @@ interface UsePreviewFrameOptions {
   height: Ref<number | null>;
   orientation: Ref<VideoOrientation>;
   scaleMode: Ref<VideoScaleMode>;
-  fps: Ref<number | null>;
-  quality: Ref<number | null>;
   ensureFfmpegReady: () => Promise<boolean>;
   onLog: MediaLogCallback;
 }
@@ -38,8 +36,6 @@ export const usePreviewFrame = ({
   height,
   orientation,
   scaleMode,
-  fps,
-  quality,
   ensureFfmpegReady,
   onLog,
 }: UsePreviewFrameOptions) => {
@@ -50,6 +46,8 @@ export const usePreviewFrame = ({
 
   let previewDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   let previewRefreshQueued = false;
+  let activePreviewRequestKey: string | null = null;
+  let lastRenderedPreviewRequestKey: string | null = null;
 
   const revokePreviewUrl = () => {
     if (previewFrameUrl.value) {
@@ -61,6 +59,7 @@ export const usePreviewFrame = ({
   const clearPreviewFrame = () => {
     revokePreviewUrl();
     previewFrameError.value = null;
+    lastRenderedPreviewRequestKey = null;
   };
 
   const clearPreviewDebounce = () => {
@@ -68,6 +67,39 @@ export const usePreviewFrame = ({
       clearTimeout(previewDebounceTimer);
       previewDebounceTimer = null;
     }
+  };
+
+  const normalizePreviewSecond = (value: number | null) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return "0.000";
+    }
+    return Math.max(0, value).toFixed(3);
+  };
+
+  const getPreviewRequestKey = () => {
+    const file = sourceFile.value;
+    if (!file || !isVideoSource.value || !isVideoOutput.value) {
+      return null;
+    }
+
+    const segments = [
+      file.name,
+      String(file.size),
+      String(file.lastModified),
+      orientation.value,
+      outputSizeMode.value,
+      normalizePreviewSecond(previewFrameSeconds.value),
+    ];
+
+    if (outputSizeMode.value === "custom") {
+      segments.push(
+        String(width.value ?? 0),
+        String(height.value ?? 0),
+        scaleMode.value
+      );
+    }
+
+    return segments.join("|");
   };
 
   const generatePreviewFrame = async (
@@ -81,7 +113,19 @@ export const usePreviewFrame = ({
       }
       return;
     }
+
+    const requestKey = getPreviewRequestKey();
+    if (
+      requestKey &&
+      previewFrameUrl.value &&
+      requestKey === lastRenderedPreviewRequestKey
+    ) {
+      return;
+    }
     if (previewFrameBusy.value || processing.value || externalBusy?.value) {
+      if (requestKey && requestKey === activePreviewRequestKey) {
+        return;
+      }
       previewRefreshQueued = true;
       return;
     }
@@ -95,6 +139,7 @@ export const usePreviewFrame = ({
     }
 
     previewFrameBusy.value = true;
+    activePreviewRequestKey = requestKey;
     previewFrameError.value = null;
 
     const options: Pick<
@@ -124,11 +169,13 @@ export const usePreviewFrame = ({
         URL.revokeObjectURL(previewFrameUrl.value);
       }
       previewFrameUrl.value = nextPreviewUrl;
+      lastRenderedPreviewRequestKey = requestKey;
     } catch (error) {
       previewFrameError.value =
         error instanceof Error ? error.message : "Failed to render preview frame.";
     } finally {
       previewFrameBusy.value = false;
+      activePreviewRequestKey = null;
       if (previewRefreshQueued && !processing.value) {
         previewRefreshQueued = false;
         schedulePreviewFrameRefresh(50);
@@ -142,6 +189,22 @@ export const usePreviewFrame = ({
       !isVideoSource.value ||
       !isVideoOutput.value ||
       processing.value
+    ) {
+      clearPreviewDebounce();
+      previewRefreshQueued = false;
+      return;
+    }
+
+    const requestKey = getPreviewRequestKey();
+    if (!requestKey) {
+      clearPreviewDebounce();
+      previewRefreshQueued = false;
+      return;
+    }
+
+    if (
+      (previewFrameUrl.value && requestKey === lastRenderedPreviewRequestKey) ||
+      requestKey === activePreviewRequestKey
     ) {
       clearPreviewDebounce();
       previewRefreshQueued = false;
@@ -177,8 +240,6 @@ export const usePreviewFrame = ({
       height.value ?? 0,
       orientation.value,
       scaleMode.value,
-      fps.value ?? 0,
-      quality.value ?? 0,
       previewFrameSeconds.value ?? 0,
     ],
     () => {
