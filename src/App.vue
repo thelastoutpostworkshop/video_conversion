@@ -77,47 +77,256 @@
             />
 
             <div v-else-if="activeView === 'workspace'">
-                <section class="workspace-section">
-                  <div id="section-source" class="app-nav-target" />
-                  <div class="step-heading mb-2">
-                    <div class="text-subtitle-1 font-weight-medium">
-                      Source media
-                    </div>
-                    <div class="text-caption text-medium-emphasis">
-                      Select the video to convert, then confirm output format and preview metadata.
-                    </div>
-                  </div>
+              <section class="workspace-section">
+                <div id="section-source" class="app-nav-target" />
 
-                <v-row dense>
-                  <v-col cols="12" md="8">
-                    <SourceFileInput
-                      v-model="sourceFile"
-                      :disabled="processing || previewFrameBusy || previewJobsBusy"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-sheet class="source-metadata-inline px-3 py-2" rounded="lg" border>
-                      <div class="d-flex align-center ga-2">
-                        <v-icon icon="mdi-information-outline" size="16" />
-                        <div class="text-caption text-medium-emphasis">Source metadata</div>
-                        <v-spacer />
-                        <div class="text-caption">{{ sourceMetadataLabel }}</div>
+                <v-card variant="tonal" class="workspace-sticky-card" rounded="0">
+                  <v-card-text class="workspace-sticky-card__body">
+                    <div class="workspace-sticky-card__header">
+                      <div class="step-heading">
+                        <div class="text-subtitle-2 font-weight-medium">
+                          Workspace controls
+                        </div>
+                        <div class="text-caption text-medium-emphasis workspace-header-copy">
+                          Source and conversion controls stay pinned while you trim and preview.
+                        </div>
                       </div>
-                      <v-progress-linear
-                        v-if="sourceMetadataLoading"
-                        indeterminate
-                        height="3"
-                        class="mt-2"
-                      />
-                      <div v-if="sourceMetadataError" class="text-caption text-warning mt-2">
-                        {{ sourceMetadataError }}
-                      </div>
-                    </v-sheet>
-                  </v-col>
-                </v-row>
 
-                <v-row dense class="mt-2">
-                  <v-col cols="12" md="8">
+                      <v-sheet
+                        v-if="hasBoardSelection"
+                        class="preview-board-context px-3 py-2"
+                        rounded="0"
+                        border
+                      >
+                        <div class="d-flex align-center flex-wrap ga-2">
+                          <div class="d-flex align-center ga-2">
+                            <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
+                            <span class="text-caption text-medium-emphasis">Target display</span>
+                          </div>
+                          <v-chip
+                            color="info"
+                            variant="tonal"
+                            size="small"
+                            class="preview-board-chip"
+                          >
+                            {{ workspaceBoardSummary }}
+                          </v-chip>
+                          <v-spacer />
+                          <v-btn
+                            size="small"
+                            variant="tonal"
+                            prepend-icon="mdi-view-grid-outline"
+                            :disabled="processing"
+                            @click="navigateToView('boards')"
+                          >
+                            Change board
+                          </v-btn>
+                        </div>
+                      </v-sheet>
+                    </div>
+
+                    <v-row dense>
+                      <v-col cols="12" xl="5" class="d-flex flex-column ga-2">
+                        <div class="workspace-section-label">Source media</div>
+
+                        <v-row dense>
+                          <v-col cols="12" lg="8">
+                            <SourceFileInput
+                              v-model="sourceFile"
+                              :disabled="processing || previewFrameBusy || previewJobsBusy"
+                            />
+                          </v-col>
+                          <v-col cols="12" lg="4">
+                            <v-sheet
+                              class="source-metadata-inline px-3 py-2 h-100"
+                              rounded="0"
+                              border
+                            >
+                              <div class="d-flex align-center ga-2">
+                                <v-icon icon="mdi-information-outline" size="16" />
+                                <div class="text-caption text-medium-emphasis">
+                                  Source metadata
+                                </div>
+                                <v-spacer />
+                                <div class="text-caption">{{ sourceMetadataLabel }}</div>
+                              </div>
+                              <v-progress-linear
+                                v-if="sourceMetadataLoading"
+                                indeterminate
+                                height="3"
+                                class="mt-2"
+                              />
+                              <div
+                                v-if="sourceMetadataError"
+                                class="text-caption text-warning mt-2"
+                              >
+                                {{ sourceMetadataError }}
+                              </div>
+                            </v-sheet>
+                          </v-col>
+                        </v-row>
+                      </v-col>
+
+                      <v-col cols="12" xl="7">
+                        <div class="workspace-section-label mb-2">Conversion settings</div>
+
+                        <v-row dense>
+                          <v-col cols="12" sm="6" lg="4">
+                            <v-select
+                              v-model="outputFormat"
+                              :items="formatItems"
+                              item-title="title"
+                              item-value="value"
+                              label="Output format"
+                              density="compact"
+                              hide-details="auto"
+                              :disabled="processing || previewFrameBusy || previewMotionBusy"
+                            />
+                          </v-col>
+
+                          <template v-if="isVideoOutput">
+                            <v-col cols="12" sm="6" lg="4">
+                              <v-select
+                                v-model="orientation"
+                                :items="orientationItems"
+                                item-title="title"
+                                item-value="value"
+                                label="Orientation"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                              />
+                            </v-col>
+                            <v-col cols="12" sm="6" lg="4">
+                              <v-select
+                                v-model="scaleMode"
+                                :items="scaleModeItems"
+                                item-title="title"
+                                item-value="value"
+                                label="Scale mode"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing || outputSizeMode !== 'custom'"
+                              />
+                            </v-col>
+                            <v-col cols="12" lg="6">
+                              <div class="workspace-inline-setting">
+                                <div class="d-flex align-center flex-wrap ga-2">
+                                  <v-switch
+                                    v-model="customCropEnabled"
+                                    color="primary"
+                                    density="compact"
+                                    label="Custom crop"
+                                    hide-details
+                                    inset
+                                    :disabled="processing || !supportsCustomCrop"
+                                  />
+                                  <v-btn
+                                    v-if="customCropEnabled"
+                                    size="x-small"
+                                    variant="tonal"
+                                    prepend-icon="mdi-crop-free"
+                                    :disabled="processing || !canResetCustomCrop"
+                                    @click="resetCustomCropRect"
+                                  >
+                                    Reset crop
+                                  </v-btn>
+                                </div>
+                                <div class="text-caption text-medium-emphasis workspace-inline-hint">
+                                  {{ customCropEnabled ? customCropSummary : customCropHint }}
+                                </div>
+                              </div>
+                            </v-col>
+                            <v-col cols="6" sm="3" lg="2">
+                              <v-text-field
+                                :model-value="fps"
+                                label="FPS"
+                                type="number"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                                @update:model-value="(value) => (fps = toNullableNumber(value))"
+                              />
+                            </v-col>
+                            <v-col cols="6" sm="3" lg="2">
+                              <v-text-field
+                                :model-value="quality"
+                                label="Quality"
+                                type="number"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                                @update:model-value="(value) => (quality = toNullableNumber(value))"
+                              />
+                            </v-col>
+                            <v-col cols="12" lg="4">
+                              <div class="text-caption text-medium-emphasis workspace-setting-note">
+                                Use the trim player below to set start and end, then fine-tune the
+                                exact values here if needed.
+                              </div>
+                            </v-col>
+                            <v-col cols="12" sm="6" lg="3">
+                              <v-text-field
+                                v-model="startTimeInput"
+                                label="Start time"
+                                placeholder="hh:mm:ss or seconds"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                                :error="startTimeInputInvalid"
+                                :error-messages="
+                                  startTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
+                                "
+                                @blur="commitStartTimeInput"
+                              />
+                            </v-col>
+                            <v-col cols="12" sm="6" lg="3">
+                              <v-text-field
+                                v-model="endTimeInput"
+                                label="End time"
+                                placeholder="hh:mm:ss or seconds"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                                :error="endTimeInputInvalid"
+                                :error-messages="
+                                  endTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
+                                "
+                                @blur="commitEndTimeInput"
+                              />
+                            </v-col>
+                          </template>
+
+                          <v-col v-else cols="12" sm="6" lg="4">
+                            <v-text-field
+                              :model-value="mp3Bitrate"
+                              label="MP3 bitrate (kbps)"
+                              type="number"
+                              density="compact"
+                              hide-details="auto"
+                              :disabled="processing"
+                              @update:model-value="
+                                (value) => (mp3Bitrate = toPositiveNullable(value))
+                              "
+                            />
+                          </v-col>
+                        </v-row>
+
+                        <v-alert
+                          v-if="hasTrimInputError || hasRangeError"
+                          type="warning"
+                          variant="tonal"
+                          class="mt-2"
+                        >
+                          {{ trimValidationMessage }}
+                        </v-alert>
+                      </v-col>
+                    </v-row>
+                  </v-card-text>
+                </v-card>
+
+                <v-row dense class="workspace-body-grid mt-4">
+                  <v-col cols="12" lg="4">
                     <TrimVideoPlayer
                       v-model:trim-range="trimRangeModel"
                       :source-file="sourceFile"
@@ -136,68 +345,40 @@
                       @generate-motion-preview="generateMotionPreviewFromPlayer"
                       @duration-detected="onTrimPlayerDurationDetected"
                     />
+                  </v-col>
 
-                    <div>
+                  <v-col cols="12" lg="8">
+                    <div class="workspace-preview-stack">
                       <v-sheet
-                        v-if="hasBoardSelection"
-                        class="preview-board-context px-3 py-2 mb-2"
-                        rounded="lg"
+                        v-if="isVideoOutput"
+                        class="workspace-preview-panel pa-3"
+                        rounded="0"
                         border
                       >
-                        <div class="d-flex align-center flex-wrap ga-2">
-                          <div class="d-flex align-center ga-2">
-                            <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
-                            <span class="text-caption text-medium-emphasis">Target display</span>
-                          </div>
-                          <v-chip
-                            color="info"
-                            variant="tonal"
-                            size="large"
-                            class="preview-board-chip"
-                          >
-                            {{ workspaceBoardSummary }}
-                          </v-chip>
-                          <v-spacer />
-                          <v-btn
-                            size="small"
-                            variant="tonal"
-                            prepend-icon="mdi-view-grid-outline"
-                            :disabled="processing"
-                            @click="navigateToView('boards')"
-                          >
-                            Change board
-                          </v-btn>
-                        </div>
-                      </v-sheet>
-                      <div v-if="isVideoOutput">
-                        <v-sheet
-                          class="motion-preview-header px-3 py-2 mb-2"
-                          rounded="lg"
-                          border
-                        >
-                          <div class="d-flex align-center flex-wrap ga-2">
-                            <div>
-                              <div class="text-caption text-medium-emphasis">Processed motion preview</div>
-                              <div class="text-body-2">
-                                {{
-                                  previewMotionStartSeconds === null ||
-                                  previewMotionDurationSeconds === null
-                                    ? "Not generated"
-                                    : `${formatDurationClock(previewMotionStartSeconds, {
-                                        includeTenths: true,
-                                      })} for ${formatDurationClock(previewMotionDurationSeconds, {
-                                        includeTenths: true,
-                                      })}`
-                                }}
-                              </div>
-                            </div>
-                            <v-spacer />
+                        <div class="workspace-preview-panel__header">
+                          <div>
                             <div class="text-caption text-medium-emphasis">
-                              Generate this from the trim player above. It uses the current output
-                              crop, scale, and orientation settings.
+                              Processed motion preview
+                            </div>
+                            <div class="text-body-2">
+                              {{
+                                previewMotionStartSeconds === null ||
+                                previewMotionDurationSeconds === null
+                                  ? "Not generated"
+                                  : `${formatDurationClock(previewMotionStartSeconds, {
+                                      includeTenths: true,
+                                    })} for ${formatDurationClock(previewMotionDurationSeconds, {
+                                      includeTenths: true,
+                                    })}`
+                              }}
                             </div>
                           </div>
-                        </v-sheet>
+                          <div class="text-caption text-medium-emphasis">
+                            Generate this from the trim player. It uses the current output crop,
+                            scale, and orientation settings.
+                          </div>
+                        </div>
+
                         <PreviewMotionSurface
                           :preview-motion-url="previewMotionUrl"
                           :preview-motion-busy="previewMotionBusy"
@@ -208,300 +389,144 @@
                           :target-width="previewTargetDimensions?.width ?? null"
                           :target-height="previewTargetDimensions?.height ?? null"
                         />
+
                         <v-alert
                           v-if="previewMotionError"
                           type="warning"
                           variant="tonal"
-                          class="mt-2"
+                          class="mt-3"
                         >
                           {{ previewMotionError }}
                         </v-alert>
-                      </div>
-                      <v-sheet
-                        v-if="isVideoOutput"
-                        class="output-preview-header px-3 py-2 mt-3 mb-2"
-                        rounded="lg"
-                        border
-                      >
-                        <div class="d-flex align-center flex-wrap ga-2">
+                      </v-sheet>
+
+                      <v-sheet class="workspace-preview-panel pa-3" rounded="0" border>
+                        <div class="workspace-preview-panel__header">
                           <div>
                             <div class="text-caption text-medium-emphasis">
-                              Processed still frame
+                              {{ isVideoOutput ? "Processed still frame" : "Preview frame" }}
                             </div>
                             <div class="text-body-2">
-                              {{ formatDurationClock(previewSecondModel, { includeTenths: true }) }}
+                              {{
+                                formatDurationClock(previewSecondModel, {
+                                  includeTenths: true,
+                                })
+                              }}
                             </div>
                           </div>
-                          <v-spacer />
                           <div class="text-caption text-medium-emphasis">
-                            Use "Update output frame" above to sync this still with the source
-                            player for crop and framing checks.
-                          </div>
-                        </div>
-                      </v-sheet>
-                      <PreviewFrameSurface
-                        :preview-frame-url="previewFrameUrl"
-                        :preview-frame-busy="previewFrameBusy"
-                        :has-source-file="Boolean(sourceFile)"
-                        :is-video-source="isVideoSource"
-                        :is-video-output="isVideoOutput"
-                        :round-display="workspaceRoundDisplay"
-                        :target-width="previewTargetDimensions?.width ?? null"
-                        :target-height="previewTargetDimensions?.height ?? null"
-                        :crop-enabled="customCropEnabled && supportsCustomCrop"
-                        :crop-rect="customCropRect"
-                        :crop-aspect-ratio="customCropTargetAspectRatio"
-                        :crop-interactive="
-                          customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
-                        "
-                        @update:crop-rect="onCustomCropRectUpdate"
-                        @update:crop-preview-applied="onCropPreviewAppliedUpdate"
-                      />
-                      <div class="d-flex justify-end mt-2">
-                        <v-tooltip text="Download preview image" location="top">
-                          <template #activator="{ props: tooltipProps }">
-                            <v-btn
-                              v-bind="tooltipProps"
-                              size="small"
-                              variant="tonal"
-                              icon
-                              color="primary"
-                              :disabled="!canDownloadPreviewImage"
-                              aria-label="Download preview image"
-                              @click="downloadPreviewImage"
-                            >
-                              <v-icon icon="mdi-file-download-outline" size="18" />
-                            </v-btn>
-                          </template>
-                        </v-tooltip>
-                      </div>
-                    </div>
-
-                    <v-sheet class="workspace-subsection mt-4 pa-3" rounded="lg" border>
-                      <div id="section-export" class="app-nav-target" />
-                      <div class="step-heading mb-2">
-                        <div class="text-subtitle-1 font-weight-medium">
-                          Convert and download
-                        </div>
-                        <div class="text-caption text-medium-emphasis">
-                          Launch conversion, monitor progress, and download the output file.
-                        </div>
-                      </div>
-
-                      <v-row dense>
-                        <v-col cols="12">
-                          <v-text-field
-                            v-model="outputFileName"
-                            label="Output file name"
-                            density="comfortable"
-                            :disabled="processing"
-                          />
-                        </v-col>
-                      </v-row>
-
-                      <div class="d-flex flex-wrap ga-2">
-                        <v-btn
-                          color="primary"
-                          :loading="processing"
-                          :disabled="!canConvert"
-                          @click="runConversion"
-                        >
-                          {{ processing ? "Converting..." : "Convert" }}
-                        </v-btn>
-                        <v-btn
-                          color="success"
-                          :disabled="!hasOutput"
-                          @click="downloadOutput"
-                        >
-                          Download output
-                        </v-btn>
-                      </div>
-
-                      <v-alert
-                        v-if="processingError"
-                        type="error"
-                        variant="tonal"
-                        class="mt-3"
-                      >
-                        {{ processingError }}
-                      </v-alert>
-                      <v-alert
-                        v-if="previewFrameError"
-                        type="warning"
-                        variant="tonal"
-                        class="mt-3"
-                      >
-                        {{ previewFrameError }}
-                      </v-alert>
-                    </v-sheet>
-                  </v-col>
-                  <v-col cols="12" md="4" class="d-flex flex-column ga-3">
-                    <v-card variant="tonal" class="settings-side-card">
-                      <v-card-text class="py-3">
-                        <div class="step-heading mb-2">
-                          <div class="text-subtitle-1 font-weight-medium">
-                            Conversion settings
-                          </div>
-                          <div class="text-caption text-medium-emphasis">
-                            Tune size, orientation, quality, and trimming before conversion.
+                            Use "Update output frame" in the trim player to sync this still for
+                            crop and framing checks.
                           </div>
                         </div>
 
-                        <v-row dense>
-                          <v-col cols="12">
-                            <v-select
-                              v-model="outputFormat"
-                              :items="formatItems"
-                              item-title="title"
-                              item-value="value"
-                              label="Output format"
-                              density="comfortable"
-                              :disabled="processing || previewFrameBusy || previewMotionBusy"
-                            />
-                          </v-col>
-                        </v-row>
+                        <PreviewFrameSurface
+                          :preview-frame-url="previewFrameUrl"
+                          :preview-frame-busy="previewFrameBusy"
+                          :has-source-file="Boolean(sourceFile)"
+                          :is-video-source="isVideoSource"
+                          :is-video-output="isVideoOutput"
+                          :round-display="workspaceRoundDisplay"
+                          :target-width="previewTargetDimensions?.width ?? null"
+                          :target-height="previewTargetDimensions?.height ?? null"
+                          :crop-enabled="customCropEnabled && supportsCustomCrop"
+                          :crop-rect="customCropRect"
+                          :crop-aspect-ratio="customCropTargetAspectRatio"
+                          :crop-interactive="
+                            customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
+                          "
+                          @update:crop-rect="onCustomCropRectUpdate"
+                          @update:crop-preview-applied="onCropPreviewAppliedUpdate"
+                        />
 
-                        <v-row v-if="isVideoOutput" dense>
-                          <v-col cols="12">
-                            <v-select
-                              v-model="orientation"
-                              :items="orientationItems"
-                              item-title="title"
-                              item-value="value"
-                              label="Orientation"
-                              density="comfortable"
-                              :disabled="processing"
-                            />
-                          </v-col>
-                          <v-col cols="12">
-                            <v-select
-                              v-model="scaleMode"
-                              :items="scaleModeItems"
-                              item-title="title"
-                              item-value="value"
-                              label="Scale mode"
-                              density="comfortable"
-                              :disabled="processing || outputSizeMode !== 'custom'"
-                            />
-                          </v-col>
-                          <v-col cols="12">
-                            <v-switch
-                              v-model="customCropEnabled"
-                              color="primary"
-                              density="comfortable"
-                              label="Custom crop box"
-                              hide-details
-                              :disabled="processing || !supportsCustomCrop"
-                            />
-                            <div class="text-caption text-medium-emphasis mt-1">
-                              {{ customCropHint }}
-                            </div>
-                          </v-col>
-                          <v-col v-if="customCropEnabled" cols="12">
-                            <div class="d-flex align-center flex-wrap ga-2">
+                        <div class="d-flex justify-end mt-3">
+                          <v-tooltip text="Download preview image" location="top">
+                            <template #activator="{ props: tooltipProps }">
                               <v-btn
+                                v-bind="tooltipProps"
                                 size="small"
                                 variant="tonal"
-                                prepend-icon="mdi-crop-free"
-                                :disabled="processing || !canResetCustomCrop"
-                                @click="resetCustomCropRect"
+                                icon
+                                color="primary"
+                                :disabled="!canDownloadPreviewImage"
+                                aria-label="Download preview image"
+                                @click="downloadPreviewImage"
                               >
-                                Reset crop
+                                <v-icon icon="mdi-file-download-outline" size="18" />
                               </v-btn>
-                              <span class="text-caption text-medium-emphasis">
-                                {{ customCropSummary }}
-                              </span>
-                            </div>
-                          </v-col>
-
-                          <v-col cols="12" sm="6">
-                            <v-text-field
-                              :model-value="fps"
-                              label="FPS"
-                              type="number"
-                              density="comfortable"
-                              :disabled="processing"
-                              @update:model-value="(value) => (fps = toNullableNumber(value))"
-                            />
-                          </v-col>
-                          <v-col cols="12" sm="6">
-                            <v-text-field
-                              :model-value="quality"
-                              label="Quality"
-                              type="number"
-                              density="comfortable"
-                              :disabled="processing"
-                              hint="1 is highest quality"
-                              persistent-hint
-                              @update:model-value="(value) => (quality = toNullableNumber(value))"
-                            />
-                          </v-col>
-                          <v-col cols="12">
-                            <div class="text-caption text-medium-emphasis">
-                              Use the trim player above to set start and end, then fine-tune the
-                              exact values here if needed.
-                            </div>
-                          </v-col>
-                          <v-col cols="12">
-                            <v-text-field
-                              v-model="startTimeInput"
-                              label="Start time"
-                              placeholder="hh:mm:ss or seconds"
-                              density="comfortable"
-                              :disabled="processing"
-                              :error="startTimeInputInvalid"
-                              :error-messages="
-                                startTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
-                              "
-                              @blur="commitStartTimeInput"
-                            />
-                          </v-col>
-                          <v-col cols="12">
-                            <v-text-field
-                              v-model="endTimeInput"
-                              label="End time"
-                              placeholder="hh:mm:ss or seconds"
-                              density="comfortable"
-                              :disabled="processing"
-                              :error="endTimeInputInvalid"
-                              :error-messages="
-                                endTimeInputInvalid ? 'Use hh:mm:ss (or seconds).' : undefined
-                              "
-                              @blur="commitEndTimeInput"
-                            />
-                          </v-col>
-                        </v-row>
-
-                        <v-row v-else dense>
-                          <v-col cols="12">
-                            <v-text-field
-                              :model-value="mp3Bitrate"
-                              label="MP3 bitrate (kbps)"
-                              type="number"
-                              density="comfortable"
-                              :disabled="processing"
-                              @update:model-value="
-                                (value) => (mp3Bitrate = toPositiveNullable(value))
-                              "
-                            />
-                          </v-col>
-                        </v-row>
-
-                        <v-alert
-                          v-if="hasTrimInputError || hasRangeError"
-                          type="warning"
-                          variant="tonal"
-                          class="mt-2"
-                        >
-                          {{ trimValidationMessage }}
-                        </v-alert>
-                      </v-card-text>
-                    </v-card>
+                            </template>
+                          </v-tooltip>
+                        </div>
+                      </v-sheet>
+                    </div>
                   </v-col>
                 </v-row>
-                </section>
+
+                <v-sheet class="workspace-subsection mt-4 pa-3" rounded="0" border>
+                  <div id="section-export" class="app-nav-target" />
+                  <div class="step-heading mb-2">
+                    <div class="text-subtitle-1 font-weight-medium">
+                      Convert and download
+                    </div>
+                    <div class="text-caption text-medium-emphasis">
+                      Launch conversion, monitor progress, and download the output file.
+                    </div>
+                  </div>
+
+                  <v-row dense>
+                    <v-col cols="12">
+                      <v-text-field
+                        v-model="outputFileName"
+                        label="Output file name"
+                        density="comfortable"
+                        :disabled="processing"
+                      />
+                    </v-col>
+                  </v-row>
+
+                  <div class="d-flex flex-wrap ga-2">
+                    <v-btn
+                      color="primary"
+                      :loading="processing"
+                      :disabled="!canConvert"
+                      @click="runConversion"
+                    >
+                      {{ processing ? "Converting..." : "Convert" }}
+                    </v-btn>
+                    <v-btn
+                      color="success"
+                      :disabled="!hasOutput"
+                      @click="downloadOutput"
+                    >
+                      Download output
+                    </v-btn>
+                  </div>
+
+                  <v-alert
+                    v-if="processingError"
+                    type="error"
+                    variant="tonal"
+                    class="mt-3"
+                  >
+                    {{ processingError }}
+                  </v-alert>
+                  <v-alert
+                    v-if="previewFrameError"
+                    type="warning"
+                    variant="tonal"
+                    class="mt-3"
+                  >
+                    {{ previewFrameError }}
+                  </v-alert>
+                </v-sheet>
+              </section>
             </div>
-            <v-card v-else-if="activeView === 'logs'" rounded="lg" elevation="4" class="panel-card logs-view-card">
+            <v-card
+              v-else-if="activeView === 'logs'"
+              rounded="lg"
+              elevation="4"
+              class="panel-card logs-view-card"
+            >
               <v-card-title class="d-flex align-center">
                 <div class="text-h6">Session Log</div>
                 <v-spacer />
@@ -2883,18 +2908,56 @@ onBeforeUnmount(() => {
 }
 
 .preview-board-context {
-  min-height: 48px;
-  background: rgba(var(--v-theme-surface), 0.42);
+  min-height: 40px;
+  background: rgba(var(--v-theme-surface), 0.48);
   border-color: rgba(var(--v-theme-on-surface), 0.12) !important;
+  border-radius: 0 !important;
 }
 
 .preview-board-chip {
   font-weight: 600;
+  border-radius: 0 !important;
+}
+
+.workspace-sticky-card {
+  position: sticky;
+  top: 88px;
+  z-index: 5;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: rgba(var(--v-theme-surface), 0.88);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 34px rgba(4, 8, 16, 0.18);
+  border-radius: 0 !important;
+}
+
+.workspace-sticky-card__body {
+  padding: 10px !important;
+}
+
+.workspace-sticky-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.workspace-sticky-card__header > :first-child {
+  flex: 1 1 280px;
+}
+
+.workspace-sticky-card__header > .preview-board-context {
+  flex: 1 1 320px;
+}
+
+.workspace-header-copy {
+  max-width: 540px;
 }
 
 .workspace-section {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  border-radius: 14px;
+  border-radius: 0;
   background: rgba(var(--v-theme-surface), 0.42);
   box-shadow: inset 3px 0 0 rgba(var(--v-theme-primary), 0.32);
   padding: 14px;
@@ -2903,6 +2966,51 @@ onBeforeUnmount(() => {
 .workspace-subsection {
   background: rgba(var(--v-theme-surface), 0.36);
   border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
+}
+
+.workspace-inline-setting {
+  min-height: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 0;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  background: rgba(var(--v-theme-surface), 0.32);
+}
+
+.workspace-inline-hint,
+.workspace-setting-note {
+  line-height: 1.25;
+}
+
+.workspace-body-grid {
+  align-items: start;
+}
+
+.workspace-preview-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-preview-panel {
+  background: rgba(var(--v-theme-surface), 0.38);
+  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
+  border-radius: 0 !important;
+}
+
+.workspace-preview-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.workspace-preview-panel__header > :last-child {
+  flex: 1 1 300px;
+  max-width: 440px;
+  text-align: right;
 }
 
 .section-target-grid {
@@ -2918,14 +3026,18 @@ onBeforeUnmount(() => {
   padding-left: 2px;
 }
 
-.motion-preview-header,
-.output-preview-header {
-  background: rgba(var(--v-theme-surface), 0.42);
-  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
+.workspace-section-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.72);
 }
 
 .source-metadata-inline {
   background: rgba(var(--v-theme-surface), 0.48);
+  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
+  border-radius: 0 !important;
 }
 
 .app-nav-target {
@@ -2959,6 +3071,15 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 959px) {
+  .workspace-sticky-card {
+    position: static;
+  }
+
+  .workspace-preview-panel__header > :last-child {
+    max-width: none;
+    text-align: left;
+  }
+
   .app-nav-target {
     scroll-margin-top: 84px;
   }

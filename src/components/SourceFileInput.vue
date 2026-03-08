@@ -4,7 +4,8 @@
     label="Source media"
     prepend-icon="mdi-file-video"
     accept="video/*,audio/*,.mjpeg,.mjpg,.avi,.mov,.mkv,.mp4,.webm"
-    density="comfortable"
+    density="compact"
+    hide-details="auto"
     :disabled="disabled"
     @update:model-value="onUpdate"
   />
