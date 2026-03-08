@@ -144,20 +144,6 @@
                         </div>
                       </v-sheet>
 
-                      <div class="workspace-preview-panel__header">
-                        <div>
-                          <div class="text-caption text-medium-emphasis">
-                            {{ activePreviewPanelTitle }}
-                          </div>
-                          <div class="text-body-2">
-                            {{ activePreviewPanelStatus }}
-                          </div>
-                        </div>
-                        <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
-                          {{ activePreviewPanelHelper }}
-                        </div>
-                      </div>
-
                       <div class="workspace-preview-settings mb-3">
                         <div class="workspace-section-label mb-2">Conversion settings</div>
 
@@ -318,6 +304,18 @@
                       </v-alert>
 
                       <div class="workspace-preview-panel__footer">
+                        <div class="workspace-preview-panel__meta">
+                          <div class="text-caption text-medium-emphasis">
+                            {{ activePreviewPanelTitle }}
+                          </div>
+                          <div class="text-body-2">
+                            {{ activePreviewPanelStatus }}
+                          </div>
+                          <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
+                            {{ activePreviewPanelHelper }}
+                          </div>
+                        </div>
+
                         <div class="workspace-preview-panel__toolbar">
                           <v-btn
                             v-if="showFramePreviewAction"
@@ -3027,18 +3025,9 @@ onBeforeUnmount(() => {
   border-radius: 0 !important;
 }
 
-.workspace-preview-panel__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
 .workspace-preview-panel__helper {
-  max-width: 420px;
-  text-align: right;
+  max-width: 460px;
+  line-height: 1.35;
 }
 
 .workspace-preview-settings {
@@ -3082,10 +3071,20 @@ onBeforeUnmount(() => {
 
 .workspace-preview-panel__footer {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.workspace-preview-panel__meta {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 280px;
+  min-width: 0;
 }
 
 .workspace-preview-panel__toolbar {
@@ -3182,6 +3181,7 @@ onBeforeUnmount(() => {
   }
 
   .workspace-preview-panel__footer {
+    align-items: flex-start;
     justify-content: flex-start;
   }
 
