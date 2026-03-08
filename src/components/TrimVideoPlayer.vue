@@ -17,9 +17,6 @@
         <v-chip v-if="isUsingPreviewProxy" size="small" variant="tonal" color="info">
           Using preview proxy
         </v-chip>
-        <v-chip size="small" variant="tonal" color="primary">
-          Output duration {{ formatDurationClock(selectionDurationSeconds, { includeTenths: true }) }}
-        </v-chip>
       </div>
 
       <div
@@ -112,6 +109,10 @@
 
       <div class="d-flex align-center flex-wrap ga-2 text-caption text-medium-emphasis mt-3">
         <div>Current {{ formatDurationClock(currentTimeSeconds, { includeTenths: true }) }}</div>
+        <v-spacer />
+        <v-chip size="small" variant="tonal" color="primary">
+          Output duration {{ formatDurationClock(selectionDurationSeconds, { includeTenths: true }) }}
+        </v-chip>
       </div>
 
       <div class="trim-player-actions mt-3">
