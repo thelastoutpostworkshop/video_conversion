@@ -18,7 +18,7 @@
           Using preview proxy
         </v-chip>
         <v-chip size="small" variant="tonal" color="primary">
-          Clip {{ formatDurationClock(selectionDurationSeconds, { includeTenths: true }) }}
+          Output duration {{ formatDurationClock(selectionDurationSeconds, { includeTenths: true }) }}
         </v-chip>
       </div>
 
@@ -112,11 +112,6 @@
 
       <div class="d-flex align-center flex-wrap ga-2 text-caption text-medium-emphasis mt-3">
         <div>Current {{ formatDurationClock(currentTimeSeconds, { includeTenths: true }) }}</div>
-        <v-spacer />
-        <div>
-          Selection {{ formatDurationClock(selectionStartSeconds, { includeTenths: true }) }} to
-          {{ formatDurationClock(selectionEndSeconds, { includeTenths: true }) }}
-        </div>
       </div>
 
       <div class="trim-player-actions mt-3">
@@ -200,9 +195,7 @@
         </template>
       </v-slider>
 
-      <div class="d-flex align-center text-caption text-medium-emphasis mt-2">
-        <div>Start {{ formatDurationClock(selectionStartSeconds, { includeTenths: true }) }}</div>
-        <v-spacer />
+      <div class="text-caption text-medium-emphasis mt-2">
         <div v-if="isSelectionLoopActive" class="text-warning">
           Looping selected range
         </div>
@@ -218,8 +211,6 @@
         <div v-else>
           Pause or scrub to inspect frames
         </div>
-        <v-spacer />
-        <div>End {{ formatDurationClock(selectionEndSeconds, { includeTenths: true }) }}</div>
       </div>
 
       <div v-if="isVideoOutput" class="trim-player-manual-fields mt-3">
