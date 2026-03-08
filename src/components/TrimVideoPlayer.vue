@@ -107,7 +107,10 @@
         @change="onSourceFileInputChange"
       />
 
-      <div class="d-flex align-center flex-wrap ga-2 text-caption text-medium-emphasis mt-3">
+      <div
+        v-if="props.sourceFile"
+        class="d-flex align-center flex-wrap ga-2 text-caption text-medium-emphasis mt-3"
+      >
         <div>Current {{ formatDurationClock(currentTimeSeconds, { includeTenths: true }) }}</div>
         <v-spacer />
         <v-chip size="small" variant="tonal" color="primary">
