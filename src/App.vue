@@ -300,10 +300,9 @@
                       :preview-frame-busy="previewFrameBusy"
                       :motion-preview-busy="previewMotionBusy"
                       :disabled="processing"
+                      @current-time-update="onTrimPlayerCurrentTimeUpdate"
                       @request-playable-preview="generateSourcePreviewProxy"
                       @select-source-file="onSourceFileSelected"
-                      @sync-output-preview="syncOutputPreviewToTime"
-                      @generate-motion-preview="generateMotionPreviewFromPlayer"
                       @duration-detected="onTrimPlayerDurationDetected"
                     />
                   </v-col>
@@ -321,19 +320,68 @@
                         </div>
 
                         <div class="workspace-preview-panel__actions">
-                          <v-btn-toggle
-                            v-if="isVideoOutput"
-                            v-model="previewDisplayMode"
-                            class="workspace-preview-mode-toggle"
-                            color="primary"
-                            density="compact"
-                            mandatory
-                            variant="outlined"
-                            divided
-                          >
-                            <v-btn value="frame" size="small">Still frame</v-btn>
-                            <v-btn value="motion" size="small">Motion</v-btn>
-                          </v-btn-toggle>
+                          <div class="workspace-preview-panel__toolbar">
+                            <v-btn
+                              v-if="showFramePreviewAction"
+                              size="small"
+                              variant="tonal"
+                              color="info"
+                              prepend-icon="mdi-image-sync-outline"
+                              :loading="previewFrameBusy"
+                              :disabled="!canRefreshFramePreviewFromPanel"
+                              @click="requestFramePreviewFromPanel"
+                            >
+                              Update frame preview
+                            </v-btn>
+
+                            <v-btn
+                              v-if="showMotionPreviewAction"
+                              size="small"
+                              variant="tonal"
+                              color="secondary"
+                              prepend-icon="mdi-play-circle-outline"
+                              :loading="previewMotionBusy"
+                              :disabled="!canGenerateMotionPreviewFromPanel"
+                              @click="requestMotionPreviewFromPanel"
+                            >
+                              Generate motion preview
+                            </v-btn>
+
+                            <v-tooltip
+                              v-if="showPreviewDownloadAction"
+                              text="Download preview image"
+                              location="top"
+                            >
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="small"
+                                  variant="tonal"
+                                  icon
+                                  color="primary"
+                                  :disabled="!canDownloadPreviewImage"
+                                  aria-label="Download preview image"
+                                  @click="downloadPreviewImage"
+                                >
+                                  <v-icon icon="mdi-file-download-outline" size="18" />
+                                </v-btn>
+                              </template>
+                            </v-tooltip>
+
+                            <v-btn-toggle
+                              v-if="isVideoOutput"
+                              v-model="previewDisplayMode"
+                              class="workspace-preview-mode-toggle"
+                              color="primary"
+                              density="compact"
+                              mandatory
+                              variant="outlined"
+                              divided
+                            >
+                              <v-btn value="frame" size="small">Still frame</v-btn>
+                              <v-btn value="motion" size="small">Motion</v-btn>
+                            </v-btn-toggle>
+                          </div>
 
                           <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
                             {{ activePreviewPanelHelper }}
@@ -381,25 +429,6 @@
                       >
                         {{ activePreviewPanelError }}
                       </v-alert>
-
-                      <div v-if="showPreviewDownloadAction" class="d-flex justify-end mt-3">
-                        <v-tooltip text="Download preview image" location="top">
-                          <template #activator="{ props: tooltipProps }">
-                            <v-btn
-                              v-bind="tooltipProps"
-                              size="small"
-                              variant="tonal"
-                              icon
-                              color="primary"
-                              :disabled="!canDownloadPreviewImage"
-                              aria-label="Download preview image"
-                              @click="downloadPreviewImage"
-                            >
-                              <v-icon icon="mdi-file-download-outline" size="18" />
-                            </v-btn>
-                          </template>
-                        </v-tooltip>
-                      </div>
                     </v-sheet>
                   </v-col>
                 </v-row>
@@ -740,6 +769,7 @@ const previewMotionError = ref<string | null>(null);
 const previewMotionStartSeconds = ref<number | null>(null);
 const previewMotionDurationSeconds = ref<number | null>(null);
 const previewDisplayMode = ref<PreviewDisplayMode>("frame");
+const trimPlayerCurrentSeconds = ref(0);
 const sourcePreviewProxyUrl = ref<string | null>(null);
 const sourcePreviewProxyBusy = ref(false);
 const sourcePreviewProxyError = ref<string | null>(null);
@@ -1884,16 +1914,24 @@ const activePreviewPanelStatus = computed(() => {
 
 const activePreviewPanelHelper = computed(() => {
   if (isMotionPreviewMode.value) {
-    return "Generate this from the trim player. It uses the current output crop, scale, and orientation settings.";
+    return "Generate this from the preview toolbar using the current trim playhead. It uses the current output crop, scale, and orientation settings.";
   }
   if (!isVideoOutput.value) {
     return "Switch to a video output format to inspect processed frames.";
   }
-  return 'Use "Update output frame" in the trim player to sync this still for crop and framing checks.';
+  return 'Use "Update frame preview" here to sync this still for crop and framing checks.';
 });
 
 const activePreviewPanelError = computed(() =>
   isMotionPreviewMode.value ? previewMotionError.value : previewFrameError.value
+);
+
+const showFramePreviewAction = computed(
+  () => !isMotionPreviewMode.value && hasPreviewSource.value
+);
+
+const showMotionPreviewAction = computed(
+  () => isMotionPreviewMode.value && hasPreviewSource.value
 );
 
 const initializePreviewAtMidpoint = () => {
@@ -1929,12 +1967,28 @@ const onTrimPlayerDurationDetected = (durationSeconds: number | null) => {
   trimPlayerDurationSeconds.value = durationSeconds;
 };
 
+const onTrimPlayerCurrentTimeUpdate = (seconds: number) => {
+  trimPlayerCurrentSeconds.value = Math.max(0, seconds);
+};
+
 const syncOutputPreviewToTime = (seconds: number) => {
   if (!hasPreviewSource.value) {
     return;
   }
   previewSecondModel.value = seconds;
   schedulePreviewFrameRefresh(50);
+};
+
+const canRefreshFramePreviewFromPanel = computed(
+  () => hasPreviewSource.value && !processing.value && !previewFrameBusy.value && !previewJobsBusy.value
+);
+
+const requestFramePreviewFromPanel = () => {
+  if (!canRefreshFramePreviewFromPanel.value) {
+    return;
+  }
+  previewDisplayMode.value = "frame";
+  syncOutputPreviewToTime(trimPlayerCurrentSeconds.value);
 };
 
 let sourcePreviewProxyGenerationId = 0;
@@ -2132,6 +2186,17 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
   } finally {
     previewMotionBusy.value = false;
   }
+};
+
+const canGenerateMotionPreviewFromPanel = computed(
+  () => hasPreviewSource.value && !processing.value && !previewFrameBusy.value && !previewJobsBusy.value
+);
+
+const requestMotionPreviewFromPanel = () => {
+  if (!canGenerateMotionPreviewFromPanel.value) {
+    return;
+  }
+  void generateMotionPreviewFromPlayer(trimPlayerCurrentSeconds.value);
 };
 
 const hasTrimSelection = computed(() => {
@@ -2707,6 +2772,7 @@ watch(sourceFile, (file) => {
   invalidatePreviewMotion();
   invalidateSourcePreviewProxy();
   previewDisplayMode.value = "frame";
+  trimPlayerCurrentSeconds.value = 0;
   initializePreviewAtMidpointPending.value = false;
   customCropEnabled.value = false;
   customCropRect.value = null;
@@ -2746,6 +2812,7 @@ watch(outputFormat, (format) => {
 watch(isVideoOutput, (isVideo) => {
   if (!isVideo) {
     previewDisplayMode.value = "frame";
+    trimPlayerCurrentSeconds.value = 0;
     initializePreviewAtMidpointPending.value = false;
     return;
   }
@@ -2994,6 +3061,13 @@ onBeforeUnmount(() => {
   flex: 1 1 300px;
 }
 
+.workspace-preview-panel__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .workspace-preview-mode-toggle {
   justify-self: end;
 }
@@ -3057,6 +3131,10 @@ onBeforeUnmount(() => {
 @media (max-width: 959px) {
   .workspace-preview-panel__actions {
     justify-items: start;
+  }
+
+  .workspace-preview-panel__toolbar {
+    justify-content: flex-start;
   }
 
   .workspace-preview-mode-toggle {

@@ -157,29 +157,6 @@
         >
           Reset trim
         </v-btn>
-        <v-spacer />
-        <v-btn
-          size="small"
-          variant="tonal"
-          color="secondary"
-          prepend-icon="mdi-play-circle-outline"
-          :loading="motionPreviewBusy"
-          :disabled="!canGenerateMotionPreviewInternal"
-          @click="generateMotionPreview"
-        >
-          Generate motion preview
-        </v-btn>
-        <v-btn
-          size="small"
-          variant="tonal"
-          color="info"
-          prepend-icon="mdi-image-sync-outline"
-          :loading="previewFrameBusy"
-          :disabled="!canAdjustTrimFromReference"
-          @click="syncOutputPreview"
-        >
-          Update output frame
-        </v-btn>
       </div>
 
       <v-range-slider
@@ -284,9 +261,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   (event: "update:trim-range", value: [number, number]): void;
   (event: "request-playable-preview"): void;
-  (event: "sync-output-preview", value: number): void;
-  (event: "generate-motion-preview", value: number): void;
   (event: "duration-detected", value: number | null): void;
+  (event: "current-time-update", value: number): void;
   (event: "select-source-file", value: File): void;
 }>();
 
@@ -440,14 +416,6 @@ const canPlaySelection = computed(
   () =>
     hasScrubbablePlayback.value &&
     selectionDurationSeconds.value > sliderStepSeconds.value
-);
-const canGenerateMotionPreviewInternal = computed(
-  () =>
-    canAdjustTrimFromReference.value &&
-    selectionDurationSeconds.value > 0.05 &&
-    !props.previewFrameBusy &&
-    !props.sourceProxyBusy &&
-    !props.motionPreviewBusy
 );
 const canRequestPlayablePreview = computed(
   () => canTrimSource.value && !props.sourceProxyBusy && !props.previewFrameBusy && !props.motionPreviewBusy
@@ -697,14 +665,6 @@ const requestPlayablePreview = () => {
   emit("request-playable-preview");
 };
 
-const syncOutputPreview = () => {
-  emit("sync-output-preview", getCurrentVideoTime());
-};
-
-const generateMotionPreview = () => {
-  emit("generate-motion-preview", getCurrentVideoTime());
-};
-
 const onLoadedMetadata = () => {
   const element = videoRef.value;
   if (!element) {
@@ -815,6 +775,14 @@ watch(
       stopSelectionLoop(true);
     }
   }
+);
+
+watch(
+  () => currentTimeSeconds.value,
+  (seconds) => {
+    emit("current-time-update", seconds);
+  },
+  { immediate: true }
 );
 
 watch(
