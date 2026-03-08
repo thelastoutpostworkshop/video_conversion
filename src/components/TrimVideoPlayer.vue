@@ -117,8 +117,6 @@
           Selection {{ formatDurationClock(selectionStartSeconds, { includeTenths: true }) }} to
           {{ formatDurationClock(selectionEndSeconds, { includeTenths: true }) }}
         </div>
-        <v-spacer />
-        <div>Output frame {{ outputPreviewDisplay }}</div>
       </div>
 
       <div class="trim-player-actions mt-3">
@@ -282,7 +280,6 @@ const props = withDefaults(
     isVideoOutput: boolean;
     trimRange: [number, number];
     durationSeconds: number | null;
-    outputPreviewSeconds?: number | null;
     previewFrameBusy?: boolean;
     motionPreviewBusy?: boolean;
     startTimeInput?: string;
@@ -295,7 +292,6 @@ const props = withDefaults(
     sourceProxyUrl: null,
     sourceProxyBusy: false,
     sourceProxyError: null,
-    outputPreviewSeconds: null,
     previewFrameBusy: false,
     motionPreviewBusy: false,
     startTimeInput: "",
@@ -497,13 +493,6 @@ const showReferenceTimeSlider = computed(
   () => canTrimSource.value && !hasScrubbablePlayback.value && hasKnownDuration.value
 );
 const showSourceSelectAction = computed(() => canSelectSourceFile.value && !canRenderVideo.value);
-
-const outputPreviewDisplay = computed(() => {
-  if (typeof props.outputPreviewSeconds !== "number") {
-    return "Not synced";
-  }
-  return formatDurationClock(props.outputPreviewSeconds, { includeTenths: true });
-});
 
 const fallbackErrorMessage = computed(() => {
   if (isUsingPreviewProxy.value) {

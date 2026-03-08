@@ -91,7 +91,6 @@
                       :is-video-source="isVideoSource"
                       :is-video-output="isVideoOutput"
                       :duration-seconds="sourceDurationSeconds ?? trimPlayerDurationSeconds"
-                      :output-preview-seconds="previewSecondModel"
                       :preview-frame-busy="previewFrameBusy"
                       :motion-preview-busy="previewMotionBusy"
                       :start-time-input="startTimeInput"
