@@ -7,15 +7,14 @@
     <v-card-text class="trim-player-card__body">
       <div class="d-flex align-center flex-wrap ga-2 trim-player-card__header">
         <div>
-          <div class="text-subtitle-2">Trim with source preview</div>
+          <div class="text-subtitle-2">Source media</div>
           <div class="text-caption text-medium-emphasis">
-            Drop source media here, or click the preview area to choose a file. Native playback is
-            used when available, with a scrub proxy fallback when it is not.
+            Preview the original file and set trim points before converting.
           </div>
         </div>
         <v-spacer />
         <v-chip v-if="isUsingPreviewProxy" size="small" variant="tonal" color="info">
-          Using preview proxy
+          Using browser preview
         </v-chip>
       </div>
 
@@ -88,7 +87,7 @@
               :disabled="!canRequestPlayablePreview"
               @click.stop="requestPlayablePreview"
             >
-              Generate playable preview
+              Create browser preview
             </v-btn>
           </div>
         </div>
@@ -507,18 +506,18 @@ const fallbackTitle = computed(() => {
     return "Drop source media here.";
   }
   if (!props.isVideoSource) {
-    return "This source does not have a live trim preview.";
+    return "No visual preview is available for this file.";
   }
   if (!props.isVideoOutput) {
-    return "Switch back to a video output format to preview trimming.";
+    return "Switch to a video output to preview and trim here.";
   }
   if (isUsingPreviewProxy.value) {
-    return "Playable preview proxy unavailable.";
+    return "Browser preview unavailable.";
   }
   if (nativePlaybackState.value === "failed") {
-    return "This source cannot be scrubbed directly in your browser.";
+    return "This file cannot be previewed directly in your browser.";
   }
-  return "Loading video preview...";
+  return "Loading source preview...";
 });
 
 const fallbackDescription = computed(() => {
@@ -526,18 +525,18 @@ const fallbackDescription = computed(() => {
     return "Drag and drop or click to choose a video or audio file.";
   }
   if (!props.isVideoSource) {
-    return "Drop another file here if you want a visual trim preview, or continue with audio conversion.";
+    return "Choose a video file if you want to trim with a visual preview, or continue with audio conversion.";
   }
   if (!props.isVideoOutput) {
-    return "Drop another file here, or switch output format if you want to trim against a live preview.";
+    return "Switch the output back to video if you want to trim against a visual preview.";
   }
   if (isUsingPreviewProxy.value) {
-    return "The generated preview proxy could not be played. You can still trim by time below.";
+    return "The browser preview could not be played. You can still trim by time below.";
   }
   if (nativePlaybackState.value === "failed") {
-    return "Generate a temporary playable preview to scrub the timeline, or continue with manual timestamp trimming.";
+    return "Create a browser preview to scrub the timeline, or continue with manual trim times.";
   }
-  return "Preparing source playback...";
+  return "Preparing source preview...";
 });
 
 const resetStageDragState = () => {
@@ -779,11 +778,11 @@ const onVideoError = () => {
   emit("duration-detected", null);
   if (isUsingPreviewProxy.value) {
     proxyPlaybackState.value = "failed";
-    proxyPlaybackError.value = "The generated preview proxy could not be played.";
+    proxyPlaybackError.value = "The browser preview could not be played.";
     return;
   }
   nativePlaybackState.value = "failed";
-  nativePlaybackError.value = "This source format cannot be played directly in your browser.";
+  nativePlaybackError.value = "This file format cannot be previewed directly in your browser.";
 };
 
 const onVideoPlay = () => {
