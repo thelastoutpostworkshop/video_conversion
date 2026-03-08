@@ -237,12 +237,13 @@
                       :end-time-input-invalid="endTimeInputInvalid"
                       :disabled="processing"
                       @current-time-update="onTrimPlayerCurrentTimeUpdate"
+                      @preview-time-request="syncOutputPreviewToTime"
                       @request-playable-preview="generateSourcePreviewProxy"
                       @select-source-file="onSourceFileSelected"
                       @update:start-time-input="(value) => (startTimeInput = value)"
                       @update:end-time-input="(value) => (endTimeInput = value)"
-                      @commit-start-time-input="commitStartTimeInput"
-                      @commit-end-time-input="commitEndTimeInput"
+                      @commit-start-time-input="onStartTimeInputCommit"
+                      @commit-end-time-input="onEndTimeInputCommit"
                       @duration-detected="onTrimPlayerDurationDetected"
                     />
                   </v-col>
@@ -924,6 +925,24 @@ const commitEndTimeInput = () => {
       ? ""
       : formatDurationClock(endSeconds.value, { includeTenths: true });
   return true;
+};
+
+const onStartTimeInputCommit = () => {
+  if (!commitStartTimeInput()) {
+    return;
+  }
+  if (typeof startSeconds.value === "number") {
+    syncOutputPreviewToTime(startSeconds.value);
+  }
+};
+
+const onEndTimeInputCommit = () => {
+  if (!commitEndTimeInput()) {
+    return;
+  }
+  if (typeof endSeconds.value === "number") {
+    syncOutputPreviewToTime(endSeconds.value);
+  }
 };
 
 const trimRangeMax = computed(
@@ -1884,7 +1903,7 @@ const activePreviewPanelHelper = computed(() => {
   if (!isVideoOutput.value) {
     return "Switch to a video output format to inspect processed frames.";
   }
-  return 'Use "Update frame preview" here to sync this still for crop and framing checks.';
+  return 'This still preview follows the trim playhead and trim times automatically. Use "Update frame preview" to resync it to the current playhead on demand.';
 });
 
 const activePreviewPanelError = computed(() =>
@@ -1936,6 +1955,7 @@ const syncOutputPreviewToTime = (seconds: number) => {
   if (!hasPreviewSource.value) {
     return;
   }
+  invalidatePreviewMotion();
   previewSecondModel.value = seconds;
   schedulePreviewFrameRefresh(50);
 };
@@ -1948,7 +1968,6 @@ const requestFramePreviewFromPanel = () => {
   if (!canRefreshFramePreviewFromPanel.value) {
     return;
   }
-  invalidatePreviewMotion();
   syncOutputPreviewToTime(trimPlayerCurrentSeconds.value);
 };
 

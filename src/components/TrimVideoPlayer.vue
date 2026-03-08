@@ -311,6 +311,7 @@ const emit = defineEmits<{
   (event: "request-playable-preview"): void;
   (event: "duration-detected", value: number | null): void;
   (event: "current-time-update", value: number): void;
+  (event: "preview-time-request", value: number): void;
   (event: "select-source-file", value: File): void;
   (event: "update:start-time-input", value: string): void;
   (event: "update:end-time-input", value: string): void;
@@ -448,7 +449,21 @@ const trimRangeModel = computed<[number, number]>({
     const [rawStart, rawEnd] = value;
     const nextStart = clampSeconds(Number(rawStart) || 0);
     const nextEnd = Math.max(nextStart, clampSeconds(Number(rawEnd) || nextStart));
+    const startChanged = Math.abs(nextStart - selectionStartSeconds.value) > 0.001;
+    const endChanged = Math.abs(nextEnd - selectionEndSeconds.value) > 0.001;
     emit("update:trim-range", [nextStart, nextEnd]);
+    if (startChanged || endChanged) {
+      const previewTime =
+        endChanged && !startChanged
+          ? nextEnd
+          : startChanged && !endChanged
+            ? nextStart
+            : Math.abs(nextEnd - selectionEndSeconds.value) >=
+                Math.abs(nextStart - selectionStartSeconds.value)
+              ? nextEnd
+              : nextStart;
+      emit("preview-time-request", previewTime);
+    }
   },
 });
 
@@ -617,6 +632,7 @@ const referenceTimeModel = computed<number>({
   get: () => clampSeconds(currentTimeSeconds.value),
   set: (value) => {
     currentTimeSeconds.value = clampSeconds(Number(value));
+    emit("preview-time-request", currentTimeSeconds.value);
   },
 });
 
@@ -650,11 +666,13 @@ const seekToTime = (seconds: number) => {
 const setStartFromCurrentTime = () => {
   const nextStart = getCurrentVideoTime();
   emit("update:trim-range", [nextStart, Math.max(nextStart, selectionEndSeconds.value)]);
+  emit("preview-time-request", nextStart);
 };
 
 const setEndFromCurrentTime = () => {
   const nextEnd = getCurrentVideoTime();
   emit("update:trim-range", [Math.min(selectionStartSeconds.value, nextEnd), nextEnd]);
+  emit("preview-time-request", nextEnd);
 };
 
 const resetTrimRange = () => {
@@ -790,6 +808,7 @@ const onVideoPause = () => {
   cancelSelectionLoop();
   isSelectionLoopActive.value = false;
   syncCurrentTimeFromVideo();
+  emit("preview-time-request", currentTimeSeconds.value);
 };
 
 const onVideoTimeUpdate = () => {
@@ -798,6 +817,7 @@ const onVideoTimeUpdate = () => {
 
 const onVideoSeeked = () => {
   syncCurrentTimeFromVideo();
+  emit("preview-time-request", currentTimeSeconds.value);
 };
 
 watch(
