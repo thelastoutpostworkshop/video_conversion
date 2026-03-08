@@ -80,144 +80,15 @@
               <section class="workspace-section">
                 <div id="section-source" class="app-nav-target" />
 
-                <v-card variant="tonal" class="workspace-sticky-card" rounded="0">
-                  <v-card-text class="workspace-sticky-card__body">
-                    <div class="workspace-sticky-card__header">
-                      <div class="step-heading">
-                        <div class="text-subtitle-2 font-weight-medium">
-                          Workspace controls
-                        </div>
-                        <div class="text-caption text-medium-emphasis workspace-header-copy">
-                          Drop or click a source file in the trim preview below, then adjust the
-                          conversion settings here.
-                        </div>
-                      </div>
-                    </div>
+                <div class="workspace-overview mb-3">
+                  <div class="text-subtitle-2 font-weight-medium">Workspace</div>
+                  <div class="text-caption text-medium-emphasis workspace-header-copy">
+                    Drop or click a source file in the trim preview, then tune conversion settings
+                    and inspect processed output on the right.
+                  </div>
+                </div>
 
-                    <v-row dense>
-                      <v-col cols="12">
-                        <div class="workspace-section-label mb-2">Conversion settings</div>
-
-                        <v-row dense>
-                          <v-col cols="12" sm="6" lg="4">
-                            <v-select
-                              v-model="outputFormat"
-                              :items="formatItems"
-                              item-title="title"
-                              item-value="value"
-                              label="Output format"
-                              density="compact"
-                              hide-details="auto"
-                              :disabled="processing || previewFrameBusy || previewMotionBusy"
-                            />
-                          </v-col>
-
-                          <template v-if="isVideoOutput">
-                            <v-col cols="12" sm="6" lg="4">
-                              <v-select
-                                v-model="orientation"
-                                :items="orientationItems"
-                                item-title="title"
-                                item-value="value"
-                                label="Orientation"
-                                density="compact"
-                                hide-details="auto"
-                                :disabled="processing"
-                              />
-                            </v-col>
-                            <v-col cols="12" sm="6" lg="4">
-                              <v-select
-                                v-model="scaleMode"
-                                :items="scaleModeItems"
-                                item-title="title"
-                                item-value="value"
-                                label="Scale mode"
-                                density="compact"
-                                hide-details="auto"
-                                :disabled="processing || outputSizeMode !== 'custom'"
-                              />
-                            </v-col>
-                            <v-col cols="12" lg="6">
-                              <div class="workspace-inline-setting">
-                                <div class="d-flex align-center flex-wrap ga-2">
-                                  <v-switch
-                                    v-model="customCropEnabled"
-                                    color="primary"
-                                    density="compact"
-                                    label="Custom crop"
-                                    hide-details
-                                    inset
-                                    :disabled="processing || !supportsCustomCrop"
-                                  />
-                                  <v-btn
-                                    v-if="customCropEnabled"
-                                    size="x-small"
-                                    variant="tonal"
-                                    prepend-icon="mdi-crop-free"
-                                    :disabled="processing || !canResetCustomCrop"
-                                    @click="resetCustomCropRect"
-                                  >
-                                    Reset crop
-                                  </v-btn>
-                                </div>
-                                <div class="text-caption text-medium-emphasis workspace-inline-hint">
-                                  {{ customCropEnabled ? customCropSummary : customCropHint }}
-                                </div>
-                              </div>
-                            </v-col>
-                            <v-col cols="6" sm="3" lg="2">
-                              <v-text-field
-                                :model-value="fps"
-                                label="FPS"
-                                type="number"
-                                density="compact"
-                                hide-details="auto"
-                                :disabled="processing"
-                                @update:model-value="(value) => (fps = toNullableNumber(value))"
-                              />
-                            </v-col>
-                            <v-col cols="6" sm="3" lg="2">
-                              <v-text-field
-                                :model-value="quality"
-                                label="Quality"
-                                type="number"
-                                density="compact"
-                                hide-details="auto"
-                                :disabled="processing"
-                                @update:model-value="(value) => (quality = toNullableNumber(value))"
-                              />
-                            </v-col>
-                          </template>
-
-                          <v-col v-else cols="12" sm="6" lg="4">
-                            <v-text-field
-                              :model-value="mp3Bitrate"
-                              label="MP3 bitrate (kbps)"
-                              type="number"
-                              density="compact"
-                              hide-details="auto"
-                              :disabled="processing"
-                              @update:model-value="
-                                (value) => (mp3Bitrate = toPositiveNullable(value))
-                              "
-                            />
-                          </v-col>
-                        </v-row>
-
-                        <v-alert
-                          v-if="hasTrimInputError || hasRangeError"
-                          type="warning"
-                          variant="tonal"
-                          class="mt-2"
-                        >
-                          {{ trimValidationMessage }}
-                        </v-alert>
-                      </v-col>
-                    </v-row>
-                  </v-card-text>
-                </v-card>
-
-                <v-row dense class="workspace-body-grid mt-4">
+                <v-row dense class="workspace-body-grid">
                   <v-col cols="12" lg="4">
                     <TrimVideoPlayer
                       v-model:trim-range="trimRangeModel"
@@ -291,81 +162,151 @@
                             {{ activePreviewPanelStatus }}
                           </div>
                         </div>
-
-                        <div class="workspace-preview-panel__actions">
-                          <div class="workspace-preview-panel__toolbar">
-                            <v-btn
-                              v-if="showFramePreviewAction"
-                              size="small"
-                              variant="tonal"
-                              color="info"
-                              prepend-icon="mdi-image-sync-outline"
-                              :loading="previewFrameBusy"
-                              :disabled="!canRefreshFramePreviewFromPanel"
-                              @click="requestFramePreviewFromPanel"
-                            >
-                              Update frame preview
-                            </v-btn>
-
-                            <v-btn
-                              v-if="showMotionPreviewAction"
-                              size="small"
-                              variant="tonal"
-                              color="secondary"
-                              prepend-icon="mdi-play-circle-outline"
-                              :loading="previewMotionBusy"
-                              :disabled="!canGenerateMotionPreviewFromPanel"
-                              @click="requestMotionPreviewFromPanel"
-                            >
-                              Generate motion preview
-                            </v-btn>
-
-                            <v-tooltip
-                              v-if="showPreviewDownloadAction"
-                              text="Download preview image"
-                              location="top"
-                            >
-                              <template #activator="{ props: tooltipProps }">
-                                <v-btn
-                                  v-bind="tooltipProps"
-                                  size="small"
-                                  variant="tonal"
-                                  icon
-                                  color="primary"
-                                  :disabled="!canDownloadPreviewImage"
-                                  aria-label="Download preview image"
-                                  @click="downloadPreviewImage"
-                                >
-                                  <v-icon icon="mdi-file-download-outline" size="18" />
-                                </v-btn>
-                              </template>
-                            </v-tooltip>
-                          </div>
-
-                          <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
-                            {{ activePreviewPanelHelper }}
-                          </div>
+                        <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
+                          {{ activePreviewPanelHelper }}
                         </div>
                       </div>
 
-                      <PreviewFrameSurface
-                        :preview-frame-url="previewFrameUrl"
-                        :preview-frame-busy="previewFrameBusy"
-                        :has-source-file="Boolean(sourceFile)"
-                        :is-video-source="isVideoSource"
-                        :is-video-output="isVideoOutput"
-                        :round-display="workspaceRoundDisplay"
-                        :target-width="previewTargetDimensions?.width ?? null"
-                        :target-height="previewTargetDimensions?.height ?? null"
-                        :crop-enabled="customCropEnabled && supportsCustomCrop"
-                        :crop-rect="customCropRect"
-                        :crop-aspect-ratio="customCropTargetAspectRatio"
-                        :crop-interactive="
-                          customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
-                        "
-                        @update:crop-rect="onCustomCropRectUpdate"
-                        @update:crop-preview-applied="onCropPreviewAppliedUpdate"
-                      />
+                      <div class="workspace-preview-settings mb-3">
+                        <div class="workspace-section-label mb-2">Conversion settings</div>
+
+                        <v-row dense class="workspace-preview-settings__grid">
+                          <v-col cols="12" md="4">
+                            <v-select
+                              v-model="outputFormat"
+                              :items="formatItems"
+                              item-title="title"
+                              item-value="value"
+                              label="Output format"
+                              density="compact"
+                              hide-details="auto"
+                              :disabled="processing || previewFrameBusy || previewMotionBusy"
+                            />
+                          </v-col>
+
+                          <template v-if="isVideoOutput">
+                            <v-col cols="12" sm="6" md="4">
+                              <v-select
+                                v-model="orientation"
+                                :items="orientationItems"
+                                item-title="title"
+                                item-value="value"
+                                label="Orientation"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                              />
+                            </v-col>
+                            <v-col cols="12" sm="6" md="4">
+                              <v-select
+                                v-model="scaleMode"
+                                :items="scaleModeItems"
+                                item-title="title"
+                                item-value="value"
+                                label="Scale mode"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing || outputSizeMode !== 'custom'"
+                              />
+                            </v-col>
+                            <v-col cols="12" lg="8">
+                              <div class="workspace-preview-settings__crop">
+                                <div class="workspace-preview-settings__crop-row">
+                                  <v-switch
+                                    v-model="customCropEnabled"
+                                    color="primary"
+                                    density="compact"
+                                    label="Custom crop"
+                                    hide-details
+                                    inset
+                                    :disabled="processing || !supportsCustomCrop"
+                                  />
+                                  <v-btn
+                                    v-if="customCropEnabled"
+                                    size="x-small"
+                                    variant="tonal"
+                                    prepend-icon="mdi-crop-free"
+                                    :disabled="processing || !canResetCustomCrop"
+                                    @click="resetCustomCropRect"
+                                  >
+                                    Reset crop
+                                  </v-btn>
+                                </div>
+                                <div class="text-caption text-medium-emphasis workspace-preview-settings__crop-copy">
+                                  {{ customCropEnabled ? customCropSummary : customCropHint }}
+                                </div>
+                              </div>
+                            </v-col>
+                            <v-col cols="6" sm="3" lg="2">
+                              <v-text-field
+                                :model-value="fps"
+                                label="FPS"
+                                type="number"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                                @update:model-value="(value) => (fps = toNullableNumber(value))"
+                              />
+                            </v-col>
+                            <v-col cols="6" sm="3" lg="2">
+                              <v-text-field
+                                :model-value="quality"
+                                label="Quality"
+                                type="number"
+                                density="compact"
+                                hide-details="auto"
+                                :disabled="processing"
+                                @update:model-value="(value) => (quality = toNullableNumber(value))"
+                              />
+                            </v-col>
+                          </template>
+
+                          <v-col v-else cols="12" sm="6" md="4">
+                            <v-text-field
+                              :model-value="mp3Bitrate"
+                              label="MP3 bitrate (kbps)"
+                              type="number"
+                              density="compact"
+                              hide-details="auto"
+                              :disabled="processing"
+                              @update:model-value="
+                                (value) => (mp3Bitrate = toPositiveNullable(value))
+                              "
+                            />
+                          </v-col>
+                        </v-row>
+
+                        <v-alert
+                          v-if="hasTrimInputError || hasRangeError"
+                          type="warning"
+                          variant="tonal"
+                          density="compact"
+                          class="mt-2"
+                        >
+                          {{ trimValidationMessage }}
+                        </v-alert>
+                      </div>
+
+                      <div class="workspace-preview-panel__surface">
+                        <PreviewFrameSurface
+                          :preview-frame-url="previewFrameUrl"
+                          :preview-frame-busy="previewFrameBusy"
+                          :has-source-file="Boolean(sourceFile)"
+                          :is-video-source="isVideoSource"
+                          :is-video-output="isVideoOutput"
+                          :round-display="workspaceRoundDisplay"
+                          :target-width="previewTargetDimensions?.width ?? null"
+                          :target-height="previewTargetDimensions?.height ?? null"
+                          :crop-enabled="customCropEnabled && supportsCustomCrop"
+                          :crop-rect="customCropRect"
+                          :crop-aspect-ratio="customCropTargetAspectRatio"
+                          :crop-interactive="
+                            customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
+                          "
+                          @update:crop-rect="onCustomCropRectUpdate"
+                          @update:crop-preview-applied="onCropPreviewAppliedUpdate"
+                        />
+                      </div>
 
                       <v-alert
                         v-if="activePreviewPanelError"
@@ -384,6 +325,57 @@
                       >
                         {{ previewMotionError }}
                       </v-alert>
+
+                      <div class="workspace-preview-panel__footer">
+                        <div class="workspace-preview-panel__toolbar">
+                          <v-btn
+                            v-if="showFramePreviewAction"
+                            size="small"
+                            variant="tonal"
+                            color="info"
+                            prepend-icon="mdi-image-sync-outline"
+                            :loading="previewFrameBusy"
+                            :disabled="!canRefreshFramePreviewFromPanel"
+                            @click="requestFramePreviewFromPanel"
+                          >
+                            Update frame preview
+                          </v-btn>
+
+                          <v-btn
+                            v-if="showMotionPreviewAction"
+                            size="small"
+                            variant="tonal"
+                            color="secondary"
+                            prepend-icon="mdi-play-circle-outline"
+                            :loading="previewMotionBusy"
+                            :disabled="!canGenerateMotionPreviewFromPanel"
+                            @click="requestMotionPreviewFromPanel"
+                          >
+                            Generate motion preview
+                          </v-btn>
+
+                          <v-tooltip
+                            v-if="showPreviewDownloadAction"
+                            text="Download preview image"
+                            location="top"
+                          >
+                            <template #activator="{ props: tooltipProps }">
+                              <v-btn
+                                v-bind="tooltipProps"
+                                size="small"
+                                variant="tonal"
+                                icon
+                                color="primary"
+                                :disabled="!canDownloadPreviewImage"
+                                aria-label="Download preview image"
+                                @click="downloadPreviewImage"
+                              >
+                                <v-icon icon="mdi-file-download-outline" size="18" />
+                              </v-btn>
+                            </template>
+                          </v-tooltip>
+                        </div>
+                      </div>
                     </v-sheet>
                   </v-col>
                 </v-row>
@@ -3005,29 +2997,9 @@ onBeforeUnmount(() => {
   background: rgba(var(--v-theme-surface), 0.42);
 }
 
-.workspace-sticky-card {
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgba(var(--v-theme-surface), 0.88);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 18px 34px rgba(4, 8, 16, 0.18);
-  border-radius: 0 !important;
-}
-
-.workspace-sticky-card__body {
-  padding: 10px !important;
-}
-
-.workspace-sticky-card__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 2px;
-}
-
-.workspace-sticky-card__header > :first-child {
-  flex: 1 1 280px;
+.workspace-overview {
+  display: grid;
+  gap: 2px;
 }
 
 .workspace-header-copy {
@@ -3047,25 +3019,13 @@ onBeforeUnmount(() => {
   border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
 }
 
-.workspace-inline-setting {
-  min-height: 100%;
-  display: grid;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 0;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  background: rgba(var(--v-theme-surface), 0.32);
-}
-
-.workspace-inline-hint {
-  line-height: 1.25;
-}
-
 .workspace-body-grid {
   align-items: start;
 }
 
 .workspace-preview-panel {
+  display: flex;
+  flex-direction: column;
   background: rgba(var(--v-theme-surface), 0.38);
   border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
   border-radius: 0 !important;
@@ -3080,11 +3040,56 @@ onBeforeUnmount(() => {
   margin-bottom: 10px;
 }
 
-.workspace-preview-panel__actions {
+.workspace-preview-panel__helper {
+  max-width: 420px;
+  text-align: right;
+}
+
+.workspace-preview-settings {
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-surface), 0.24);
+}
+
+.workspace-preview-settings__grid {
+  row-gap: 2px;
+}
+
+.workspace-preview-settings__crop {
+  min-height: 100%;
   display: grid;
-  justify-items: end;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-surface), 0.28);
+}
+
+.workspace-preview-settings__crop-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  flex: 1 1 300px;
+}
+
+.workspace-preview-settings__crop-row :deep(.v-input) {
+  flex: 0 1 auto;
+}
+
+.workspace-preview-settings__crop-copy {
+  line-height: 1.25;
+}
+
+.workspace-preview-panel__surface {
+  flex: 1 1 auto;
+}
+
+.workspace-preview-panel__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .workspace-preview-panel__toolbar {
@@ -3092,11 +3097,6 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.workspace-preview-panel__helper {
-  max-width: 440px;
-  text-align: right;
 }
 
 .motion-preview-dialog {
@@ -3171,10 +3171,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 959px) {
-  .workspace-preview-panel__actions {
-    justify-items: start;
-  }
-
   .workspace-preview-panel__toolbar {
     justify-content: flex-start;
   }
@@ -3182,6 +3178,10 @@ onBeforeUnmount(() => {
   .workspace-preview-panel__helper {
     max-width: none;
     text-align: left;
+  }
+
+  .workspace-preview-panel__footer {
+    justify-content: flex-start;
   }
 
   .app-nav-target {
