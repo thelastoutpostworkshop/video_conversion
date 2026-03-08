@@ -3004,10 +3004,10 @@ onBeforeUnmount(() => {
 }
 
 .workspace-section {
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  border: none;
   border-radius: 0;
   background: rgba(var(--v-theme-surface), 0.42);
-  box-shadow: inset 3px 0 0 rgba(var(--v-theme-primary), 0.32);
+  box-shadow: none;
   padding: 14px;
 }
 
