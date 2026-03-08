@@ -13,6 +13,16 @@
           </div>
         </div>
         <v-spacer />
+        <v-btn
+          v-if="showHeaderSourceSelectAction"
+          size="small"
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-tray-arrow-up"
+          @click="openSourceFilePicker"
+        >
+          Choose another file
+        </v-btn>
         <v-chip v-if="isUsingPreviewProxy" size="small" variant="tonal" color="info">
           Using browser preview
         </v-chip>
@@ -491,6 +501,9 @@ const showGeneratePreviewProxyAction = computed(
 );
 const showReferenceTimeSlider = computed(
   () => canTrimSource.value && !hasScrubbablePlayback.value && hasKnownDuration.value
+);
+const showHeaderSourceSelectAction = computed(
+  () => Boolean(props.sourceFile) && canSelectSourceFile.value
 );
 const showSourceSelectAction = computed(() => canSelectSourceFile.value && !canRenderVideo.value);
 
