@@ -122,11 +122,17 @@
                         <v-row dense>
                           <v-col cols="12">
                             <v-text-field
-                              v-model="outputFileName"
+                              v-model="outputFileBaseName"
                               label="Output file name"
                               density="comfortable"
+                              hint="Extension is generated from the selected output format."
+                              persistent-hint
                               :disabled="processing"
-                            />
+                            >
+                              <template #append-inner>
+                                <span class="output-file-name-extension">.{{ outputFileExtension }}</span>
+                              </template>
+                            </v-text-field>
                           </v-col>
                         </v-row>
 
@@ -832,6 +838,7 @@ const workspaceRoundDisplay = computed(() => {
 });
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
+const outputFileExtension = computed(() => outputExtensionMap[outputFormat.value]);
 
 const formatDurationClock = (
   rawSeconds: number | null | undefined,
@@ -1804,6 +1811,29 @@ const fileBaseName = (name: string) => {
   return dotIndex > 0 ? name.slice(0, dotIndex) : name;
 };
 
+const extractOutputBaseName = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return fileBaseName(trimmed).trim();
+};
+
+const normalizeOutputBaseNameInput = (value: string, format: OutputFormat) => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const requiredExtension = `.${outputExtensionMap[format]}`;
+  if (trimmed.toLowerCase().endsWith(requiredExtension)) {
+    return trimmed.slice(0, trimmed.length - requiredExtension.length).trim();
+  }
+  return trimmed;
+};
+
+const buildOutputFileName = (baseName: string, format: OutputFormat) =>
+  `${normalizeOutputBaseNameInput(baseName, format) || "output"}.${outputExtensionMap[format]}`;
+
 const createPreviewFileName = () => {
   const sourceName = sourceFile.value?.name ?? "preview";
   const previewSeconds = Math.max(0, previewSecondModel.value);
@@ -1812,7 +1842,7 @@ const createPreviewFileName = () => {
 };
 
 const buildDefaultOutputName = (name: string, format: OutputFormat) =>
-  `${fileBaseName(name)}.${outputExtensionMap[format]}`;
+  buildOutputFileName(extractOutputBaseName(name), format);
 
 const ensureOutputFileName = (
   raw: string,
@@ -1820,17 +1850,33 @@ const ensureOutputFileName = (
   format: OutputFormat
 ) => {
   const fallback = buildDefaultOutputName(sourceName, format);
-  const trimmed = raw.trim();
-  if (!trimmed) {
+  const normalizedBaseName = normalizeOutputBaseNameInput(raw, format);
+  if (!normalizedBaseName) {
     return fallback;
   }
-  const requiredExt = `.${outputExtensionMap[format]}`;
-  if (trimmed.toLowerCase().endsWith(requiredExt)) {
-    return trimmed;
-  }
-  const base = fileBaseName(trimmed);
-  return `${base}${requiredExt}`;
+  return buildOutputFileName(normalizedBaseName, format);
 };
+
+const outputFileBaseName = computed({
+  get: () => {
+    const normalizedBaseName = extractOutputBaseName(outputFileName.value);
+    if (normalizedBaseName) {
+      return normalizedBaseName;
+    }
+    if (sourceFile.value) {
+      return fileBaseName(sourceFile.value.name);
+    }
+    return "";
+  },
+  set: (value: string) => {
+    const fallbackBaseName = sourceFile.value ? fileBaseName(sourceFile.value.name) : "output";
+    const normalizedBaseName = normalizeOutputBaseNameInput(value, outputFormat.value);
+    outputFileName.value = buildOutputFileName(
+      normalizedBaseName || fallbackBaseName,
+      outputFormat.value
+    );
+  },
+});
 
 const initializeFfmpeg = async (): Promise<boolean> => {
   if (ffmpegStatus.value === "ready") {
@@ -2816,7 +2862,9 @@ watch(outputFormat, (format) => {
     outputFileName.value = "";
     return;
   }
-  outputFileName.value = buildDefaultOutputName(sourceFile.value.name, format);
+  const currentBaseName = extractOutputBaseName(outputFileName.value);
+  const fallbackBaseName = fileBaseName(sourceFile.value.name);
+  outputFileName.value = buildOutputFileName(currentBaseName || fallbackBaseName, format);
 });
 
 watch(isVideoOutput, (isVideo) => {
@@ -3059,6 +3107,12 @@ onBeforeUnmount(() => {
 
 .workspace-preview-settings__crop-copy {
   line-height: 1.25;
+}
+
+.output-file-name-extension {
+  color: rgba(var(--v-theme-on-surface), 0.62);
+  font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .workspace-preview-panel__surface {
