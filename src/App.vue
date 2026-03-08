@@ -309,117 +309,98 @@
                   </v-col>
 
                   <v-col cols="12" lg="8">
-                    <div class="workspace-preview-stack">
-                      <v-sheet
-                        v-if="isVideoOutput"
-                        class="workspace-preview-panel pa-3"
-                        rounded="0"
-                        border
+                    <v-sheet class="workspace-preview-panel pa-3" rounded="0" border>
+                      <div class="workspace-preview-panel__header">
+                        <div>
+                          <div class="text-caption text-medium-emphasis">
+                            {{ activePreviewPanelTitle }}
+                          </div>
+                          <div class="text-body-2">
+                            {{ activePreviewPanelStatus }}
+                          </div>
+                        </div>
+
+                        <div class="workspace-preview-panel__actions">
+                          <v-btn-toggle
+                            v-if="isVideoOutput"
+                            v-model="previewDisplayMode"
+                            class="workspace-preview-mode-toggle"
+                            color="primary"
+                            density="compact"
+                            mandatory
+                            variant="outlined"
+                            divided
+                          >
+                            <v-btn value="frame" size="small">Still frame</v-btn>
+                            <v-btn value="motion" size="small">Motion</v-btn>
+                          </v-btn-toggle>
+
+                          <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
+                            {{ activePreviewPanelHelper }}
+                          </div>
+                        </div>
+                      </div>
+
+                      <PreviewMotionSurface
+                        v-if="isMotionPreviewMode"
+                        :preview-motion-url="previewMotionUrl"
+                        :preview-motion-busy="previewMotionBusy"
+                        :has-source-file="Boolean(sourceFile)"
+                        :is-video-source="isVideoSource"
+                        :is-video-output="isVideoOutput"
+                        :round-display="workspaceRoundDisplay"
+                        :target-width="previewTargetDimensions?.width ?? null"
+                        :target-height="previewTargetDimensions?.height ?? null"
+                      />
+
+                      <PreviewFrameSurface
+                        v-else
+                        :preview-frame-url="previewFrameUrl"
+                        :preview-frame-busy="previewFrameBusy"
+                        :has-source-file="Boolean(sourceFile)"
+                        :is-video-source="isVideoSource"
+                        :is-video-output="isVideoOutput"
+                        :round-display="workspaceRoundDisplay"
+                        :target-width="previewTargetDimensions?.width ?? null"
+                        :target-height="previewTargetDimensions?.height ?? null"
+                        :crop-enabled="customCropEnabled && supportsCustomCrop"
+                        :crop-rect="customCropRect"
+                        :crop-aspect-ratio="customCropTargetAspectRatio"
+                        :crop-interactive="
+                          customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
+                        "
+                        @update:crop-rect="onCustomCropRectUpdate"
+                        @update:crop-preview-applied="onCropPreviewAppliedUpdate"
+                      />
+
+                      <v-alert
+                        v-if="activePreviewPanelError"
+                        type="warning"
+                        variant="tonal"
+                        class="mt-3"
                       >
-                        <div class="workspace-preview-panel__header">
-                          <div>
-                            <div class="text-caption text-medium-emphasis">
-                              Processed motion preview
-                            </div>
-                            <div class="text-body-2">
-                              {{
-                                previewMotionStartSeconds === null ||
-                                previewMotionDurationSeconds === null
-                                  ? "Not generated"
-                                  : `${formatDurationClock(previewMotionStartSeconds, {
-                                      includeTenths: true,
-                                    })} for ${formatDurationClock(previewMotionDurationSeconds, {
-                                      includeTenths: true,
-                                    })}`
-                              }}
-                            </div>
-                          </div>
-                          <div class="text-caption text-medium-emphasis">
-                            Generate this from the trim player. It uses the current output crop,
-                            scale, and orientation settings.
-                          </div>
-                        </div>
+                        {{ activePreviewPanelError }}
+                      </v-alert>
 
-                        <PreviewMotionSurface
-                          :preview-motion-url="previewMotionUrl"
-                          :preview-motion-busy="previewMotionBusy"
-                          :has-source-file="Boolean(sourceFile)"
-                          :is-video-source="isVideoSource"
-                          :is-video-output="isVideoOutput"
-                          :round-display="workspaceRoundDisplay"
-                          :target-width="previewTargetDimensions?.width ?? null"
-                          :target-height="previewTargetDimensions?.height ?? null"
-                        />
-
-                        <v-alert
-                          v-if="previewMotionError"
-                          type="warning"
-                          variant="tonal"
-                          class="mt-3"
-                        >
-                          {{ previewMotionError }}
-                        </v-alert>
-                      </v-sheet>
-
-                      <v-sheet class="workspace-preview-panel pa-3" rounded="0" border>
-                        <div class="workspace-preview-panel__header">
-                          <div>
-                            <div class="text-caption text-medium-emphasis">
-                              {{ isVideoOutput ? "Processed still frame" : "Preview frame" }}
-                            </div>
-                            <div class="text-body-2">
-                              {{
-                                formatDurationClock(previewSecondModel, {
-                                  includeTenths: true,
-                                })
-                              }}
-                            </div>
-                          </div>
-                          <div class="text-caption text-medium-emphasis">
-                            Use "Update output frame" in the trim player to sync this still for
-                            crop and framing checks.
-                          </div>
-                        </div>
-
-                        <PreviewFrameSurface
-                          :preview-frame-url="previewFrameUrl"
-                          :preview-frame-busy="previewFrameBusy"
-                          :has-source-file="Boolean(sourceFile)"
-                          :is-video-source="isVideoSource"
-                          :is-video-output="isVideoOutput"
-                          :round-display="workspaceRoundDisplay"
-                          :target-width="previewTargetDimensions?.width ?? null"
-                          :target-height="previewTargetDimensions?.height ?? null"
-                          :crop-enabled="customCropEnabled && supportsCustomCrop"
-                          :crop-rect="customCropRect"
-                          :crop-aspect-ratio="customCropTargetAspectRatio"
-                          :crop-interactive="
-                            customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
-                          "
-                          @update:crop-rect="onCustomCropRectUpdate"
-                          @update:crop-preview-applied="onCropPreviewAppliedUpdate"
-                        />
-
-                        <div class="d-flex justify-end mt-3">
-                          <v-tooltip text="Download preview image" location="top">
-                            <template #activator="{ props: tooltipProps }">
-                              <v-btn
-                                v-bind="tooltipProps"
-                                size="small"
-                                variant="tonal"
-                                icon
-                                color="primary"
-                                :disabled="!canDownloadPreviewImage"
-                                aria-label="Download preview image"
-                                @click="downloadPreviewImage"
-                              >
-                                <v-icon icon="mdi-file-download-outline" size="18" />
-                              </v-btn>
-                            </template>
-                          </v-tooltip>
-                        </div>
-                      </v-sheet>
-                    </div>
+                      <div v-if="showPreviewDownloadAction" class="d-flex justify-end mt-3">
+                        <v-tooltip text="Download preview image" location="top">
+                          <template #activator="{ props: tooltipProps }">
+                            <v-btn
+                              v-bind="tooltipProps"
+                              size="small"
+                              variant="tonal"
+                              icon
+                              color="primary"
+                              :disabled="!canDownloadPreviewImage"
+                              aria-label="Download preview image"
+                              @click="downloadPreviewImage"
+                            >
+                              <v-icon icon="mdi-file-download-outline" size="18" />
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                      </div>
+                    </v-sheet>
                   </v-col>
                 </v-row>
 
@@ -470,14 +451,6 @@
                     class="mt-3"
                   >
                     {{ processingError }}
-                  </v-alert>
-                  <v-alert
-                    v-if="previewFrameError"
-                    type="warning"
-                    variant="tonal"
-                    class="mt-3"
-                  >
-                    {{ previewFrameError }}
                   </v-alert>
                 </v-sheet>
               </section>
@@ -615,6 +588,7 @@ type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
 type ProcessingProgressMode = "reliable" | "estimated";
 type ProcessingPhase = "idle" | "preparing" | "encoding" | "finalizing" | "packaging" | "complete";
+type PreviewDisplayMode = "frame" | "motion";
 
 interface PersistedBoardSelection {
   mode: TargetSetupMode;
@@ -765,6 +739,7 @@ const previewMotionBusy = ref(false);
 const previewMotionError = ref<string | null>(null);
 const previewMotionStartSeconds = ref<number | null>(null);
 const previewMotionDurationSeconds = ref<number | null>(null);
+const previewDisplayMode = ref<PreviewDisplayMode>("frame");
 const sourcePreviewProxyUrl = ref<string | null>(null);
 const sourcePreviewProxyBusy = ref(false);
 const sourcePreviewProxyError = ref<string | null>(null);
@@ -1877,6 +1852,50 @@ const previewSecondModel = computed<number>({
   },
 });
 
+const isMotionPreviewMode = computed(
+  () => isVideoOutput.value && previewDisplayMode.value === "motion"
+);
+
+const activePreviewPanelTitle = computed(() => {
+  if (isMotionPreviewMode.value) {
+    return "Processed motion preview";
+  }
+  return isVideoOutput.value ? "Processed still frame" : "Preview frame";
+});
+
+const activePreviewPanelStatus = computed(() => {
+  if (isMotionPreviewMode.value) {
+    if (
+      previewMotionStartSeconds.value === null ||
+      previewMotionDurationSeconds.value === null
+    ) {
+      return "Not generated";
+    }
+    return `${formatDurationClock(previewMotionStartSeconds.value, {
+      includeTenths: true,
+    })} for ${formatDurationClock(previewMotionDurationSeconds.value, {
+      includeTenths: true,
+    })}`;
+  }
+  return formatDurationClock(previewSecondModel.value, {
+    includeTenths: true,
+  });
+});
+
+const activePreviewPanelHelper = computed(() => {
+  if (isMotionPreviewMode.value) {
+    return "Generate this from the trim player. It uses the current output crop, scale, and orientation settings.";
+  }
+  if (!isVideoOutput.value) {
+    return "Switch to a video output format to inspect processed frames.";
+  }
+  return 'Use "Update output frame" in the trim player to sync this still for crop and framing checks.';
+});
+
+const activePreviewPanelError = computed(() =>
+  isMotionPreviewMode.value ? previewMotionError.value : previewFrameError.value
+);
+
 const initializePreviewAtMidpoint = () => {
   if (!initializePreviewAtMidpointPending.value || !hasPreviewSource.value) {
     return false;
@@ -2103,6 +2122,7 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
     previewMotionUrl.value = nextPreviewUrl;
     previewMotionStartSeconds.value = previewWindow.startSeconds;
     previewMotionDurationSeconds.value = previewWindow.durationSeconds;
+    previewDisplayMode.value = "motion";
   } catch (error) {
     if (requestId !== previewMotionGenerationId) {
       return;
@@ -2458,6 +2478,10 @@ const canDownloadPreviewImage = computed(
   () => Boolean(previewFrameUrl.value) && hasPreviewSource.value && !previewFrameBusy.value
 );
 
+const showPreviewDownloadAction = computed(
+  () => !isMotionPreviewMode.value && canDownloadPreviewImage.value
+);
+
 const shouldDownloadCroppedPreviewImage = computed(
   () =>
     customCropPreviewApplied.value &&
@@ -2682,6 +2706,7 @@ watch(sourceFile, (file) => {
   clearPreviewFrame();
   invalidatePreviewMotion();
   invalidateSourcePreviewProxy();
+  previewDisplayMode.value = "frame";
   initializePreviewAtMidpointPending.value = false;
   customCropEnabled.value = false;
   customCropRect.value = null;
@@ -2720,6 +2745,7 @@ watch(outputFormat, (format) => {
 
 watch(isVideoOutput, (isVideo) => {
   if (!isVideo) {
+    previewDisplayMode.value = "frame";
     initializePreviewAtMidpointPending.value = false;
     return;
   }
@@ -2946,11 +2972,6 @@ onBeforeUnmount(() => {
   align-items: start;
 }
 
-.workspace-preview-stack {
-  display: grid;
-  gap: 12px;
-}
-
 .workspace-preview-panel {
   background: rgba(var(--v-theme-surface), 0.38);
   border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
@@ -2966,8 +2987,18 @@ onBeforeUnmount(() => {
   margin-bottom: 10px;
 }
 
-.workspace-preview-panel__header > :last-child {
+.workspace-preview-panel__actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
   flex: 1 1 300px;
+}
+
+.workspace-preview-mode-toggle {
+  justify-self: end;
+}
+
+.workspace-preview-panel__helper {
   max-width: 440px;
   text-align: right;
 }
@@ -3024,7 +3055,15 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 959px) {
-  .workspace-preview-panel__header > :last-child {
+  .workspace-preview-panel__actions {
+    justify-items: start;
+  }
+
+  .workspace-preview-mode-toggle {
+    justify-self: start;
+  }
+
+  .workspace-preview-panel__helper {
     max-width: none;
     text-align: left;
   }
