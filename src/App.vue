@@ -155,6 +155,29 @@
                         </div>
 
                         <v-alert
+                          v-if="hasOutput"
+                          type="success"
+                          variant="tonal"
+                          class="mt-3"
+                        >
+                          <div class="d-flex flex-wrap align-center ga-2">
+                            <div class="text-body-2">
+                              Your output is ready. Download <strong>{{ outputFileName }}</strong>
+                              before you leave or refresh this page.
+                            </div>
+                            <v-spacer />
+                            <v-btn
+                              size="small"
+                              color="success"
+                              variant="flat"
+                              @click="downloadOutput"
+                            >
+                              Download now
+                            </v-btn>
+                          </div>
+                        </v-alert>
+
+                        <v-alert
                           v-if="processingError"
                           type="error"
                           variant="tonal"
@@ -594,6 +617,31 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="downloadReadyDialogOpen" max-width="520">
+      <v-card rounded="lg">
+        <v-card-title class="d-flex align-center ga-2">
+          <v-icon icon="mdi-check-circle" color="success" />
+          <span>Output ready to download</span>
+        </v-card-title>
+        <v-card-text>
+          <div class="text-body-2">
+            Your conversion finished successfully. Download
+            <strong>{{ outputFileName }}</strong> now so it does not get lost if you leave or
+            refresh this page.
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="downloadReadyDialogOpen = false">
+            Later
+          </v-btn>
+          <v-btn color="success" variant="flat" @click="downloadOutput">
+            Download now
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -770,6 +818,7 @@ const processingStartedAtMs = ref<number | null>(null);
 const processingLastActivityAtMs = ref<number | null>(null);
 const processingUiTick = ref(0);
 const processingError = ref<string | null>(null);
+const downloadReadyDialogOpen = ref(false);
 const logLines = ref<string[]>([]);
 
 let convertAbortController: AbortController | null = null;
@@ -1804,6 +1853,7 @@ const revokeUrlRef = (target: { value: string | null }) => {
 
 const clearOutput = () => {
   revokeUrlRef(outputFileUrl);
+  downloadReadyDialogOpen.value = false;
 };
 
 const fileBaseName = (name: string) => {
@@ -2547,6 +2597,7 @@ const runConversion = async () => {
     outputFileUrl.value = URL.createObjectURL(outputBlob);
     processingPhase.value = "complete";
     processingProgress.value = 100;
+    downloadReadyDialogOpen.value = true;
     appendLog(
       `[app] Output ready: ${finalName} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB)`
     );
@@ -2594,6 +2645,7 @@ const downloadOutput = () => {
   document.body.appendChild(link);
   link.click();
   link.remove();
+  downloadReadyDialogOpen.value = false;
 };
 
 const canDownloadPreviewImage = computed(
