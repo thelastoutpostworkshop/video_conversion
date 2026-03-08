@@ -92,38 +92,6 @@
                           conversion settings here.
                         </div>
                       </div>
-
-                      <v-sheet
-                        v-if="hasBoardSelection"
-                        class="preview-board-context px-3 py-2"
-                        rounded="0"
-                        border
-                      >
-                        <div class="d-flex align-center flex-wrap ga-2">
-                          <div class="d-flex align-center ga-2">
-                            <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
-                            <span class="text-caption text-medium-emphasis">Target display</span>
-                          </div>
-                          <v-chip
-                            color="info"
-                            variant="tonal"
-                            size="small"
-                            class="preview-board-chip"
-                          >
-                            {{ workspaceBoardSummary }}
-                          </v-chip>
-                          <v-spacer />
-                          <v-btn
-                            size="small"
-                            variant="tonal"
-                            prepend-icon="mdi-view-grid-outline"
-                            :disabled="processing"
-                            @click="navigateToView('boards')"
-                          >
-                            Change board
-                          </v-btn>
-                        </div>
-                      </v-sheet>
                     </div>
 
                     <v-row dense>
@@ -309,6 +277,38 @@
 
                   <v-col cols="12" lg="8">
                     <v-sheet class="workspace-preview-panel pa-3" rounded="0" border>
+                      <v-sheet
+                        v-if="hasBoardSelection"
+                        class="preview-board-context preview-board-context--panel px-3 py-2 mb-3"
+                        rounded="0"
+                        border
+                      >
+                        <div class="d-flex align-center flex-wrap ga-2">
+                          <div class="d-flex align-center ga-2">
+                            <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
+                            <span class="text-caption text-medium-emphasis">Target display</span>
+                          </div>
+                          <v-chip
+                            color="info"
+                            variant="tonal"
+                            size="small"
+                            class="preview-board-chip"
+                          >
+                            {{ workspaceBoardSummary }}
+                          </v-chip>
+                          <v-spacer />
+                          <v-btn
+                            size="small"
+                            variant="tonal"
+                            prepend-icon="mdi-view-grid-outline"
+                            :disabled="processing"
+                            @click="navigateToView('boards')"
+                          >
+                            Change board
+                          </v-btn>
+                        </div>
+                      </v-sheet>
+
                       <div class="workspace-preview-panel__header">
                         <div>
                           <div class="text-caption text-medium-emphasis">
@@ -2974,6 +2974,10 @@ onBeforeUnmount(() => {
   border-radius: 0 !important;
 }
 
+.preview-board-context--panel {
+  background: rgba(var(--v-theme-surface), 0.42);
+}
+
 .workspace-sticky-card {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
   background: rgba(var(--v-theme-surface), 0.88);
@@ -2997,10 +3001,6 @@ onBeforeUnmount(() => {
 
 .workspace-sticky-card__header > :first-child {
   flex: 1 1 280px;
-}
-
-.workspace-sticky-card__header > .preview-board-context {
-  flex: 1 1 320px;
 }
 
 .workspace-header-copy {
