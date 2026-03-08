@@ -2920,9 +2920,6 @@ onBeforeUnmount(() => {
 }
 
 .workspace-sticky-card {
-  position: sticky;
-  top: 88px;
-  z-index: 5;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
   background: rgba(var(--v-theme-surface), 0.88);
   backdrop-filter: blur(14px);
@@ -3071,10 +3068,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 959px) {
-  .workspace-sticky-card {
-    position: static;
-  }
-
   .workspace-preview-panel__header > :last-child {
     max-width: none;
     text-align: left;
