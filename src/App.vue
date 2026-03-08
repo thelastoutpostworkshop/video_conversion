@@ -107,7 +107,57 @@
                       @commit-start-time-input="onStartTimeInputCommit"
                       @commit-end-time-input="onEndTimeInputCommit"
                       @duration-detected="onTrimPlayerDurationDetected"
-                    />
+                    >
+                      <template #footer>
+                        <div id="section-export" class="app-nav-target" />
+                        <div class="step-heading mb-2">
+                          <div class="text-subtitle-1 font-weight-medium">
+                            Convert and download
+                          </div>
+                          <div class="text-caption text-medium-emphasis">
+                            Launch conversion, monitor progress, and download the output file.
+                          </div>
+                        </div>
+
+                        <v-row dense>
+                          <v-col cols="12">
+                            <v-text-field
+                              v-model="outputFileName"
+                              label="Output file name"
+                              density="comfortable"
+                              :disabled="processing"
+                            />
+                          </v-col>
+                        </v-row>
+
+                        <div class="d-flex flex-wrap ga-2">
+                          <v-btn
+                            color="primary"
+                            :loading="processing"
+                            :disabled="!canConvert"
+                            @click="runConversion"
+                          >
+                            {{ processing ? "Converting..." : "Convert" }}
+                          </v-btn>
+                          <v-btn
+                            color="success"
+                            :disabled="!hasOutput"
+                            @click="downloadOutput"
+                          >
+                            Download output
+                          </v-btn>
+                        </div>
+
+                        <v-alert
+                          v-if="processingError"
+                          type="error"
+                          variant="tonal"
+                          class="mt-3"
+                        >
+                          {{ processingError }}
+                        </v-alert>
+                      </template>
+                    </TrimVideoPlayer>
                   </v-col>
 
                   <v-col cols="12" lg="8">
@@ -369,55 +419,6 @@
                   </v-col>
                 </v-row>
 
-                <v-sheet class="workspace-subsection mt-4 pa-3" rounded="0" border>
-                  <div id="section-export" class="app-nav-target" />
-                  <div class="step-heading mb-2">
-                    <div class="text-subtitle-1 font-weight-medium">
-                      Convert and download
-                    </div>
-                    <div class="text-caption text-medium-emphasis">
-                      Launch conversion, monitor progress, and download the output file.
-                    </div>
-                  </div>
-
-                  <v-row dense>
-                    <v-col cols="12">
-                      <v-text-field
-                        v-model="outputFileName"
-                        label="Output file name"
-                        density="comfortable"
-                        :disabled="processing"
-                      />
-                    </v-col>
-                  </v-row>
-
-                  <div class="d-flex flex-wrap ga-2">
-                    <v-btn
-                      color="primary"
-                      :loading="processing"
-                      :disabled="!canConvert"
-                      @click="runConversion"
-                    >
-                      {{ processing ? "Converting..." : "Convert" }}
-                    </v-btn>
-                    <v-btn
-                      color="success"
-                      :disabled="!hasOutput"
-                      @click="downloadOutput"
-                    >
-                      Download output
-                    </v-btn>
-                  </div>
-
-                  <v-alert
-                    v-if="processingError"
-                    type="error"
-                    variant="tonal"
-                    class="mt-3"
-                  >
-                    {{ processingError }}
-                  </v-alert>
-                </v-sheet>
               </section>
             </div>
             <v-card
@@ -3006,11 +3007,6 @@ onBeforeUnmount(() => {
   background: rgba(var(--v-theme-surface), 0.42);
   box-shadow: none;
   padding: 14px;
-}
-
-.workspace-subsection {
-  background: rgba(var(--v-theme-surface), 0.36);
-  border-color: rgba(var(--v-theme-on-surface), 0.1) !important;
 }
 
 .workspace-body-grid {

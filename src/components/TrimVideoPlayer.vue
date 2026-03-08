@@ -256,12 +256,16 @@
           </v-col>
         </v-row>
       </div>
+
+      <div v-if="slots.footer" class="trim-player-footer mt-3">
+        <slot name="footer" />
+      </div>
     </v-card-text>
   </v-card>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, useSlots, watch } from "vue";
 
 type PlaybackState = "idle" | "loading" | "ready" | "failed";
 
@@ -309,6 +313,8 @@ const emit = defineEmits<{
   (event: "commit-start-time-input"): void;
   (event: "commit-end-time-input"): void;
 }>();
+
+const slots = useSlots();
 
 const videoRef = ref<HTMLVideoElement | null>(null);
 const sourceFileInputRef = ref<HTMLInputElement | null>(null);
@@ -994,6 +1000,11 @@ onBeforeUnmount(() => {
 
 .trim-player-manual-fields__copy {
   line-height: 1.25;
+}
+
+.trim-player-footer {
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  padding-top: 12px;
 }
 
 .trim-player-slider {
