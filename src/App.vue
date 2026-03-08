@@ -348,20 +348,7 @@
                         </div>
                       </div>
 
-                      <PreviewMotionSurface
-                        v-if="isShowingMotionPreview"
-                        :preview-motion-url="previewMotionUrl"
-                        :preview-motion-busy="previewMotionBusy"
-                        :has-source-file="Boolean(sourceFile)"
-                        :is-video-source="isVideoSource"
-                        :is-video-output="isVideoOutput"
-                        :round-display="workspaceRoundDisplay"
-                        :target-width="previewTargetDimensions?.width ?? null"
-                        :target-height="previewTargetDimensions?.height ?? null"
-                      />
-
                       <PreviewFrameSurface
-                        v-else
                         :preview-frame-url="previewFrameUrl"
                         :preview-frame-busy="previewFrameBusy"
                         :has-source-file="Boolean(sourceFile)"
@@ -390,7 +377,7 @@
                       </v-alert>
 
                       <v-alert
-                        v-if="previewMotionError && !isShowingMotionPreview"
+                        v-if="previewMotionError && !motionPreviewDialogOpen"
                         type="warning"
                         variant="tonal"
                         class="mt-3"
@@ -505,6 +492,78 @@
         </v-row>
       </v-container>
     </v-main>
+
+    <v-dialog v-model="motionPreviewDialogOpen" max-width="980">
+      <v-card class="motion-preview-dialog" rounded="0">
+        <v-card-title class="motion-preview-dialog__header">
+          <div>
+            <div class="text-overline text-medium-emphasis">Motion preview</div>
+            <div class="text-subtitle-2">{{ motionPreviewDialogStatus }}</div>
+          </div>
+
+          <v-spacer />
+
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            aria-label="Close motion preview"
+            @click="motionPreviewDialogOpen = false"
+          />
+        </v-card-title>
+
+        <v-card-text class="motion-preview-dialog__body">
+          <v-sheet
+            v-if="hasBoardSelection"
+            class="preview-board-context preview-board-context--panel px-3 py-2 mb-3"
+            rounded="0"
+            border
+          >
+            <div class="d-flex align-center flex-wrap ga-2">
+              <div class="d-flex align-center ga-2">
+                <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
+                <span class="text-caption text-medium-emphasis">Target display</span>
+              </div>
+              <v-chip color="info" variant="tonal" size="small" class="preview-board-chip">
+                {{ workspaceBoardSummary }}
+              </v-chip>
+              <v-chip
+                v-if="customCropEnabled && supportsCustomCrop"
+                size="small"
+                variant="tonal"
+                color="secondary"
+              >
+                Custom crop applied
+              </v-chip>
+            </div>
+          </v-sheet>
+
+          <div class="text-caption text-medium-emphasis mb-3 motion-preview-dialog__helper">
+            Uses the current trim window, output sizing, orientation, and custom crop settings.
+          </div>
+
+          <PreviewMotionSurface
+            :preview-motion-url="previewMotionUrl"
+            :preview-motion-busy="previewMotionBusy"
+            :has-source-file="Boolean(sourceFile)"
+            :is-video-source="isVideoSource"
+            :is-video-output="isVideoOutput"
+            :round-display="workspaceRoundDisplay"
+            :target-width="previewTargetDimensions?.width ?? null"
+            :target-height="previewTargetDimensions?.height ?? null"
+          />
+
+          <v-alert
+            v-if="previewMotionError"
+            type="warning"
+            variant="tonal"
+            class="mt-3"
+          >
+            {{ previewMotionError }}
+          </v-alert>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
     <v-dialog :model-value="processing" persistent max-width="560">
       <v-card rounded="lg">
@@ -735,6 +794,7 @@ const previewMotionBusy = ref(false);
 const previewMotionError = ref<string | null>(null);
 const previewMotionStartSeconds = ref<number | null>(null);
 const previewMotionDurationSeconds = ref<number | null>(null);
+const motionPreviewDialogOpen = ref(false);
 const trimPlayerCurrentSeconds = ref(0);
 const sourcePreviewProxyUrl = ref<string | null>(null);
 const sourcePreviewProxyBusy = ref(false);
@@ -1866,53 +1926,42 @@ const previewSecondModel = computed<number>({
   },
 });
 
-const isShowingMotionPreview = computed(
-  () => previewMotionBusy.value || Boolean(previewMotionUrl.value)
-);
-
 const activePreviewPanelTitle = computed(() => {
-  if (isShowingMotionPreview.value) {
-    return "Processed motion preview";
-  }
   return isVideoOutput.value ? "Processed still frame" : "Preview frame";
 });
 
 const activePreviewPanelStatus = computed(() => {
-  if (isShowingMotionPreview.value) {
-    if (
-      previewMotionStartSeconds.value === null ||
-      previewMotionDurationSeconds.value === null
-    ) {
-      return previewMotionBusy.value ? "Generating..." : "Not generated";
-    }
-    return `${formatDurationClock(previewMotionStartSeconds.value, {
-      includeTenths: true,
-    })} for ${formatDurationClock(previewMotionDurationSeconds.value, {
-      includeTenths: true,
-    })}`;
-  }
   return formatDurationClock(previewSecondModel.value, {
     includeTenths: true,
   });
 });
 
 const activePreviewPanelHelper = computed(() => {
-  if (isShowingMotionPreview.value) {
-    return 'Generate motion from the current trim playhead here. Use "Update frame preview" to switch back to still framing checks.';
-  }
   if (!isVideoOutput.value) {
     return "Switch to a video output format to inspect processed frames.";
   }
   return 'This still preview follows the trim playhead and trim times automatically. Use "Update frame preview" to resync it to the current playhead on demand.';
 });
 
-const activePreviewPanelError = computed(() =>
-  isShowingMotionPreview.value ? previewMotionError.value : previewFrameError.value
-);
+const activePreviewPanelError = computed(() => previewFrameError.value);
 
 const showFramePreviewAction = computed(() => hasPreviewSource.value);
 
 const showMotionPreviewAction = computed(() => hasPreviewSource.value);
+
+const motionPreviewDialogStatus = computed(() => {
+  if (
+    previewMotionStartSeconds.value === null ||
+    previewMotionDurationSeconds.value === null
+  ) {
+    return previewMotionBusy.value ? "Generating..." : "Not generated";
+  }
+  return `${formatDurationClock(previewMotionStartSeconds.value, {
+    includeTenths: true,
+  })} for ${formatDurationClock(previewMotionDurationSeconds.value, {
+    includeTenths: true,
+  })}`;
+});
 
 const initializePreviewAtMidpoint = () => {
   if (!initializePreviewAtMidpointPending.value || !hasPreviewSource.value) {
@@ -1955,7 +2004,6 @@ const syncOutputPreviewToTime = (seconds: number) => {
   if (!hasPreviewSource.value) {
     return;
   }
-  invalidatePreviewMotion();
   previewSecondModel.value = seconds;
   schedulePreviewFrameRefresh(50);
 };
@@ -2058,6 +2106,7 @@ const clearPreviewMotion = () => {
   previewMotionError.value = null;
   previewMotionStartSeconds.value = null;
   previewMotionDurationSeconds.value = null;
+  motionPreviewDialogOpen.value = false;
 };
 
 const invalidatePreviewMotion = () => {
@@ -2177,6 +2226,7 @@ const requestMotionPreviewFromPanel = () => {
   if (!canGenerateMotionPreviewFromPanel.value) {
     return;
   }
+  motionPreviewDialogOpen.value = true;
   void generateMotionPreviewFromPlayer(trimPlayerCurrentSeconds.value);
 };
 
@@ -2525,7 +2575,7 @@ const canDownloadPreviewImage = computed(
 );
 
 const showPreviewDownloadAction = computed(
-  () => !isShowingMotionPreview.value && canDownloadPreviewImage.value
+  () => canDownloadPreviewImage.value
 );
 
 const shouldDownloadCroppedPreviewImage = computed(
@@ -3049,6 +3099,26 @@ onBeforeUnmount(() => {
 .workspace-preview-panel__helper {
   max-width: 440px;
   text-align: right;
+}
+
+.motion-preview-dialog {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: rgba(var(--v-theme-surface), 0.96);
+}
+
+.motion-preview-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 0;
+}
+
+.motion-preview-dialog__body {
+  padding-top: 12px !important;
+}
+
+.motion-preview-dialog__helper {
+  max-width: 520px;
 }
 
 .section-target-grid {
