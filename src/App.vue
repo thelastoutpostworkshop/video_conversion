@@ -53,9 +53,9 @@
     </v-app-bar>
 
     <v-main class="app-main">
-      <v-container class="py-6">
-        <v-row justify="center">
-          <v-col cols="12" xl="10">
+      <v-container fluid class="app-main-container py-6">
+        <v-row class="app-main-row">
+          <v-col cols="12" class="app-main-column">
             <BoardCatalog
               v-if="activeView === 'boards'"
               :presets="BOARD_PRESETS"
@@ -2950,6 +2950,20 @@ onBeforeUnmount(() => {
     );
 }
 
+.app-main-container {
+  max-width: none !important;
+  padding-left: 8px !important;
+  padding-right: 18px !important;
+}
+
+.app-main-row {
+  margin: 0 !important;
+}
+
+.app-main-column {
+  padding: 0 !important;
+}
+
 .app-navigation {
   border-right: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
@@ -3171,6 +3185,11 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 959px) {
+  .app-main-container {
+    padding-left: 6px !important;
+    padding-right: 12px !important;
+  }
+
   .workspace-preview-panel__toolbar {
     justify-content: flex-start;
   }
