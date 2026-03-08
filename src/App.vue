@@ -339,20 +339,6 @@
                                 </v-btn>
                               </template>
                             </v-tooltip>
-
-                            <v-btn-toggle
-                              v-if="isVideoOutput"
-                              v-model="previewDisplayMode"
-                              class="workspace-preview-mode-toggle"
-                              color="primary"
-                              density="compact"
-                              mandatory
-                              variant="outlined"
-                              divided
-                            >
-                              <v-btn value="frame" size="small">Still frame</v-btn>
-                              <v-btn value="motion" size="small">Motion</v-btn>
-                            </v-btn-toggle>
                           </div>
 
                           <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
@@ -362,7 +348,7 @@
                       </div>
 
                       <PreviewMotionSurface
-                        v-if="isMotionPreviewMode"
+                        v-if="isShowingMotionPreview"
                         :preview-motion-url="previewMotionUrl"
                         :preview-motion-busy="previewMotionBusy"
                         :has-source-file="Boolean(sourceFile)"
@@ -400,6 +386,15 @@
                         class="mt-3"
                       >
                         {{ activePreviewPanelError }}
+                      </v-alert>
+
+                      <v-alert
+                        v-if="previewMotionError && !isShowingMotionPreview"
+                        type="warning"
+                        variant="tonal"
+                        class="mt-3"
+                      >
+                        {{ previewMotionError }}
                       </v-alert>
                     </v-sheet>
                   </v-col>
@@ -589,7 +584,6 @@ type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
 type ProcessingProgressMode = "reliable" | "estimated";
 type ProcessingPhase = "idle" | "preparing" | "encoding" | "finalizing" | "packaging" | "complete";
-type PreviewDisplayMode = "frame" | "motion";
 
 interface PersistedBoardSelection {
   mode: TargetSetupMode;
@@ -740,7 +734,6 @@ const previewMotionBusy = ref(false);
 const previewMotionError = ref<string | null>(null);
 const previewMotionStartSeconds = ref<number | null>(null);
 const previewMotionDurationSeconds = ref<number | null>(null);
-const previewDisplayMode = ref<PreviewDisplayMode>("frame");
 const trimPlayerCurrentSeconds = ref(0);
 const sourcePreviewProxyUrl = ref<string | null>(null);
 const sourcePreviewProxyBusy = ref(false);
@@ -1854,24 +1847,24 @@ const previewSecondModel = computed<number>({
   },
 });
 
-const isMotionPreviewMode = computed(
-  () => isVideoOutput.value && previewDisplayMode.value === "motion"
+const isShowingMotionPreview = computed(
+  () => previewMotionBusy.value || Boolean(previewMotionUrl.value)
 );
 
 const activePreviewPanelTitle = computed(() => {
-  if (isMotionPreviewMode.value) {
+  if (isShowingMotionPreview.value) {
     return "Processed motion preview";
   }
   return isVideoOutput.value ? "Processed still frame" : "Preview frame";
 });
 
 const activePreviewPanelStatus = computed(() => {
-  if (isMotionPreviewMode.value) {
+  if (isShowingMotionPreview.value) {
     if (
       previewMotionStartSeconds.value === null ||
       previewMotionDurationSeconds.value === null
     ) {
-      return "Not generated";
+      return previewMotionBusy.value ? "Generating..." : "Not generated";
     }
     return `${formatDurationClock(previewMotionStartSeconds.value, {
       includeTenths: true,
@@ -1885,8 +1878,8 @@ const activePreviewPanelStatus = computed(() => {
 });
 
 const activePreviewPanelHelper = computed(() => {
-  if (isMotionPreviewMode.value) {
-    return "Generate this from the preview toolbar using the current trim playhead. It uses the current output crop, scale, and orientation settings.";
+  if (isShowingMotionPreview.value) {
+    return 'Generate motion from the current trim playhead here. Use "Update frame preview" to switch back to still framing checks.';
   }
   if (!isVideoOutput.value) {
     return "Switch to a video output format to inspect processed frames.";
@@ -1895,16 +1888,12 @@ const activePreviewPanelHelper = computed(() => {
 });
 
 const activePreviewPanelError = computed(() =>
-  isMotionPreviewMode.value ? previewMotionError.value : previewFrameError.value
+  isShowingMotionPreview.value ? previewMotionError.value : previewFrameError.value
 );
 
-const showFramePreviewAction = computed(
-  () => !isMotionPreviewMode.value && hasPreviewSource.value
-);
+const showFramePreviewAction = computed(() => hasPreviewSource.value);
 
-const showMotionPreviewAction = computed(
-  () => isMotionPreviewMode.value && hasPreviewSource.value
-);
+const showMotionPreviewAction = computed(() => hasPreviewSource.value);
 
 const initializePreviewAtMidpoint = () => {
   if (!initializePreviewAtMidpointPending.value || !hasPreviewSource.value) {
@@ -1959,7 +1948,7 @@ const requestFramePreviewFromPanel = () => {
   if (!canRefreshFramePreviewFromPanel.value) {
     return;
   }
-  previewDisplayMode.value = "frame";
+  invalidatePreviewMotion();
   syncOutputPreviewToTime(trimPlayerCurrentSeconds.value);
 };
 
@@ -2111,21 +2100,21 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
   const file = sourceFile.value;
   if (!file || !isVideoSource.value || !isVideoOutput.value) {
     previewMotionError.value = "Select a video file to generate a motion preview.";
-    return;
+    return false;
   }
   if (processing.value || previewFrameBusy.value || previewJobsBusy.value) {
-    return;
+    return false;
   }
 
   const previewWindow = resolveMotionPreviewWindow(seconds);
   if (!previewWindow) {
     previewMotionError.value = "Select at least 0.5 seconds in the trim range to preview motion.";
-    return;
+    return false;
   }
 
   const ready = await initializeFfmpeg();
   if (!ready) {
-    return;
+    return false;
   }
 
   const requestId = ++previewMotionGenerationId;
@@ -2148,13 +2137,14 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
     previewMotionUrl.value = nextPreviewUrl;
     previewMotionStartSeconds.value = previewWindow.startSeconds;
     previewMotionDurationSeconds.value = previewWindow.durationSeconds;
-    previewDisplayMode.value = "motion";
+    return true;
   } catch (error) {
     if (requestId !== previewMotionGenerationId) {
-      return;
+      return false;
     }
     previewMotionError.value =
       error instanceof Error ? error.message : "Failed to generate motion preview.";
+    return false;
   } finally {
     previewMotionBusy.value = false;
   }
@@ -2516,7 +2506,7 @@ const canDownloadPreviewImage = computed(
 );
 
 const showPreviewDownloadAction = computed(
-  () => !isMotionPreviewMode.value && canDownloadPreviewImage.value
+  () => !isShowingMotionPreview.value && canDownloadPreviewImage.value
 );
 
 const shouldDownloadCroppedPreviewImage = computed(
@@ -2743,7 +2733,6 @@ watch(sourceFile, (file) => {
   clearPreviewFrame();
   invalidatePreviewMotion();
   invalidateSourcePreviewProxy();
-  previewDisplayMode.value = "frame";
   trimPlayerCurrentSeconds.value = 0;
   initializePreviewAtMidpointPending.value = false;
   customCropEnabled.value = false;
@@ -2783,7 +2772,6 @@ watch(outputFormat, (format) => {
 
 watch(isVideoOutput, (isVideo) => {
   if (!isVideo) {
-    previewDisplayMode.value = "frame";
     trimPlayerCurrentSeconds.value = 0;
     initializePreviewAtMidpointPending.value = false;
     return;
@@ -3039,10 +3027,6 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.workspace-preview-mode-toggle {
-  justify-self: end;
-}
-
 .workspace-preview-panel__helper {
   max-width: 440px;
   text-align: right;
@@ -3106,10 +3090,6 @@ onBeforeUnmount(() => {
 
   .workspace-preview-panel__toolbar {
     justify-content: flex-start;
-  }
-
-  .workspace-preview-mode-toggle {
-    justify-self: start;
   }
 
   .workspace-preview-panel__helper {
