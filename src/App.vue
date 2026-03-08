@@ -80,14 +80,6 @@
               <section class="workspace-section">
                 <div id="section-source" class="app-nav-target" />
 
-                <div class="workspace-overview mb-3">
-                  <div class="text-subtitle-2 font-weight-medium">Workspace</div>
-                  <div class="text-caption text-medium-emphasis workspace-header-copy">
-                    Drop or click a source file in the trim preview, then tune conversion settings
-                    and inspect processed output on the right.
-                  </div>
-                </div>
-
                 <v-row dense class="workspace-body-grid">
                   <v-col cols="12" lg="4">
                     <TrimVideoPlayer
@@ -3009,15 +3001,6 @@ onBeforeUnmount(() => {
 
 .preview-board-context--panel {
   background: rgba(var(--v-theme-surface), 0.42);
-}
-
-.workspace-overview {
-  display: grid;
-  gap: 2px;
-}
-
-.workspace-header-copy {
-  max-width: 540px;
 }
 
 .workspace-section {
