@@ -136,7 +136,7 @@
                           </v-col>
                         </v-row>
 
-                        <div class="d-flex flex-wrap ga-2">
+                        <div class="d-flex flex-wrap ga-2 mt-2">
                           <v-btn
                             color="primary"
                             :loading="processing"
@@ -144,13 +144,6 @@
                             @click="runConversion"
                           >
                             {{ processing ? "Converting..." : "Convert" }}
-                          </v-btn>
-                          <v-btn
-                            color="success"
-                            :disabled="!hasOutput"
-                            @click="downloadOutput"
-                          >
-                            Download output
                           </v-btn>
                         </div>
 
