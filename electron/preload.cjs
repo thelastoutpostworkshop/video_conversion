@@ -7,6 +7,7 @@ const mediaJobEventChannel = "media:job-event";
 const mediaPickSourceFileChannel = "media:pick-source-file";
 const mediaPickSavePathChannel = "media:pick-save-path";
 const mediaRevealPathChannel = "media:reveal-path";
+const mediaPlayMotionPreviewChannel = "media:play-motion-preview";
 
 const subscriptions = new Map();
 
@@ -43,6 +44,7 @@ contextBridge.exposeInMainWorld("electronMedia", {
   pickSavePath: (request) => ipcRenderer.invoke(mediaPickSavePathChannel, request),
   revealPath: (targetPath) =>
     ipcRenderer.invoke(mediaRevealPathChannel, { path: targetPath }),
+  playMotionPreview: (request) => ipcRenderer.invoke(mediaPlayMotionPreviewChannel, request),
   subscribeToJobEvents,
   unsubscribeFromJobEvents,
 });

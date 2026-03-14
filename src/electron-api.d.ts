@@ -1,4 +1,4 @@
-import type { MediaProgressInfo } from "@/services/MediaProcessingService";
+import type { MediaProgressInfo, VideoTranscodeOptions } from "@/services/MediaProcessingService";
 
 interface ElectronMediaEventPayload {
   jobId: string;
@@ -38,6 +38,29 @@ interface ElectronPickSavePathResult {
   path: string | null;
 }
 
+interface ElectronSerializedInputFile {
+  name: string;
+  type: string;
+  lastModified: number;
+  data?: ArrayBuffer;
+  path?: string;
+}
+
+interface ElectronPlayMotionPreviewRequest {
+  file: ElectronSerializedInputFile;
+  options?: Pick<
+    VideoTranscodeOptions,
+    | "width"
+    | "height"
+    | "orientation"
+    | "scaleMode"
+    | "cropRegion"
+    | "fps"
+    | "startSeconds"
+    | "durationSeconds"
+  >;
+}
+
 interface ElectronMediaBridge {
   isElectron: boolean;
   checkAvailability(): Promise<ElectronMediaAvailabilityResult>;
@@ -46,6 +69,7 @@ interface ElectronMediaBridge {
   pickSourceFile(): Promise<ElectronPickSourceFileResult>;
   pickSavePath(request: ElectronPickSavePathRequest): Promise<ElectronPickSavePathResult>;
   revealPath(targetPath: string): Promise<{ ok: boolean }>;
+  playMotionPreview(request: ElectronPlayMotionPreviewRequest): Promise<{ ok: boolean }>;
   subscribeToJobEvents(callback: (event: ElectronMediaEventPayload) => void): string;
   unsubscribeFromJobEvents(subscriptionId: string): void;
 }

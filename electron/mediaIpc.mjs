@@ -9,6 +9,7 @@ import {
   mediaCancelJobChannel,
   mediaCheckAvailabilityChannel,
   mediaJobEventChannel,
+  mediaPlayMotionPreviewChannel,
   mediaPickSavePathChannel,
   mediaPickSourceFileChannel,
   mediaRevealPathChannel,
@@ -18,6 +19,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRootDir = path.resolve(__dirname, "..");
 const activeJobs = new Map();
+const activeMotionPreviewPlayers = new Set();
 let handlersRegistered = false;
 let resolvedNativeToolPathsPromise = null;
 
@@ -502,6 +504,20 @@ const buildJobDefinition = (action, options = {}) => {
   throw new Error(`Unsupported media action: ${action}`);
 };
 
+const buildMotionPreviewFilter = (options = {}) => {
+  const filterParts = [];
+  const previewFps =
+    typeof options.fps === "number" && options.fps > 0
+      ? Math.max(1, Math.min(15, Math.round(options.fps)))
+      : 12;
+  filterParts.push(`fps=${previewFps}`);
+  const filter = buildVideoFilter(options);
+  if (filter) {
+    filterParts.push(filter);
+  }
+  return filterParts.length > 0 ? filterParts.join(",") : null;
+};
+
 const resolveExpectedDurationSeconds = async (job, inputPath, fileName, webContents) => {
   const trim = resolveTrimWindowArgs(job.options ?? {});
   if (typeof trim.durationSeconds === "number" && trim.durationSeconds > 0) {
@@ -679,6 +695,68 @@ const executeMediaJob = async (job, webContents) => {
   }
 };
 
+const playMotionPreview = async (request) => {
+  const toolPaths = await resolveNativeToolPaths();
+  if (!toolPaths.ffplayPath) {
+    throw new Error("Bundled ffplay is not available in the Electron runtime.");
+  }
+
+  const workspaceDir = await createTempWorkspace();
+  let workspaceCleanedUp = false;
+  const cleanupWorkspace = async () => {
+    if (workspaceCleanedUp) {
+      return;
+    }
+    workspaceCleanedUp = true;
+    await rm(workspaceDir, { recursive: true, force: true });
+  };
+
+  try {
+    const inputPath = await writeSerializedInputFile(workspaceDir, request.file);
+    const trim = resolveTrimWindowArgs(request.options ?? {});
+    const ffplayArgs = ["-autoexit", "-window_title", "Video Conversion Studio Motion Preview"];
+    ffplayArgs.push(...trim.preInputArgs);
+    if (isMjpegInput(request.file.name)) {
+      ffplayArgs.push("-f", "mjpeg");
+    }
+    ffplayArgs.push("-i", inputPath, "-an");
+    ffplayArgs.push(...trim.postInputArgs);
+
+    const filter = buildMotionPreviewFilter(request.options ?? {});
+    if (filter) {
+      ffplayArgs.push("-vf", filter);
+    }
+
+    const child = spawn(toolPaths.ffplayPath, ffplayArgs, {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: false,
+    });
+    activeMotionPreviewPlayers.add(child);
+
+    child.once("close", () => {
+      activeMotionPreviewPlayers.delete(child);
+      void cleanupWorkspace();
+    });
+    child.once("error", (error) => {
+      activeMotionPreviewPlayers.delete(child);
+      void cleanupWorkspace();
+      console.error("[electron] Failed to launch ffplay motion preview", error);
+    });
+
+    await new Promise((resolve, reject) => {
+      child.once("spawn", resolve);
+      child.once("error", reject);
+    });
+
+    child.unref();
+    return { ok: true };
+  } catch (error) {
+    await cleanupWorkspace();
+    throw error;
+  }
+};
+
 const toSerializableError = (error) =>
   error instanceof Error
     ? { message: error.message, stack: error.stack }
@@ -757,6 +835,15 @@ export const registerMediaIpcHandlers = () => {
       const fallbackDir = path.dirname(payload.path);
       await shell.openPath(fallbackDir);
       return { ok: true };
+    }
+  });
+
+  ipcMain.handle(mediaPlayMotionPreviewChannel, async (_event, request) => {
+    try {
+      await ensureNativeFfmpegAvailable();
+      return await playMotionPreview(request);
+    } catch (error) {
+      throw toSerializableError(error);
     }
   });
 

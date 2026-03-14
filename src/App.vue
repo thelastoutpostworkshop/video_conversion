@@ -430,7 +430,7 @@
                               :disabled="!canGenerateMotionPreviewFromPanel"
                               @click="requestMotionPreviewFromPanel"
                             >
-                              Generate motion preview
+                              {{ motionPreviewActionLabel }}
                             </v-btn>
 
                             <v-tooltip
@@ -663,7 +663,7 @@ import type {
   VideoScaleMode,
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
-import { registerElectronFilePath } from "@/services/electronFileRegistry";
+import { getElectronFilePath, registerElectronFilePath } from "@/services/electronFileRegistry";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 import { getMediaBackendLabel, isElectronRuntime } from "@/services/runtimeEnvironment";
 import { usePreviewFrame } from "@/composables/usePreviewFrame";
@@ -944,10 +944,10 @@ const outputSecondaryActionLabel = computed(() =>
   outputSavedPath.value ? "Close" : "Later"
 );
 const outputWorkflowHeading = computed(() =>
-  isElectronApp ? "Convert and save" : "Convert and download"
+  isElectronApp.value ? "Convert and save" : "Convert and download"
 );
 const outputWorkflowDescription = computed(() =>
-  isElectronApp
+  isElectronApp.value
     ? "Launch conversion, monitor progress, and save the output file directly to disk."
     : "Launch conversion, monitor progress, and download the output file."
 );
@@ -1420,6 +1420,17 @@ const navigateToView = (viewId: AppNavigationId) => {
 };
 
 const getElectronMediaApi = () => window.electronMedia ?? null;
+
+const serializeElectronInputFile = async (
+  file: File
+): Promise<ElectronSerializedInputFile> => ({
+  name: file.name,
+  type: file.type,
+  lastModified: file.lastModified,
+  ...(getElectronFilePath(file)
+    ? { path: getElectronFilePath(file) ?? undefined }
+    : { data: await file.arrayBuffer() }),
+});
 
 const tryRegisterNativeFilePath = (file: File) => {
   const maybePath = (file as File & { path?: unknown }).path;
@@ -2251,6 +2262,9 @@ const activePreviewPanelHelper = computed(() => {
   if (!isVideoOutput.value) {
     return "Switch to a video output format to inspect the converted result.";
   }
+  if (isElectronApp.value) {
+    return 'This preview mirrors the trim playhead on the left. Use "Open motion preview" to launch ffplay with the current trim window and display settings.';
+  }
   return 'This preview mirrors the trim playhead on the left. Use "Update frame preview" to resync it to the current playhead on demand.';
 });
 
@@ -2259,6 +2273,10 @@ const activePreviewPanelError = computed(() => previewFrameError.value);
 const showFramePreviewAction = computed(() => hasPreviewSource.value);
 
 const showMotionPreviewAction = computed(() => hasPreviewSource.value);
+
+const motionPreviewActionLabel = computed(() =>
+  isElectronApp.value ? "Open motion preview" : "Generate motion preview"
+);
 
 const motionPreviewDialogStatus = computed(() => {
   if (
@@ -2475,6 +2493,26 @@ const buildMotionPreviewOptions = (
   return options;
 };
 
+const openMotionPreviewInFfplay = async (file: File, options: VideoTranscodeOptions) => {
+  const electronMedia = getElectronMediaApi();
+  if (!electronMedia) {
+    throw new Error("Electron media bridge is not available.");
+  }
+  await electronMedia.playMotionPreview({
+    file: await serializeElectronInputFile(file),
+    options: {
+      width: options.width,
+      height: options.height,
+      orientation: options.orientation,
+      scaleMode: options.scaleMode,
+      cropRegion: options.cropRegion,
+      fps: options.fps,
+      startSeconds: options.startSeconds,
+      durationSeconds: options.durationSeconds,
+    },
+  });
+};
+
 const generateMotionPreviewFromPlayer = async (seconds: number) => {
   const file = sourceFile.value;
   if (!file || !isVideoSource.value || !isVideoOutput.value) {
@@ -2501,9 +2539,19 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
   previewMotionError.value = null;
 
   try {
+    const motionPreviewOptions = buildMotionPreviewOptions(
+      previewWindow.startSeconds,
+      previewWindow.durationSeconds
+    );
+    if (isElectronApp.value) {
+      clearPreviewMotion();
+      await openMotionPreviewInFfplay(file, motionPreviewOptions);
+      appendLog("[app] Opened motion preview in ffplay.");
+      return true;
+    }
     const result = await mediaProcessingService.renderVideoMotionPreview(
       file,
-      buildMotionPreviewOptions(previewWindow.startSeconds, previewWindow.durationSeconds),
+      motionPreviewOptions,
       appendLog
     );
     if (requestId !== previewMotionGenerationId) {
@@ -2535,6 +2583,11 @@ const canGenerateMotionPreviewFromPanel = computed(
 
 const requestMotionPreviewFromPanel = () => {
   if (!canGenerateMotionPreviewFromPanel.value) {
+    return;
+  }
+  if (isElectronApp.value) {
+    motionPreviewDialogOpen.value = false;
+    void generateMotionPreviewFromPlayer(trimPlayerCurrentSeconds.value);
     return;
   }
   motionPreviewDialogOpen.value = true;
