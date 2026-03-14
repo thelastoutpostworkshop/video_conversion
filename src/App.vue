@@ -215,118 +215,16 @@
                       <div class="workspace-preview-panel__header mb-3">
                         <div class="workspace-preview-panel__header-copy">
                           <div class="workspace-preview-panel__title">
-                            Step 2 - Output preview
+                            Step 2 - Conversion settings
                           </div>
                           <div class="text-body-2 text-medium-emphasis">
-                            This is the converted result for the current frame with the active
-                            display settings.
+                            Tune the converted result first, then use the preview below to inspect
+                            the current frame.
                           </div>
                         </div>
                       </div>
 
-                      <div class="workspace-preview-panel__surface">
-                        <PreviewFrameSurface
-                          :preview-frame-url="previewFrameUrl"
-                          :preview-frame-busy="previewFrameBusy"
-                          :has-source-file="Boolean(sourceFile)"
-                          :is-video-source="isVideoSource"
-                          :is-video-output="isVideoOutput"
-                          :round-display="workspaceRoundDisplay"
-                          :target-width="previewTargetDimensions?.width ?? null"
-                          :target-height="previewTargetDimensions?.height ?? null"
-                          :crop-enabled="customCropEnabled && supportsCustomCrop"
-                          :crop-rect="customCropRect"
-                          :crop-aspect-ratio="customCropTargetAspectRatio"
-                          :crop-interactive="
-                            customCropEnabled && supportsCustomCrop && !processing && !previewFrameBusy
-                          "
-                          @update:crop-rect="onCustomCropRectUpdate"
-                          @update:crop-preview-applied="onCropPreviewAppliedUpdate"
-                        />
-                      </div>
-
-                      <v-alert
-                        v-if="activePreviewPanelError"
-                        type="warning"
-                        variant="tonal"
-                        class="mt-3"
-                      >
-                        {{ activePreviewPanelError }}
-                      </v-alert>
-
-                      <v-alert
-                        v-if="previewMotionError && !motionPreviewDialogOpen"
-                        type="warning"
-                        variant="tonal"
-                        class="mt-3"
-                      >
-                        {{ previewMotionError }}
-                      </v-alert>
-
-                      <div class="workspace-preview-panel__footer">
-                        <div class="workspace-preview-panel__meta">
-                          <div class="text-caption text-medium-emphasis">
-                            {{ activePreviewPanelTitle }}
-                          </div>
-                          <div class="text-body-2">
-                            {{ activePreviewPanelStatus }}
-                          </div>
-                          <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
-                            {{ activePreviewPanelHelper }}
-                          </div>
-                        </div>
-
-                        <div class="workspace-preview-panel__toolbar">
-                          <v-btn
-                            v-if="showFramePreviewAction"
-                            size="small"
-                            variant="tonal"
-                            color="info"
-                            prepend-icon="mdi-image-sync-outline"
-                            :loading="previewFrameBusy"
-                            :disabled="!canRefreshFramePreviewFromPanel"
-                            @click="requestFramePreviewFromPanel"
-                          >
-                            Update frame preview
-                          </v-btn>
-
-                          <v-btn
-                            v-if="showMotionPreviewAction"
-                            size="small"
-                            variant="tonal"
-                            color="secondary"
-                            prepend-icon="mdi-play-circle-outline"
-                            :loading="previewMotionBusy"
-                            :disabled="!canGenerateMotionPreviewFromPanel"
-                            @click="requestMotionPreviewFromPanel"
-                          >
-                            Generate motion preview
-                          </v-btn>
-
-                          <v-tooltip
-                            v-if="showPreviewDownloadAction"
-                            text="Download preview image"
-                            location="top"
-                          >
-                            <template #activator="{ props: tooltipProps }">
-                              <v-btn
-                                v-bind="tooltipProps"
-                                size="small"
-                                variant="tonal"
-                                icon
-                                color="primary"
-                                :disabled="!canDownloadPreviewImage"
-                                aria-label="Download preview image"
-                                @click="downloadPreviewImage"
-                              >
-                                <v-icon icon="mdi-file-download-outline" size="18" />
-                              </v-btn>
-                            </template>
-                          </v-tooltip>
-                        </div>
-                      </div>
-
-                      <div class="workspace-preview-settings mt-3">
+                      <div class="workspace-preview-settings">
                         <div class="workspace-section-label mb-1">Output settings</div>
                         <div class="text-caption text-medium-emphasis workspace-preview-settings__intro mb-3">
                           Tune the converted result: format, orientation, sizing, crop, and playback
@@ -449,6 +347,115 @@
                           {{ trimValidationMessage }}
                         </v-alert>
                       </div>
+
+                      <div class="workspace-preview-panel__preview mt-4">
+                        <div class="workspace-section-label">Preview</div>
+
+                        <div class="workspace-preview-panel__surface">
+                          <PreviewFrameSurface
+                            :preview-frame-url="previewFrameUrl"
+                            :preview-frame-busy="previewFrameBusy"
+                            :has-source-file="Boolean(sourceFile)"
+                            :is-video-source="isVideoSource"
+                            :is-video-output="isVideoOutput"
+                            :round-display="workspaceRoundDisplay"
+                            :target-width="previewTargetDimensions?.width ?? null"
+                            :target-height="previewTargetDimensions?.height ?? null"
+                            :crop-enabled="customCropEnabled && supportsCustomCrop"
+                            :crop-rect="customCropRect"
+                            :crop-aspect-ratio="customCropTargetAspectRatio"
+                            :crop-interactive="
+                              customCropEnabled &&
+                              supportsCustomCrop &&
+                              !processing &&
+                              !previewFrameBusy
+                            "
+                            @update:crop-rect="onCustomCropRectUpdate"
+                            @update:crop-preview-applied="onCropPreviewAppliedUpdate"
+                          />
+                        </div>
+
+                        <v-alert
+                          v-if="activePreviewPanelError"
+                          type="warning"
+                          variant="tonal"
+                        >
+                          {{ activePreviewPanelError }}
+                        </v-alert>
+
+                        <v-alert
+                          v-if="previewMotionError && !motionPreviewDialogOpen"
+                          type="warning"
+                          variant="tonal"
+                        >
+                          {{ previewMotionError }}
+                        </v-alert>
+
+                        <div class="workspace-preview-panel__footer">
+                          <div class="workspace-preview-panel__meta">
+                            <div class="workspace-preview-panel__meta-summary">
+                              <div class="workspace-section-label">
+                                {{ activePreviewPanelTitle }}
+                              </div>
+                              <div class="text-body-2 workspace-preview-panel__meta-status">
+                                {{ activePreviewPanelStatus }}
+                              </div>
+                            </div>
+                            <div class="text-caption text-medium-emphasis workspace-preview-panel__helper">
+                              {{ activePreviewPanelHelper }}
+                            </div>
+                          </div>
+
+                          <div class="workspace-preview-panel__toolbar">
+                            <v-btn
+                              v-if="showFramePreviewAction"
+                              size="small"
+                              variant="tonal"
+                              color="info"
+                              prepend-icon="mdi-image-sync-outline"
+                              :loading="previewFrameBusy"
+                              :disabled="!canRefreshFramePreviewFromPanel"
+                              @click="requestFramePreviewFromPanel"
+                            >
+                              Update frame preview
+                            </v-btn>
+
+                            <v-btn
+                              v-if="showMotionPreviewAction"
+                              size="small"
+                              variant="tonal"
+                              color="secondary"
+                              prepend-icon="mdi-play-circle-outline"
+                              :loading="previewMotionBusy"
+                              :disabled="!canGenerateMotionPreviewFromPanel"
+                              @click="requestMotionPreviewFromPanel"
+                            >
+                              Generate motion preview
+                            </v-btn>
+
+                            <v-tooltip
+                              v-if="showPreviewDownloadAction"
+                              text="Download preview image"
+                              location="top"
+                            >
+                              <template #activator="{ props: tooltipProps }">
+                                <v-btn
+                                  v-bind="tooltipProps"
+                                  size="small"
+                                  variant="tonal"
+                                  icon
+                                  color="primary"
+                                  :disabled="!canDownloadPreviewImage"
+                                  aria-label="Download preview image"
+                                  @click="downloadPreviewImage"
+                              >
+                                <v-icon icon="mdi-file-download-outline" size="18" />
+                              </v-btn>
+                            </template>
+                          </v-tooltip>
+                        </div>
+                      </div>
+                    </div>
                     </v-sheet>
                   </v-col>
                 </v-row>
@@ -3452,9 +3459,9 @@ onBeforeUnmount(() => {
 }
 
 .workspace-preview-settings {
-  padding: 10px 12px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  background: rgba(var(--v-theme-surface), 0.24);
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: rgba(var(--v-theme-surface), 0.3);
 }
 
 .workspace-preview-settings__intro {
@@ -3501,22 +3508,38 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
 }
 
+.workspace-preview-panel__preview {
+  display: grid;
+  gap: 12px;
+}
+
 .workspace-preview-panel__footer {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-surface), 0.18);
 }
 
 .workspace-preview-panel__meta {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   flex: 1 1 280px;
   min-width: 0;
+}
+
+.workspace-preview-panel__meta-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.workspace-preview-panel__meta-status {
+  font-weight: 600;
 }
 
 .workspace-preview-panel__toolbar {
