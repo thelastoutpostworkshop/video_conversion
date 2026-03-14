@@ -217,18 +217,10 @@
                           <div class="workspace-preview-panel__title">
                             Conversion settings
                           </div>
-                          <div class="text-body-2 text-medium-emphasis">
-                            Tune the converted result first, then use the preview below to inspect
-                            the current frame.
-                          </div>
                         </div>
                       </div>
 
                       <div class="workspace-preview-settings">
-                        <div class="workspace-section-label mb-1">Output settings</div>
-                        <div class="text-caption text-medium-emphasis workspace-preview-settings__intro mb-3">
-                          Set format, orientation, size, crop, and quality.
-                        </div>
 
                         <v-row density="comfortable" class="workspace-preview-settings__grid">
                           <v-col cols="12" md="4">
