@@ -215,7 +215,7 @@
                       <div class="workspace-preview-panel__header mb-3">
                         <div class="workspace-preview-panel__header-copy">
                           <div class="workspace-preview-panel__title">
-                            Step 2 - Conversion settings
+                            Conversion settings
                           </div>
                           <div class="text-body-2 text-medium-emphasis">
                             Tune the converted result first, then use the preview below to inspect

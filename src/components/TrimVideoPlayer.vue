@@ -7,7 +7,7 @@
     <v-card-text class="trim-player-card__body">
       <div class="d-flex align-center flex-wrap ga-2 trim-player-card__header">
         <div>
-          <div class="trim-player-card__title">Step 1 - Source media</div>
+          <div class="trim-player-card__title">Source media</div>
           <div class="text-caption text-medium-emphasis">
             Choose the original file and set trim points before converting.
           </div>
