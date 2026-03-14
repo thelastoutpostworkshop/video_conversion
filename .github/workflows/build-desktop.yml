@@ -25,7 +25,7 @@ jobs:
             runner: ubuntu-latest
             artifact_name: video-conversion-studio-linux-x64
           - name: macOS Intel
-            runner: macos-13
+            runner: macos-15-intel
             artifact_name: video-conversion-studio-macos-x64
           - name: macOS Apple Silicon
             runner: macos-14
@@ -33,10 +33,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -80,7 +80,7 @@ jobs:
         run: npm run electron:build
 
       - name: Upload packaged app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}
           path: dist-electron/**
