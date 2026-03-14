@@ -227,8 +227,7 @@
                       <div class="workspace-preview-settings">
                         <div class="workspace-section-label mb-1">Output settings</div>
                         <div class="text-caption text-medium-emphasis workspace-preview-settings__intro mb-3">
-                          Tune the converted result: format, orientation, sizing, crop, and playback
-                          quality.
+                          Set format, orientation, size, crop, and quality.
                         </div>
 
                         <v-row density="comfortable" class="workspace-preview-settings__grid">
@@ -1351,23 +1350,22 @@ const activeCustomCropRegion = computed<VideoCropRegion | null>(() => {
 
 const customCropSummary = computed(() => {
   const region = activeCustomCropRegion.value;
-  const dimensions = orientedSourceDimensions.value;
-  if (!region || !dimensions) {
-    return "Drag and resize the crop box in the preview area.";
+  if (!region) {
+    return "Adjust the crop box in the preview.";
   }
-  return `${region.width}x${region.height} at (${region.x}, ${region.y}) on ${dimensions.width}x${dimensions.height}`;
+  return `Crop: ${region.width}x${region.height} at ${region.x}, ${region.y}`;
 });
 
 const canResetCustomCrop = computed(() => Boolean(supportsCustomCrop.value && customCropRect.value));
 
 const customCropHint = computed(() => {
   if (scaleMode.value !== "fill") {
-    return "Set Scale mode to Fill (crop) to enable manual crop-box selection.";
+    return "Use Fill (crop) to enable custom crop.";
   }
   if (!supportsCustomCrop.value) {
-    return "Load a video and keep a custom target size selected to enable custom crop controls.";
+    return "Load a video and use a custom target size.";
   }
-  return "Enable custom crop, then drag or resize the overlay box in the preview.";
+  return "Turn on custom crop, then adjust the box in the preview.";
 });
 
 const canConvert = computed(() => {
@@ -3535,7 +3533,7 @@ onBeforeUnmount(() => {
 }
 
 .workspace-preview-settings__intro {
-  max-width: 560px;
+  max-width: none;
   line-height: 1.35;
 }
 
