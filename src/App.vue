@@ -43,6 +43,28 @@
         Video Conversion Studio
       </v-toolbar-title>
       <v-spacer />
+      <div v-if="hasBoardSelection" class="app-bar-display mr-2">
+        <div class="app-bar-display__label text-caption text-medium-emphasis">Display</div>
+        <v-chip
+          color="info"
+          variant="tonal"
+          size="small"
+          class="app-bar-display__chip"
+        >
+          {{ workspaceBoardSummary }}
+        </v-chip>
+        <v-btn
+          v-if="activeView !== 'boards'"
+          size="small"
+          variant="tonal"
+          prepend-icon="mdi-view-grid-outline"
+          :disabled="processing"
+          class="app-bar-display__action"
+          @click="navigateToView('boards')"
+        >
+          Change board
+        </v-btn>
+      </div>
       <v-btn
         :icon="themeToggleIcon"
         variant="text"
@@ -190,43 +212,11 @@
                             Step 2 - Output preview
                           </div>
                           <div class="text-body-2 text-medium-emphasis">
-                            This is the converted result for the current frame on the selected
-                            display.
+                            This is the converted result for the current frame with the active
+                            display settings.
                           </div>
                         </div>
                       </div>
-
-                      <v-sheet
-                        v-if="hasBoardSelection"
-                        class="preview-board-context preview-board-context--panel px-3 py-2 mb-3"
-                        rounded="0"
-                        border
-                      >
-                        <div class="d-flex align-center flex-wrap ga-2">
-                          <div class="d-flex align-center ga-2">
-                            <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
-                            <span class="text-caption text-medium-emphasis">Selected display</span>
-                          </div>
-                          <v-chip
-                            color="info"
-                            variant="tonal"
-                            size="small"
-                            class="preview-board-chip"
-                          >
-                            {{ workspaceBoardSummary }}
-                          </v-chip>
-                          <v-spacer />
-                          <v-btn
-                            size="small"
-                            variant="tonal"
-                            prepend-icon="mdi-view-grid-outline"
-                            :disabled="processing"
-                            @click="navigateToView('boards')"
-                          >
-                            Change board
-                          </v-btn>
-                        </div>
-                      </v-sheet>
 
                       <div class="workspace-preview-panel__surface">
                         <PreviewFrameSurface
@@ -533,33 +523,17 @@
         </v-card-title>
 
         <v-card-text class="motion-preview-dialog__body">
-          <v-sheet
-            v-if="hasBoardSelection"
-            class="preview-board-context preview-board-context--panel px-3 py-2 mb-3"
-            rounded="0"
-            border
+          <div
+            v-if="customCropEnabled && supportsCustomCrop"
+            class="motion-preview-dialog__context mb-3"
           >
-            <div class="d-flex align-center flex-wrap ga-2">
-              <div class="d-flex align-center ga-2">
-                <v-icon icon="mdi-monitor-dashboard" size="18" color="info" />
-                <span class="text-caption text-medium-emphasis">Selected display</span>
-              </div>
-              <v-chip color="info" variant="tonal" size="small" class="preview-board-chip">
-                {{ workspaceBoardSummary }}
-              </v-chip>
-              <v-chip
-                v-if="customCropEnabled && supportsCustomCrop"
-                size="small"
-                variant="tonal"
-                color="secondary"
-              >
-                Custom crop applied
-              </v-chip>
-            </div>
-          </v-sheet>
+            <v-chip size="small" variant="tonal" color="secondary">
+              Custom crop applied
+            </v-chip>
+          </div>
 
           <div class="text-caption text-medium-emphasis mb-3 motion-preview-dialog__helper">
-            Uses the current trim window, output sizing, orientation, and custom crop settings.
+            Uses the current trim window and the active display settings.
           </div>
 
           <PreviewMotionSurface
@@ -3248,6 +3222,35 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(10px);
 }
 
+.app-bar-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.app-bar-display__label {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.app-bar-display__chip {
+  min-width: 0;
+  max-width: min(420px, 38vw);
+  border-radius: 0 !important;
+}
+
+.app-bar-display__chip :deep(.v-chip__content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-bar-display__action {
+  white-space: nowrap;
+}
+
 .resources-title {
   font-size: 0.78rem;
   font-weight: 700;
@@ -3262,22 +3265,6 @@ onBeforeUnmount(() => {
 .step-heading {
   display: grid;
   gap: 2px;
-}
-
-.preview-board-context {
-  min-height: 40px;
-  background: rgba(var(--v-theme-surface), 0.48);
-  border-color: rgba(var(--v-theme-on-surface), 0.12) !important;
-  border-radius: 0 !important;
-}
-
-.preview-board-chip {
-  font-weight: 600;
-  border-radius: 0 !important;
-}
-
-.preview-board-context--panel {
-  background: rgba(var(--v-theme-surface), 0.42);
 }
 
 .workspace-section {
@@ -3419,6 +3406,12 @@ onBeforeUnmount(() => {
   max-width: 520px;
 }
 
+.motion-preview-dialog__context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .section-target-grid {
   row-gap: 4px;
 }
@@ -3476,6 +3469,19 @@ onBeforeUnmount(() => {
     padding-right: 12px !important;
   }
 
+  .app-bar-display__label {
+    display: none;
+  }
+
+  .app-bar-display__chip {
+    max-width: min(220px, 48vw);
+  }
+
+  .app-bar-display__action {
+    min-width: auto;
+    padding-inline: 10px !important;
+  }
+
   .workspace-preview-panel__toolbar {
     justify-content: flex-start;
   }
@@ -3496,10 +3502,6 @@ onBeforeUnmount(() => {
 
   .app-nav-target {
     scroll-margin-top: 84px;
-  }
-
-  .preview-board-context .v-btn {
-    width: 100%;
   }
 }
 </style>
