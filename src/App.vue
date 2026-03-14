@@ -706,8 +706,13 @@ interface PersistedCustomBoardDraft {
 
 interface PersistedConversionPreferences {
   outputFormat: OutputFormat;
+}
+
+interface PersistedDisplayConversionSettings {
   orientation: VideoOrientation;
   scaleMode: VideoScaleMode;
+  fps: number | null;
+  quality: number | null;
 }
 
 interface NormalizedCropRect {
@@ -766,6 +771,7 @@ const themeStorageKey = "video-conversion.theme.v1";
 const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
 const boardSelectionStorageKey = "video-conversion.board-selection.v1";
 const customBoardDraftStorageKey = "video-conversion.custom-board-draft.v1";
+const displayConversionSettingsStorageKey = "video-conversion.display-settings.v1";
 
 const outputExtensionMap: Record<OutputFormat, string> = {
   gif: "gif",
@@ -779,6 +785,13 @@ const outputMimeMap: Record<OutputFormat, string> = {
   mjpeg: "video/x-motion-jpeg",
   avi: "video/x-msvideo",
   mp3: "audio/mpeg",
+};
+
+const defaultDisplayConversionSettings: PersistedDisplayConversionSettings = {
+  orientation: "none",
+  scaleMode: "fit",
+  fps: 20,
+  quality: 5,
 };
 
 const outputFileUrl = ref<string | null>(null);
@@ -893,6 +906,23 @@ const workspaceRoundDisplay = computed(() => {
     return customBoardRoundDisplay.value;
   }
   return false;
+});
+
+const currentDisplaySettingsKey = computed(() => {
+  if (targetSetupMode.value === "preset" && selectedBoardPreset.value) {
+    return `preset:${selectedBoardPreset.value.id}`;
+  }
+  if (
+    targetSetupMode.value === "custom" &&
+    hasCustomBoardDimensions.value &&
+    width.value &&
+    height.value
+  ) {
+    return `custom:${Math.round(width.value)}x${Math.round(height.value)}:${
+      customBoardRoundDisplay.value ? "round" : "rect"
+    }`;
+  }
+  return null;
 });
 
 const hasOutput = computed(() => Boolean(outputFileUrl.value));
@@ -1394,14 +1424,122 @@ const isVideoScaleMode = (value: unknown): value is VideoScaleMode =>
 const isOutputFormat = (value: unknown): value is OutputFormat =>
   value === "gif" || value === "mjpeg" || value === "avi" || value === "mp3";
 
+const parsePersistedNullableNumber = (value: unknown): number | null | "invalid" => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  return "invalid";
+};
+
+const normalizePersistedDisplayConversionSettings = (
+  value: unknown
+): PersistedDisplayConversionSettings | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const parsed = value as Record<string, unknown>;
+  const orientationValue = parsed.orientation;
+  const scaleModeValue = parsed.scaleMode;
+  const fpsValue = parsePersistedNullableNumber(parsed.fps);
+  const qualityValue = parsePersistedNullableNumber(parsed.quality);
+  if (
+    !isVideoOrientation(orientationValue) ||
+    !isVideoScaleMode(scaleModeValue) ||
+    fpsValue === "invalid" ||
+    qualityValue === "invalid"
+  ) {
+    return null;
+  }
+  return {
+    orientation: orientationValue,
+    scaleMode: scaleModeValue,
+    fps: fpsValue,
+    quality: qualityValue,
+  };
+};
+
+const loadPersistedDisplayConversionSettingsMap = (): Record<
+  string,
+  PersistedDisplayConversionSettings
+> => {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  try {
+    const raw = window.localStorage.getItem(displayConversionSettingsStorageKey);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const normalized: Record<string, PersistedDisplayConversionSettings> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      const settings = normalizePersistedDisplayConversionSettings(value);
+      if (settings) {
+        normalized[key] = settings;
+      }
+    }
+    return normalized;
+  } catch {
+    return {};
+  }
+};
+
+const loadPersistedDisplayConversionSettings = (
+  key: string | null
+): PersistedDisplayConversionSettings | null => {
+  if (!key) {
+    return null;
+  }
+  const settings = loadPersistedDisplayConversionSettingsMap()[key];
+  return settings ?? null;
+};
+
+const persistDisplayConversionSettings = (
+  key: string,
+  settings: PersistedDisplayConversionSettings
+) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const persistedSettings = loadPersistedDisplayConversionSettingsMap();
+    persistedSettings[key] = settings;
+    window.localStorage.setItem(
+      displayConversionSettingsStorageKey,
+      JSON.stringify(persistedSettings)
+    );
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
+const applyDisplayConversionSettings = (settings: PersistedDisplayConversionSettings) => {
+  orientation.value = settings.orientation;
+  scaleMode.value = settings.scaleMode;
+  fps.value = settings.fps;
+  quality.value = settings.quality;
+};
+
+let suppressDisplaySettingsPersistence = false;
+
+const withDisplaySettingsPersistenceSuppressed = (callback: () => void) => {
+  suppressDisplaySettingsPersistence = true;
+  try {
+    callback();
+  } finally {
+    suppressDisplaySettingsPersistence = false;
+  }
+};
+
 const persistConversionPreferences = () => {
   if (typeof window === "undefined") {
     return;
   }
   const preferences: PersistedConversionPreferences = {
     outputFormat: outputFormat.value,
-    orientation: orientation.value,
-    scaleMode: scaleMode.value,
   };
   try {
     window.localStorage.setItem(
@@ -1424,19 +1562,11 @@ const loadPersistedConversionPreferences = (): PersistedConversionPreferences | 
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const outputFormatValue = parsed.outputFormat;
-    const orientationValue = parsed.orientation;
-    const scaleModeValue = parsed.scaleMode;
-    if (
-      !isOutputFormat(outputFormatValue) ||
-      !isVideoOrientation(orientationValue) ||
-      !isVideoScaleMode(scaleModeValue)
-    ) {
+    if (!isOutputFormat(outputFormatValue)) {
       return null;
     }
     return {
       outputFormat: outputFormatValue,
-      orientation: orientationValue,
-      scaleMode: scaleModeValue,
     };
   } catch {
     return null;
@@ -1604,7 +1734,27 @@ const applySelectedBoardPreset = (
   if (!preset) {
     return;
   }
-  applyTargetProfile(preset, options);
+  const persistedSettings = loadPersistedDisplayConversionSettings(
+    currentDisplaySettingsKey.value
+  );
+  withDisplaySettingsPersistenceSuppressed(() => {
+    applyTargetProfile(preset, options);
+    if (persistedSettings) {
+      applyDisplayConversionSettings(persistedSettings);
+    }
+  });
+};
+
+const applySelectedCustomDisplaySettings = () => {
+  const key = currentDisplaySettingsKey.value;
+  if (!key) {
+    return;
+  }
+  const persistedSettings =
+    loadPersistedDisplayConversionSettings(key) ?? defaultDisplayConversionSettings;
+  withDisplaySettingsPersistenceSuppressed(() => {
+    applyDisplayConversionSettings(persistedSettings);
+  });
 };
 
 const selectBoardFromCatalog = (presetId: string) => {
@@ -1640,6 +1790,7 @@ const selectCustomBoard = () => {
   targetSetupMode.value = "custom";
   width.value = Math.max(1, Math.round(customBoardWidth.value));
   height.value = Math.max(1, Math.round(customBoardHeight.value));
+  applySelectedCustomDisplaySettings();
   persistBoardSelection();
   appendLog(
     `[app] Using custom board target ${width.value}x${height.value}${
@@ -2779,9 +2930,29 @@ watch(
   { immediate: true }
 );
 
-watch([outputFormat, orientation, scaleMode], () => {
+watch(outputFormat, () => {
   persistConversionPreferences();
 });
+
+watch(
+  [orientation, scaleMode, fps, quality],
+  () => {
+    if (suppressDisplaySettingsPersistence) {
+      return;
+    }
+    const key = currentDisplaySettingsKey.value;
+    if (!key) {
+      return;
+    }
+    persistDisplayConversionSettings(key, {
+      orientation: orientation.value,
+      scaleMode: scaleMode.value,
+      fps: fps.value,
+      quality: quality.value,
+    });
+  },
+  { flush: "sync" }
+);
 
 watch(
   () => [
@@ -2961,6 +3132,7 @@ watch([width, height, customBoardRoundDisplay], () => {
   if (targetSetupMode.value !== "custom") {
     return;
   }
+  applySelectedCustomDisplaySettings();
   persistBoardSelection();
 });
 
@@ -3016,8 +3188,6 @@ onMounted(() => {
   const persistedPreferences = loadPersistedConversionPreferences();
   if (persistedPreferences) {
     outputFormat.value = persistedPreferences.outputFormat;
-    orientation.value = persistedPreferences.orientation;
-    scaleMode.value = persistedPreferences.scaleMode;
   }
   void initializeFfmpeg();
 });
