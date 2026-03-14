@@ -12,16 +12,16 @@
         @load="onPreviewImageLoad"
       />
       <div v-else-if="!hasSourceFile" class="preview-placeholder">
-        Select a media file to generate a preview.
+        Select source media to generate an output preview.
       </div>
       <div v-else-if="!isVideoSource" class="preview-placeholder">
-        Preview is available for video sources only.
+        Output preview is available for video sources only.
       </div>
       <div v-else-if="!isVideoOutput" class="preview-placeholder">
-        Switch to a video output format to preview frames.
+        Switch to a video output format to show the converted result here.
       </div>
       <div v-else class="preview-placeholder">
-        Adjust settings to generate a frame preview.
+        Adjust output settings to refresh the output preview.
       </div>
 
       <div

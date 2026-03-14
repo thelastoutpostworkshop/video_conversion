@@ -7,9 +7,9 @@
     <v-card-text class="trim-player-card__body">
       <div class="d-flex align-center flex-wrap ga-2 trim-player-card__header">
         <div>
-          <div class="text-subtitle-2">Source media</div>
+          <div class="trim-player-card__title">Step 1 - Source media</div>
           <div class="text-caption text-medium-emphasis">
-            Preview the original file and set trim points before converting.
+            Choose the original file and set trim points before converting.
           </div>
         </div>
         <v-spacer />
@@ -922,6 +922,13 @@ onBeforeUnmount(() => {
 
 .trim-player-card__header {
   row-gap: 8px;
+}
+
+.trim-player-card__title {
+  font-size: 1.35rem;
+  line-height: 1.15;
+  font-weight: 800;
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .trim-player-stage {
