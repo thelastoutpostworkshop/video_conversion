@@ -731,7 +731,7 @@ const orientationItems: Array<{ title: string; value: VideoOrientation }> = [
 
 const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string }> = [
   { id: "boards", title: "Board Catalog", icon: "mdi-view-grid-outline" },
-  { id: "workspace", title: "Convert", icon: "mdi-file-cog-outline" },
+  { id: "workspace", title: "Video conversion", icon: "mdi-file-cog-outline" },
   { id: "logs", title: "Session Log", icon: "mdi-text-box-search-outline" },
   { id: "about", title: "About", icon: "mdi-information-outline" },
 ];
