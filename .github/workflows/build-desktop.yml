@@ -3,9 +3,8 @@ name: Build Desktop Apps
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-  pull_request:
+    tags:
+      - "*"
 
 permissions:
   contents: read
