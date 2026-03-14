@@ -3,11 +3,16 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.mjs",
   "scripts": {
     "dev": "npx vite",
     "typecheck": "npx vue-tsc --noEmit",
     "build": "npm run typecheck && npx vite build",
     "preview": "npx vite preview",
+    "electron:dev": "npx concurrently -k \"npm:dev -- --host 127.0.0.1 --port 5173\" \"npm:electron:dev:main\"",
+    "electron:dev:main": "npx wait-on http-get://127.0.0.1:5173 && npx cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "electron:build": "npm run build && npx electron-packager . \"Video Conversion Studio\" --out=dist-electron --overwrite --prune=true --asar --ignore=^/dist-electron$ --ignore=^/src$ --ignore=^/public$ --ignore=^/scripts$ --ignore=^/.git$ --ignore=^/.vscode$",
+    "electron:pack": "npm run electron:build",
     "ffmpeg:assets": "node scripts/copy-ffmpeg-core.cjs",
     "postinstall": "node scripts/copy-ffmpeg-core.cjs"
   },
@@ -20,12 +25,17 @@
     "vuetify": "^4.0.2"
   },
   "devDependencies": {
+    "@electron/packager": "^18.4.3",
     "@types/node": "^25.3.0",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vue/tsconfig": "^0.9.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^38.1.0",
     "sass": "^1.94.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.0",
-    "vue-tsc": "^3.1.5"
+    "vue-tsc": "^3.1.5",
+    "wait-on": "^9.0.1"
   }
 }

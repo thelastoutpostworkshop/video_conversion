@@ -30,3 +30,19 @@ npm run build
 ```
 
 `npm run build` runs typecheck first (`npm run typecheck`) and then builds with Vite.
+
+## Electron development
+
+```sh
+npm run electron:dev
+```
+
+This starts the Vite dev server and launches Electron against it.
+
+## Electron build
+
+```sh
+npm run electron:build
+```
+
+This runs the standard web build first, then packages an unpacked desktop app into `dist-electron/`.
