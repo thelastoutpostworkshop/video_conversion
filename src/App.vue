@@ -818,6 +818,13 @@ const customBoardRoundDisplay = ref(false);
 const customBoardValidationMessage = ref<string | null>(null);
 const activeNavigation = ref<AppNavigationId>("boards");
 
+const toRoundedPositiveDimension = (value: number | null): number | null => {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.max(1, Math.round(value));
+};
+
 const theme = useTheme();
 
 const {
@@ -872,6 +879,12 @@ const hasCustomBoardDimensions = computed(
     typeof height.value === "number" &&
     height.value > 0
 );
+
+const canUseCustomBoardRoundDisplay = computed(() => {
+  const customWidth = toRoundedPositiveDimension(customBoardWidth.value);
+  const customHeight = toRoundedPositiveDimension(customBoardHeight.value);
+  return customWidth !== null && customHeight !== null && customWidth === customHeight;
+});
 
 const isCustomBoardSelected = computed(
   () => targetSetupMode.value === "custom" && hasCustomBoardDimensions.value
@@ -3310,6 +3323,9 @@ watch([width, height, customBoardRoundDisplay], () => {
 });
 
 watch([customBoardWidth, customBoardHeight], () => {
+  if (!canUseCustomBoardRoundDisplay.value && customBoardRoundDisplay.value) {
+    customBoardRoundDisplay.value = false;
+  }
   persistCustomBoardDraft();
   if (
     customBoardValidationMessage.value &&
@@ -3322,7 +3338,11 @@ watch([customBoardWidth, customBoardHeight], () => {
   }
 });
 
-watch(customBoardRoundDisplay, () => {
+watch(customBoardRoundDisplay, (isRoundDisplay) => {
+  if (isRoundDisplay && !canUseCustomBoardRoundDisplay.value) {
+    customBoardRoundDisplay.value = false;
+    return;
+  }
   persistCustomBoardDraft();
 });
 

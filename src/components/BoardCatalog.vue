@@ -180,9 +180,15 @@
                 label="Round screen"
                 density="comfortable"
                 hide-details
-                :disabled="processing"
+                :disabled="processing || !canSelectCustomRoundDisplay"
                 @update:model-value="updateCustomBoardRoundDisplay"
               />
+              <div
+                v-if="hasCustomBoardDimensionInput && !canSelectCustomRoundDisplay"
+                class="text-caption text-medium-emphasis mt-n2"
+              >
+                Round screens require matching width and height.
+              </div>
             </v-col>
           </v-row>
 
@@ -658,6 +664,33 @@ const toPositiveNullable = (value: string | number | null): number | null => {
   }
   return parsed <= 0 ? 1 : parsed;
 };
+
+const toRoundedPositiveDimension = (value: number | null): number | null => {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.max(1, Math.round(value));
+};
+
+const normalizedCustomBoardWidth = computed(() =>
+  toRoundedPositiveDimension(props.customBoardWidth)
+);
+
+const normalizedCustomBoardHeight = computed(() =>
+  toRoundedPositiveDimension(props.customBoardHeight)
+);
+
+const hasCustomBoardDimensionInput = computed(
+  () =>
+    normalizedCustomBoardWidth.value !== null || normalizedCustomBoardHeight.value !== null
+);
+
+const canSelectCustomRoundDisplay = computed(
+  () =>
+    normalizedCustomBoardWidth.value !== null &&
+    normalizedCustomBoardHeight.value !== null &&
+    normalizedCustomBoardWidth.value === normalizedCustomBoardHeight.value
+);
 
 const updateCustomBoardWidth = (value: string | number | null) => {
   emit("update:custom-board-width", toPositiveNullable(value));
