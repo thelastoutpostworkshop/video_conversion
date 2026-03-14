@@ -37,11 +37,15 @@ npm run build
 npm run electron:dev
 ```
 
-This starts the Vite dev server and launches Electron against it.
+This stages bundled desktop FFmpeg tools, starts the Vite dev server, and launches Electron against it.
 
-The browser build keeps using `ffmpeg.wasm`. The Electron build uses the native
-`ffmpeg` and `ffprobe` CLI tools through IPC, so those executables must be available on
-your system `PATH`.
+The browser build keeps using `ffmpeg.wasm`. The Electron build uses native
+`ffmpeg`, `ffprobe`, and `ffplay` binaries through IPC.
+
+During Electron development and packaging, the build scripts copy those executables from
+your current system `PATH` into `vendor/ffmpeg/<platform>-<arch>/`. The packaged desktop
+app then runs those bundled tools from its own `resources/ffmpeg/` directory, so end users
+do not need FFmpeg installed separately.
 
 Electron exports are saved directly to the path you choose instead of being copied back
 into the renderer as a download blob. When Electron provides a native source file path
@@ -53,4 +57,5 @@ from file input or drag-and-drop, conversion also runs directly against that pat
 npm run electron:build
 ```
 
-This runs the standard web build first, then packages an unpacked desktop app into `dist-electron/`.
+This first stages the bundled FFmpeg tools, runs the standard web build, and then packages
+an unpacked desktop app into `dist-electron/`.

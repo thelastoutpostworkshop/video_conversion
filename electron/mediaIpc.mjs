@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { fileURLToPath } from "node:url";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import {
   mediaCancelJobChannel,
   mediaCheckAvailabilityChannel,
@@ -14,8 +15,11 @@ import {
   mediaRunJobChannel,
 } from "./mediaChannels.mjs";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRootDir = path.resolve(__dirname, "..");
 const activeJobs = new Map();
 let handlersRegistered = false;
+let resolvedNativeToolPathsPromise = null;
 
 const mediaDialogMimeTypes = {
   ".avi": "video/x-msvideo",
@@ -42,6 +46,72 @@ const getMimeTypeForPath = (filePath) => {
 };
 
 const getParentWindow = (webContents) => BrowserWindow.fromWebContents(webContents) ?? undefined;
+
+const getBundledToolPlatformDir = () => {
+  const relativeBundleDir = path.join("ffmpeg", `${process.platform}-${process.arch}`);
+  return app.isPackaged
+    ? path.join(process.resourcesPath, relativeBundleDir)
+    : path.join(projectRootDir, "vendor", relativeBundleDir);
+};
+
+const bundledExecutableSuffix = process.platform === "win32" ? ".exe" : "";
+
+const tryStatFile = async (candidatePath) => {
+  try {
+    const candidateStats = await stat(candidatePath);
+    return candidateStats.isFile() ? candidatePath : null;
+  } catch {
+    return null;
+  }
+};
+
+const resolveNativeToolPaths = async () => {
+  if (resolvedNativeToolPathsPromise) {
+    return resolvedNativeToolPathsPromise;
+  }
+
+  resolvedNativeToolPathsPromise = (async () => {
+    const bundledToolDir = getBundledToolPlatformDir();
+    const bundledFfmpegPath = await tryStatFile(
+      path.join(bundledToolDir, `ffmpeg${bundledExecutableSuffix}`)
+    );
+    const bundledFfprobePath = await tryStatFile(
+      path.join(bundledToolDir, `ffprobe${bundledExecutableSuffix}`)
+    );
+    const bundledFfplayPath = await tryStatFile(
+      path.join(bundledToolDir, `ffplay${bundledExecutableSuffix}`)
+    );
+
+    if (bundledFfmpegPath && bundledFfprobePath) {
+      return {
+        source: "bundled",
+        ffmpegPath: bundledFfmpegPath,
+        ffprobePath: bundledFfprobePath,
+        ffplayPath: bundledFfplayPath,
+      };
+    }
+
+    if (app.isPackaged) {
+      throw new Error(
+        `Bundled FFmpeg tools are missing from ${bundledToolDir}. Rebuild the Electron app to repackage ffmpeg, ffprobe, and ffplay.`
+      );
+    }
+
+    return {
+      source: "path",
+      ffmpegPath: "ffmpeg",
+      ffprobePath: "ffprobe",
+      ffplayPath: "ffplay",
+    };
+  })();
+
+  try {
+    return await resolvedNativeToolPathsPromise;
+  } catch (error) {
+    resolvedNativeToolPathsPromise = null;
+    throw error;
+  }
+};
 
 const isMjpegInput = (name) => {
   const extension = getFileExtension(name);
@@ -79,8 +149,12 @@ const runCommand = (command, args) =>
   });
 
 const ensureNativeFfmpegAvailable = async () => {
-  await runCommand("ffmpeg", ["-version"]);
-  await runCommand("ffprobe", ["-version"]);
+  const toolPaths = await resolveNativeToolPaths();
+  await runCommand(toolPaths.ffmpegPath, ["-version"]);
+  await runCommand(toolPaths.ffprobePath, ["-version"]);
+  if (toolPaths.ffplayPath) {
+    await runCommand(toolPaths.ffplayPath, ["-version"]);
+  }
 };
 
 const createTempWorkspace = async () =>
@@ -225,6 +299,7 @@ const parseMetadataFromProbeOutput = (raw) => {
 };
 
 const runFfprobe = async (inputPath, fileName, webContents, jobId, emitLog = true) => {
+  const toolPaths = await resolveNativeToolPaths();
   const probeArgs = [
     "-v",
     "error",
@@ -244,7 +319,7 @@ const runFfprobe = async (inputPath, fileName, webContents, jobId, emitLog = tru
         .join(" ")}`,
     });
   }
-  const { stdout } = await runCommand("ffprobe", probeArgs);
+  const { stdout } = await runCommand(toolPaths.ffprobePath, probeArgs);
   const parsed = parseMetadataFromProbeOutput(stdout);
   if (!parsed) {
     throw new Error("Failed to parse metadata from FFprobe output.");
@@ -446,6 +521,7 @@ const resolveExpectedDurationSeconds = async (job, inputPath, fileName, webConte
 };
 
 const runFfmpegJob = async (job, inputPath, fileName, outputPath, definition, webContents) => {
+  const toolPaths = await resolveNativeToolPaths();
   const expectedDurationSeconds = await resolveExpectedDurationSeconds(
     job,
     inputPath,
@@ -470,7 +546,10 @@ const runFfmpegJob = async (job, inputPath, fileName, outputPath, definition, we
   ];
   sendJobEvent(webContents, job.jobId, {
     type: "log",
-    message: "[app] Using native FFmpeg CLI backend.",
+    message:
+      toolPaths.source === "bundled"
+        ? "[app] Using bundled FFmpeg CLI backend."
+        : "[app] Using native FFmpeg CLI backend from PATH.",
   });
   sendJobEvent(webContents, job.jobId, {
     type: "log",
@@ -483,7 +562,7 @@ const runFfmpegJob = async (job, inputPath, fileName, outputPath, definition, we
     ].join(" ")}`,
   });
 
-  const child = spawn("ffmpeg", execArgs, {
+  const child = spawn(toolPaths.ffmpegPath, execArgs, {
     windowsHide: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
