@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a problem with the app
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Short description of the problem.
+      placeholder: The app crashes when I click Convert.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the shortest steps needed to reproduce it.
+      placeholder: |
+        1. Open the app
+        2. Load a video
+        3. Click Convert
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      placeholder: The conversion should start normally.
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Extra details
+      description: Optional. Add screenshots, logs, board info, or OS details.
