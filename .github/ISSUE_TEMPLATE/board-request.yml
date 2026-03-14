@@ -28,11 +28,3 @@ body:
       label: Board details
       description: Optional. Include screen resolution, shape, controller, or anything useful.
       placeholder: 240x240 round display, GC9A01, ESP32-S3
-
-  - type: textarea
-    id: reason
-    attributes:
-      label: Why should this board be added?
-      placeholder: I use this board and would like a preset for it.
-    validations:
-      required: true
