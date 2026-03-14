@@ -34,7 +34,7 @@
         </div>
       </v-sheet>
 
-      <v-row dense class="about-steps-row">
+      <v-row density="comfortable" class="about-steps-row">
         <v-col
           v-for="step in aboutSteps"
           :key="step.number"
@@ -55,7 +55,7 @@
         </v-col>
       </v-row>
 
-      <v-row dense>
+      <v-row density="comfortable">
         <v-col cols="12" md="6">
           <v-sheet class="about-surface pa-4 h-100" rounded="lg" border>
             <div class="text-subtitle-1 font-weight-medium mb-3">

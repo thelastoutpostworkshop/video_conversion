@@ -80,7 +80,7 @@
               <section class="workspace-section">
                 <div id="section-source" class="app-nav-target" />
 
-                <v-row dense class="workspace-body-grid">
+                <v-row density="comfortable" class="workspace-body-grid">
                   <v-col cols="12" lg="4">
                     <TrimVideoPlayer
                       v-model:trim-range="trimRangeModel"
@@ -119,7 +119,7 @@
                           </div>
                         </div>
 
-                        <v-row dense>
+                        <v-row density="comfortable">
                           <v-col cols="12">
                             <v-text-field
                               v-model="outputFileBaseName"
@@ -219,7 +219,7 @@
                       <div class="workspace-preview-settings mb-3">
                         <div class="workspace-section-label mb-2">Conversion settings</div>
 
-                        <v-row dense class="workspace-preview-settings__grid">
+                        <v-row density="comfortable" class="workspace-preview-settings__grid">
                           <v-col cols="12" md="4">
                             <v-select
                               v-model="outputFormat"

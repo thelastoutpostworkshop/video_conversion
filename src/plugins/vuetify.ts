@@ -6,6 +6,14 @@ import { aliases, mdi } from "vuetify/iconsets/mdi";
 type AppTheme = "light" | "dark";
 
 const themeStorageKey = "video-conversion.theme.v1";
+const v3DisplayThresholds = {
+  xs: 0,
+  sm: 600,
+  md: 960,
+  lg: 1280,
+  xl: 1920,
+  xxl: 2560,
+} as const;
 
 const resolveDefaultTheme = (): AppTheme => {
   if (typeof window === "undefined") {
@@ -28,6 +36,10 @@ const resolveDefaultTheme = (): AppTheme => {
 export const vuetify = createVuetify({
   components,
   directives,
+  display: {
+    mobileBreakpoint: "lg",
+    thresholds: v3DisplayThresholds,
+  },
   icons: {
     defaultSet: "mdi",
     aliases,

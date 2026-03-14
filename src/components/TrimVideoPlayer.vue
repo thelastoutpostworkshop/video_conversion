@@ -230,7 +230,7 @@
         <div class="text-caption text-medium-emphasis trim-player-manual-fields__copy">
           Fine-tune trim times directly here if you need exact start or end values.
         </div>
-        <v-row dense class="mt-1">
+        <v-row density="comfortable" class="mt-1">
           <v-col cols="12" sm="6">
             <v-text-field
               :model-value="startTimeInput"

@@ -40,7 +40,7 @@
         No board presets match your search.
       </v-alert>
 
-      <v-row v-else dense>
+      <v-row v-else density="comfortable">
         <v-col
           v-for="preset in filteredPresets"
           :key="preset.id"
@@ -138,7 +138,7 @@
             Enter your screen dimensions to create a custom board target.
           </div>
 
-          <v-row dense>
+          <v-row density="comfortable">
             <v-col cols="12" sm="4">
               <v-text-field
                 :model-value="customBoardWidth"
@@ -173,7 +173,7 @@
             </v-col>
           </v-row>
 
-          <v-row dense>
+          <v-row density="comfortable">
             <v-col cols="12">
               <v-checkbox
                 :model-value="customBoardRoundDisplay"
