@@ -134,10 +134,10 @@
                         <div id="section-export" class="app-nav-target" />
                         <div class="step-heading mb-2">
                           <div class="text-subtitle-1 font-weight-medium">
-                            Convert and download
+                            {{ outputWorkflowHeading }}
                           </div>
                           <div class="text-caption text-medium-emphasis">
-                            Launch conversion, monitor progress, and download the output file.
+                            {{ outputWorkflowDescription }}
                           </div>
                         </div>
 
@@ -177,8 +177,14 @@
                         >
                           <div class="d-flex flex-wrap align-center ga-2">
                             <div class="text-body-2">
-                              Your output is ready. Download <strong>{{ outputFileName }}</strong>
-                              before you leave or refresh this page.
+                              {{ outputReadyInlineMessage }}
+                              <strong>{{ outputFileName }}</strong>
+                              <span v-if="outputSavedPath">
+                                . Open it in its folder whenever you need it.
+                              </span>
+                              <span v-else>
+                                before you leave or refresh this page.
+                              </span>
                             </div>
                             <v-spacer />
                             <v-btn
@@ -187,7 +193,7 @@
                               variant="flat"
                               @click="downloadOutput"
                             >
-                              Download now
+                              {{ outputPrimaryActionLabel }}
                             </v-btn>
                           </div>
                         </v-alert>
@@ -605,22 +611,26 @@
       <v-card rounded="lg">
         <v-card-title class="d-flex align-center ga-2">
           <v-icon icon="mdi-check-circle" color="success" />
-          <span>Output ready to download</span>
+          <span>{{ outputReadyDialogTitle }}</span>
         </v-card-title>
         <v-card-text>
           <div class="text-body-2">
-            Your conversion finished successfully. Download
-            <strong>{{ outputFileName }}</strong> now so it does not get lost if you leave or
-            refresh this page.
+            {{ outputReadyDialogMessage }}
+            <strong>{{ outputFileName }}</strong>
+            <span v-if="outputSavedPath"> to the location you selected.</span>
+            <span v-else> now so it does not get lost if you leave or refresh this page.</span>
+          </div>
+          <div v-if="outputSavedPath" class="text-caption text-medium-emphasis mt-2">
+            {{ outputSavedPath }}
           </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="downloadReadyDialogOpen = false">
-            Later
+            {{ outputSecondaryActionLabel }}
           </v-btn>
           <v-btn color="success" variant="flat" @click="downloadOutput">
-            Download now
+            {{ outputPrimaryActionLabel }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -640,12 +650,15 @@ import type {
   AudioTranscodeOptions,
   MediaLogCallback,
   MediaProgressCallback,
+  MediaProcessingResult,
   VideoCropRegion,
   VideoOrientation,
   VideoScaleMode,
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
+import { registerElectronFilePath } from "@/services/electronFileRegistry";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
+import { getMediaBackendLabel, isElectronRuntime } from "@/services/runtimeEnvironment";
 import { usePreviewFrame } from "@/composables/usePreviewFrame";
 import { useSourceMedia } from "@/composables/useSourceMedia";
 import {
@@ -659,6 +672,8 @@ type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
 type AppNavigationId = "boards" | "workspace" | "logs" | "about";
+
+const isElectronApp = ref(isElectronRuntime());
 type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
 type ProcessingProgressMode = "reliable" | "estimated";
@@ -769,6 +784,7 @@ const defaultDisplayConversionSettings: PersistedDisplayConversionSettings = {
 };
 
 const outputFileUrl = ref<string | null>(null);
+const outputSavedPath = ref<string | null>(null);
 
 const outputFormat = ref<OutputFormat>("gif");
 const outputFileName = ref("");
@@ -899,8 +915,35 @@ const currentDisplaySettingsKey = computed(() => {
   return null;
 });
 
-const hasOutput = computed(() => Boolean(outputFileUrl.value));
+const hasOutput = computed(
+  () => Boolean(outputFileUrl.value) || Boolean(outputSavedPath.value)
+);
 const outputFileExtension = computed(() => outputExtensionMap[outputFormat.value]);
+const outputReadyDialogTitle = computed(() =>
+  outputSavedPath.value ? "Output saved" : "Output ready to download"
+);
+const outputReadyDialogMessage = computed(() =>
+  outputSavedPath.value
+    ? "Your conversion finished successfully and saved"
+    : "Your conversion finished successfully. Download"
+);
+const outputReadyInlineMessage = computed(() =>
+  outputSavedPath.value ? "Your output is ready." : "Your output is ready. Download "
+);
+const outputPrimaryActionLabel = computed(() =>
+  outputSavedPath.value ? "Open folder" : "Download now"
+);
+const outputSecondaryActionLabel = computed(() =>
+  outputSavedPath.value ? "Close" : "Later"
+);
+const outputWorkflowHeading = computed(() =>
+  isElectronApp ? "Convert and save" : "Convert and download"
+);
+const outputWorkflowDescription = computed(() =>
+  isElectronApp
+    ? "Launch conversion, monitor progress, and save the output file directly to disk."
+    : "Launch conversion, monitor progress, and download the output file."
+);
 
 const formatDurationClock = (
   rawSeconds: number | null | undefined,
@@ -1369,7 +1412,17 @@ const navigateToView = (viewId: AppNavigationId) => {
   activeNavigation.value = viewId;
 };
 
+const getElectronMediaApi = () => window.electronMedia ?? null;
+
+const tryRegisterNativeFilePath = (file: File) => {
+  const maybePath = (file as File & { path?: unknown }).path;
+  if (typeof maybePath === "string" && maybePath.trim().length > 0) {
+    registerElectronFilePath(file, maybePath);
+  }
+};
+
 const onSourceFileSelected = (file: File) => {
+  tryRegisterNativeFilePath(file);
   sourceFile.value = file;
 };
 
@@ -1987,12 +2040,22 @@ const revokeUrlRef = (target: { value: string | null }) => {
 
 const clearOutput = () => {
   revokeUrlRef(outputFileUrl);
+  outputSavedPath.value = null;
   downloadReadyDialogOpen.value = false;
 };
 
 const fileBaseName = (name: string) => {
   const dotIndex = name.lastIndexOf(".");
   return dotIndex > 0 ? name.slice(0, dotIndex) : name;
+};
+
+const fileNameFromPath = (rawPath: string) => {
+  const normalized = rawPath.trim();
+  if (!normalized) {
+    return "";
+  }
+  const segments = normalized.split(/[\\/]/);
+  return segments[segments.length - 1] ?? normalized;
 };
 
 const extractOutputBaseName = (value: string) => {
@@ -2028,6 +2091,16 @@ const createPreviewFileName = () => {
 const buildDefaultOutputName = (name: string, format: OutputFormat) =>
   buildOutputFileName(extractOutputBaseName(name), format);
 
+const outputSaveFilters: Record<
+  OutputFormat,
+  Array<{ name: string; extensions: string[] }>
+> = {
+  gif: [{ name: "GIF files", extensions: ["gif"] }],
+  mjpeg: [{ name: "MJPEG files", extensions: ["mjpeg"] }],
+  avi: [{ name: "AVI files", extensions: ["avi"] }],
+  mp3: [{ name: "MP3 files", extensions: ["mp3"] }],
+};
+
 const ensureOutputFileName = (
   raw: string,
   sourceName: string,
@@ -2039,6 +2112,25 @@ const ensureOutputFileName = (
     return fallback;
   }
   return buildOutputFileName(normalizedBaseName, format);
+};
+
+const resolveElectronOutputSavePath = async (
+  defaultFileName: string,
+  format: OutputFormat
+): Promise<string | null> => {
+  const electronMedia = getElectronMediaApi();
+  if (!electronMedia) {
+    return null;
+  }
+  const result =
+    (await electronMedia.pickSavePath({
+      defaultPath: defaultFileName,
+      filters: outputSaveFilters[format],
+    })) as ElectronPickSavePathResult;
+  if (result.canceled || !result.path) {
+    return null;
+  }
+  return result.path;
 };
 
 const outputFileBaseName = computed({
@@ -2063,6 +2155,7 @@ const outputFileBaseName = computed({
 });
 
 const initializeFfmpeg = async (): Promise<boolean> => {
+  refreshElectronRuntimeState();
   if (ffmpegStatus.value === "ready") {
     return true;
   }
@@ -2071,11 +2164,12 @@ const initializeFfmpeg = async (): Promise<boolean> => {
   }
   ffmpegStatus.value = "loading";
   processingError.value = null;
-  appendLog("[app] Loading FFmpeg core...");
+  appendLog(`[app] Backend selected: ${getMediaBackendLabel()}.`);
+  appendLog("[app] Loading FFmpeg backend...");
   try {
     await mediaProcessingService.ensureReady();
     ffmpegStatus.value = "ready";
-    appendLog("[app] FFmpeg ready.");
+    appendLog("[app] FFmpeg backend ready.");
     return true;
   } catch (error) {
     ffmpegStatus.value = "error";
@@ -2516,6 +2610,10 @@ const processingLiveStatusCaption = computed(
   () => `Elapsed ${processingElapsedLabel.value} • ${processingLastActivityLabel.value}`
 );
 
+const refreshElectronRuntimeState = () => {
+  isElectronApp.value = isElectronRuntime();
+};
+
 const processingStatusMessage = computed(() => {
   if (processingPhase.value === "finalizing") {
     return "Conversion is running normally. FFmpeg is finishing the file.";
@@ -2606,6 +2704,23 @@ const runConversion = async () => {
     return;
   }
 
+  const requestedOutputFileName = ensureOutputFileName(
+    outputFileName.value,
+    file.name,
+    outputFormat.value
+  );
+  let electronOutputPath: string | null = null;
+  if (isElectronApp.value) {
+    electronOutputPath = await resolveElectronOutputSavePath(
+      requestedOutputFileName,
+      outputFormat.value
+    );
+    if (!electronOutputPath) {
+      return;
+    }
+    outputFileName.value = fileNameFromPath(electronOutputPath);
+  }
+
   processing.value = true;
   processingProgress.value = 0;
   processingProgressMode.value = hasTrimSelection.value ? "estimated" : "reliable";
@@ -2684,57 +2799,76 @@ const runConversion = async () => {
 
   try {
     const signal = convertAbortController.signal;
-    let payload: Uint8Array;
+    let result: MediaProcessingResult;
 
     if (outputFormat.value === "gif") {
-      const result = await mediaProcessingService.transcodeVideoToGif(
+      const options = buildVideoOptions();
+      if (electronOutputPath) {
+        options.outputPath = electronOutputPath;
+      }
+      result = await mediaProcessingService.transcodeVideoToGif(
         file,
-        buildVideoOptions(),
+        options,
         onProgress,
         onLog,
         signal
       );
-      payload = result.data;
     } else if (outputFormat.value === "mjpeg") {
-      const result = await mediaProcessingService.transcodeVideoToMjpeg(
+      const options = buildVideoOptions();
+      if (electronOutputPath) {
+        options.outputPath = electronOutputPath;
+      }
+      result = await mediaProcessingService.transcodeVideoToMjpeg(
         file,
-        buildVideoOptions(),
+        options,
         onProgress,
         onLog,
         signal
       );
-      payload = result.data;
     } else if (outputFormat.value === "avi") {
-      const result = await mediaProcessingService.transcodeVideoToAvi(
+      const options = buildVideoOptions();
+      if (electronOutputPath) {
+        options.outputPath = electronOutputPath;
+      }
+      result = await mediaProcessingService.transcodeVideoToAvi(
         file,
-        buildVideoOptions(),
+        options,
         onProgress,
         onLog,
         signal
       );
-      payload = result.data;
     } else {
-      const result = await mediaProcessingService.extractAudioFromVideo(
+      const options = buildAudioOptions();
+      if (electronOutputPath) {
+        options.outputPath = electronOutputPath;
+      }
+      result = await mediaProcessingService.extractAudioFromVideo(
         file,
-        buildAudioOptions(),
+        options,
         onProgress,
         onLog,
         signal
       );
-      payload = result.data;
     }
 
     processingPhase.value = "packaging";
-    const finalName = ensureOutputFileName(outputFileName.value, file.name, outputFormat.value);
+    const finalName = result.savedPath
+      ? fileNameFromPath(result.savedPath)
+      : ensureOutputFileName(outputFileName.value, file.name, outputFormat.value);
     outputFileName.value = finalName;
-    const outputBlob = new Blob([payload], { type: outputMimeMap[outputFormat.value] });
-    outputFileUrl.value = URL.createObjectURL(outputBlob);
+    if (result.savedPath) {
+      outputSavedPath.value = result.savedPath;
+      appendLog(`[app] Output saved: ${result.savedPath}`);
+    } else {
+      const outputBlob = new Blob([result.data], { type: outputMimeMap[outputFormat.value] });
+      outputFileUrl.value = URL.createObjectURL(outputBlob);
+      appendLog(
+        `[app] Output ready: ${finalName} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB)`
+      );
+    }
     processingPhase.value = "complete";
     processingProgress.value = 100;
     downloadReadyDialogOpen.value = true;
-    appendLog(
-      `[app] Output ready: ${finalName} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB)`
-    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Media conversion failed.";
@@ -2770,6 +2904,11 @@ const cancelConversion = () => {
 };
 
 const downloadOutput = () => {
+  if (outputSavedPath.value) {
+    void getElectronMediaApi()?.revealPath(outputSavedPath.value);
+    downloadReadyDialogOpen.value = false;
+    return;
+  }
   if (!outputFileUrl.value) {
     return;
   }
@@ -3134,6 +3273,7 @@ watch(hasBoardSelection, (isReady) => {
 });
 
 onMounted(() => {
+  refreshElectronRuntimeState();
   const persistedCustomBoardDraft = loadPersistedCustomBoardDraft();
   if (persistedCustomBoardDraft) {
     customBoardWidth.value = persistedCustomBoardDraft.width;

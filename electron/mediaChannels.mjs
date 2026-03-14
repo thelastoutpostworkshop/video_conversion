@@ -1,0 +1,7 @@
+export const mediaCheckAvailabilityChannel = "media:check-availability";
+export const mediaRunJobChannel = "media:run-job";
+export const mediaCancelJobChannel = "media:cancel-job";
+export const mediaJobEventChannel = "media:job-event";
+export const mediaPickSourceFileChannel = "media:pick-source-file";
+export const mediaPickSavePathChannel = "media:pick-save-path";
+export const mediaRevealPathChannel = "media:reveal-path";

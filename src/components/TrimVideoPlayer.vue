@@ -290,6 +290,7 @@ const props = withDefaults(
     durationSeconds: number | null;
     previewFrameBusy?: boolean;
     motionPreviewBusy?: boolean;
+    preferNativeSourcePicker?: boolean;
     startTimeInput?: string;
     endTimeInput?: string;
     startTimeInputInvalid?: boolean;
@@ -302,6 +303,7 @@ const props = withDefaults(
     sourceProxyError: null,
     previewFrameBusy: false,
     motionPreviewBusy: false,
+    preferNativeSourcePicker: false,
     startTimeInput: "",
     endTimeInput: "",
     startTimeInputInvalid: false,
@@ -317,6 +319,7 @@ const emit = defineEmits<{
   (event: "current-time-update", value: number): void;
   (event: "preview-time-request", value: number): void;
   (event: "select-source-file", value: File): void;
+  (event: "request-native-source-file"): void;
   (event: "update:start-time-input", value: string): void;
   (event: "update:end-time-input", value: string): void;
   (event: "commit-start-time-input"): void;
@@ -569,6 +572,10 @@ const emitSelectedSourceFile = (file: File | null) => {
 
 const openSourceFilePicker = () => {
   if (!canSelectSourceFile.value) {
+    return;
+  }
+  if (props.preferNativeSourcePicker) {
+    emit("request-native-source-file");
     return;
   }
   sourceFileInputRef.value?.click();

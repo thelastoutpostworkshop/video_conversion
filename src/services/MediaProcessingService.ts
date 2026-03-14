@@ -12,17 +12,20 @@ export interface VideoTranscodeOptions {
   durationSeconds?: number;
   startSeconds?: number;
   endSeconds?: number;
+  outputPath?: string;
 }
 
 export interface AudioTranscodeOptions {
   bitrateKbps?: number;
   sampleRate?: number;
   channels?: number;
+  outputPath?: string;
 }
 
 export interface MediaProcessingResult {
   data: Uint8Array;
   outputName: string;
+  savedPath?: string;
 }
 
 export interface VideoMetadataResult {

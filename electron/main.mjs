@@ -2,12 +2,14 @@ import { app, BrowserWindow, dialog, protocol, shell } from "electron";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { registerMediaIpcHandlers } from "./mediaIpc.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRootDir = path.resolve(__dirname, "..");
 const rendererDistDir = path.join(projectRootDir, "dist");
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 const productionRendererOrigin = "app://video-conversion";
+const preloadPath = path.join(__dirname, "preload.cjs");
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -155,6 +157,7 @@ const createMainWindow = async () => {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: preloadPath,
       sandbox: true,
     },
   });
@@ -183,6 +186,7 @@ const createMainWindow = async () => {
 };
 
 app.whenReady().then(async () => {
+  registerMediaIpcHandlers();
   try {
     await createMainWindow();
   } catch (error) {

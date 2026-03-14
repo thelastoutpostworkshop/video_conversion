@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import type { VideoMetadataResult } from "@/services/MediaProcessingService";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
+import { isElectronRuntime } from "@/services/runtimeEnvironment";
 
 const videoExtensions = [
   ".avi",
@@ -11,7 +12,6 @@ const videoExtensions = [
   ".mp4",
   ".webm",
 ];
-
 export const useSourceMedia = () => {
   const sourceFile = ref<File | null>(null);
   let metadataProbeAbortController: AbortController | null = null;
@@ -127,28 +127,36 @@ export const useSourceMedia = () => {
     sourceMetadataError.value = null;
     try {
       let metadata: VideoMetadataResult | null = null;
-      try {
-        metadata = await readVideoMetadata(file);
-      } catch (browserError) {
-        if (!isCurrentRequest()) {
-          return;
-        }
+      if (isElectronRuntime()) {
+        metadata = await mediaProcessingService.probeVideoMetadata(
+          file,
+          undefined,
+          probeAbortController.signal
+        );
+      } else {
         try {
-          metadata = await mediaProcessingService.probeVideoMetadata(
-            file,
-            undefined,
-            probeAbortController.signal
-          );
-        } catch (ffmpegError) {
-          const browserMessage = getErrorMessage(
-            browserError,
-            "Failed to read video metadata."
-          );
-          const ffmpegMessage = getErrorMessage(
-            ffmpegError,
-            "Failed to probe video metadata with FFmpeg."
-          );
-          throw new Error(`${browserMessage} FFmpeg fallback failed: ${ffmpegMessage}`);
+          metadata = await readVideoMetadata(file);
+        } catch (browserError) {
+          if (!isCurrentRequest()) {
+            return;
+          }
+          try {
+            metadata = await mediaProcessingService.probeVideoMetadata(
+              file,
+              undefined,
+              probeAbortController.signal
+            );
+          } catch (ffmpegError) {
+            const browserMessage = getErrorMessage(
+              browserError,
+              "Failed to read video metadata."
+            );
+            const ffmpegMessage = getErrorMessage(
+              ffmpegError,
+              "Failed to probe video metadata with FFmpeg."
+            );
+            throw new Error(`${browserMessage} FFmpeg fallback failed: ${ffmpegMessage}`);
+          }
         }
       }
 

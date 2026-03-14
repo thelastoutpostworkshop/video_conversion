@@ -39,6 +39,14 @@ npm run electron:dev
 
 This starts the Vite dev server and launches Electron against it.
 
+The browser build keeps using `ffmpeg.wasm`. The Electron build uses the native
+`ffmpeg` and `ffprobe` CLI tools through IPC, so those executables must be available on
+your system `PATH`.
+
+Electron exports are saved directly to the path you choose instead of being copied back
+into the renderer as a download blob. When Electron provides a native source file path
+from file input or drag-and-drop, conversion also runs directly against that path.
+
 ## Electron build
 
 ```sh
