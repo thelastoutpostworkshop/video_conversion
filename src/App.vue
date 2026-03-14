@@ -2262,7 +2262,7 @@ const previewSecondModel = computed<number>({
 });
 
 const activePreviewPanelTitle = computed(() => {
-  return isVideoOutput.value ? "Current output frame" : "Output preview";
+  return isVideoOutput.value ? "Output frame" : "Preview";
 });
 
 const activePreviewPanelStatus = computed(() => {
@@ -2273,12 +2273,9 @@ const activePreviewPanelStatus = computed(() => {
 
 const activePreviewPanelHelper = computed(() => {
   if (!isVideoOutput.value) {
-    return "Switch to a video output format to inspect the converted result.";
+    return "Video output required for frame preview.";
   }
-  if (isElectronApp.value) {
-    return 'This preview mirrors the trim playhead on the left. Use "Open motion preview" to launch ffplay with the current trim window and display settings.';
-  }
-  return 'This preview mirrors the trim playhead on the left. Use "Update frame preview" to resync it to the current playhead on demand.';
+  return "Matches the trim playhead.";
 });
 
 const activePreviewPanelError = computed(() => previewFrameError.value);
