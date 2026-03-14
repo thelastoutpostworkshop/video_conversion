@@ -1,5 +1,4 @@
-import { app, BrowserWindow, dialog, shell } from "electron";
-import { createServer } from "node:http";
+import { app, BrowserWindow, dialog, protocol, shell } from "electron";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRootDir = path.resolve(__dirname, "..");
 const rendererDistDir = path.join(projectRootDir, "dist");
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+const productionRendererOrigin = "app://video-conversion";
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -26,7 +26,17 @@ const mimeTypes = {
   ".webp": "image/webp",
 };
 
-let rendererServer = null;
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "app",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+]);
 
 const isSafeChildPath = (rootDir, candidatePath) => {
   const relativePath = path.relative(rootDir, candidatePath);
@@ -71,66 +81,70 @@ const readStaticAsset = async (requestPath) => {
   }
 };
 
-const startRendererServer = async () => {
+const registerRendererProtocol = async () => {
   await stat(path.join(rendererDistDir, "index.html"));
 
-  const server = createServer(async (request, response) => {
-    const url = new URL(request.url ?? "/", "http://127.0.0.1");
-
-    try {
-      const asset = await readStaticAsset(url.pathname);
-      const extension = path.extname(asset.filePath).toLowerCase();
-
-      response.writeHead(asset.statusCode, {
-        "Cache-Control": "no-cache",
-        "Content-Type":
-          mimeTypes[extension] ?? "application/octet-stream",
-      });
-      response.end(asset.body);
-    } catch (error) {
-      console.error("[electron] Failed to serve renderer asset", error);
-      response.writeHead(500, {
-        "Content-Type": "text/plain; charset=utf-8",
-      });
-      response.end("Internal server error");
-    }
-  });
-
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => resolve());
-  });
-
-  const address = server.address();
-  if (!address || typeof address === "string") {
-    server.close();
-    throw new Error("Failed to determine Electron renderer server address.");
-  }
-
-  rendererServer = server;
-  return `http://127.0.0.1:${address.port}`;
-};
-
-const stopRendererServer = async () => {
-  if (!rendererServer) {
+  if (protocol.isProtocolHandled("app")) {
     return;
   }
 
-  const server = rendererServer;
-  rendererServer = null;
+  protocol.handle("app", async (request) => {
+    try {
+      const url = new URL(request.url);
+      const asset = await readStaticAsset(url.pathname);
+      const extension = path.extname(asset.filePath).toLowerCase();
 
-  await new Promise((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve();
-    });
+      return new Response(asset.body, {
+        status: asset.statusCode,
+        headers: {
+          "Cache-Control": "no-cache",
+          "Content-Type":
+            mimeTypes[extension] ?? "application/octet-stream",
+        },
+      });
+    } catch (error) {
+      console.error("[electron] Failed to serve renderer asset", error);
+      return new Response("Internal server error", {
+        status: 500,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+        },
+      });
+    }
   });
 };
 
+const isInternalNavigationUrl = (url) => {
+  if (devServerUrl && url === devServerUrl) {
+    return true;
+  }
+  if (url === `${productionRendererOrigin}/` || url.startsWith(`${productionRendererOrigin}/`)) {
+    return true;
+  }
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.origin === productionRendererOrigin;
+  } catch {
+    return false;
+  }
+};
+
+const ensureNavigationAllowed = async (url) => {
+  if (isInternalNavigationUrl(url)) {
+    return;
+  }
+  try {
+    await shell.openExternal(url);
+  } catch (error) {
+    console.error("[electron] Failed to open external URL", url, error);
+  }
+};
+
 const createMainWindow = async () => {
+  if (!devServerUrl) {
+    await registerRendererProtocol();
+  }
+
   const window = new BrowserWindow({
     width: 1440,
     height: 960,
@@ -146,15 +160,16 @@ const createMainWindow = async () => {
   });
 
   window.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    void ensureNavigationAllowed(url);
     return { action: "deny" };
   });
 
   window.webContents.on("will-navigate", (event, url) => {
-    if (!url.startsWith("http://127.0.0.1:") && url !== devServerUrl) {
-      event.preventDefault();
-      void shell.openExternal(url);
+    if (isInternalNavigationUrl(url)) {
+      return;
     }
+    event.preventDefault();
+    void ensureNavigationAllowed(url);
   });
 
   if (devServerUrl) {
@@ -163,8 +178,7 @@ const createMainWindow = async () => {
     return window;
   }
 
-  const rendererUrl = await startRendererServer();
-  await window.loadURL(rendererUrl);
+  await window.loadURL(`${productionRendererOrigin}/index.html`);
   return window;
 };
 
@@ -195,5 +209,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  void stopRendererServer();
+  if (protocol.isProtocolHandled("app")) {
+    protocol.unhandle("app");
+  }
 });
