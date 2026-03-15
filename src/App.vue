@@ -110,6 +110,7 @@
                     <TrimVideoPlayer
                       v-model:trim-range="trimRangeModel"
                       :source-file="sourceFile"
+                      :source-loading="sourceSelectionBusy"
                       :source-proxy-url="sourcePreviewProxyUrl"
                       :source-proxy-busy="sourcePreviewProxyBusy"
                       :source-proxy-error="sourcePreviewProxyError"
@@ -859,6 +860,7 @@ const previewMotionStartSeconds = ref<number | null>(null);
 const previewMotionDurationSeconds = ref<number | null>(null);
 const motionPreviewDialogOpen = ref(false);
 const trimPlayerCurrentSeconds = ref(0);
+const sourceSelectionBusy = ref(false);
 const sourcePreviewProxyUrl = ref<string | null>(null);
 const sourcePreviewProxyBusy = ref(false);
 const sourcePreviewProxyError = ref<string | null>(null);
@@ -1451,20 +1453,25 @@ const onSourceFileSelected = (file: File) => {
 };
 
 const requestNativeSourceFile = async () => {
-  if (!isElectronApp.value || !window.electronMedia) {
+  if (!isElectronApp.value || !window.electronMedia || sourceSelectionBusy.value) {
     return;
   }
-  const result = await window.electronMedia.pickSourceFile();
-  if (result.canceled || !result.file) {
-    return;
+  sourceSelectionBusy.value = true;
+  try {
+    const result = await window.electronMedia.pickSourceFile();
+    if (result.canceled || !result.file) {
+      return;
+    }
+    const pickedFile = result.file;
+    const file = new File([pickedFile.data], pickedFile.name, {
+      type: pickedFile.type,
+      lastModified: pickedFile.lastModified,
+    });
+    registerElectronFilePath(file, pickedFile.path);
+    onSourceFileSelected(file);
+  } finally {
+    sourceSelectionBusy.value = false;
   }
-  const pickedFile = result.file;
-  const file = new File([pickedFile.data], pickedFile.name, {
-    type: pickedFile.type,
-    lastModified: pickedFile.lastModified,
-  });
-  registerElectronFilePath(file, pickedFile.path);
-  onSourceFileSelected(file);
 };
 
 const toNullableNumber = (value: string | number | null): number | null => {

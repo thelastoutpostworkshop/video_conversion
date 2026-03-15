@@ -19,6 +19,8 @@
           variant="tonal"
           color="primary"
           prepend-icon="mdi-tray-arrow-up"
+          :loading="sourceLoading"
+          :disabled="!canSelectSourceFile"
           @click="openSourceFilePicker"
         >
           Choose another file
@@ -82,6 +84,7 @@
               variant="flat"
               color="primary"
               prepend-icon="mdi-tray-arrow-up"
+              :loading="sourceLoading"
               :disabled="!canSelectSourceFile"
               @click.stop="openSourceFilePicker"
             >
@@ -104,6 +107,13 @@
 
         <div v-if="isStageDragActive" class="trim-player-drop-overlay">
           Drop source media here
+        </div>
+
+        <div v-if="showSourceLoadingOverlay" class="trim-player-loading-overlay">
+          <div class="trim-player-loading-badge">
+            <v-progress-circular indeterminate size="18" width="2" color="primary" />
+            <span>{{ sourceLoadingMessage }}</span>
+          </div>
         </div>
       </div>
 
@@ -281,6 +291,7 @@ type PlaybackState = "idle" | "loading" | "ready" | "failed";
 const props = withDefaults(
   defineProps<{
     sourceFile: File | null;
+    sourceLoading?: boolean;
     sourceProxyUrl?: string | null;
     sourceProxyBusy?: boolean;
     sourceProxyError?: string | null;
@@ -299,6 +310,7 @@ const props = withDefaults(
   }>(),
   {
     sourceProxyUrl: null,
+    sourceLoading: false,
     sourceProxyBusy: false,
     sourceProxyError: null,
     previewFrameBusy: false,
@@ -477,7 +489,12 @@ const trimRangeModel = computed<[number, number]>({
 
 const canTrimSource = computed(() => canRenderVideo.value && !props.disabled);
 const canSelectSourceFile = computed(
-  () => !props.disabled && !props.previewFrameBusy && !props.sourceProxyBusy && !props.motionPreviewBusy
+  () =>
+    !props.disabled &&
+    !props.sourceLoading &&
+    !props.previewFrameBusy &&
+    !props.sourceProxyBusy &&
+    !props.motionPreviewBusy
 );
 const hasScrubbablePlayback = computed(
   () => Boolean(activeVideoUrl.value) && activePlaybackState.value === "ready"
@@ -504,10 +521,22 @@ const showGeneratePreviewProxyAction = computed(
 const showReferenceTimeSlider = computed(
   () => canTrimSource.value && !hasScrubbablePlayback.value && hasKnownDuration.value
 );
-const showHeaderSourceSelectAction = computed(
-  () => Boolean(props.sourceFile) && canSelectSourceFile.value
+const showHeaderSourceSelectAction = computed(() => Boolean(props.sourceFile));
+const showSourceSelectAction = computed(() => !canRenderVideo.value);
+
+const showSourceLoadingOverlay = computed(
+  () =>
+    props.sourceLoading ||
+    (Boolean(props.sourceFile) &&
+      props.isVideoSource &&
+      activePlaybackState.value === "loading")
 );
-const showSourceSelectAction = computed(() => canSelectSourceFile.value && !canRenderVideo.value);
+
+const sourceLoadingMessage = computed(() =>
+  props.sourceLoading
+    ? "Loading source media..."
+    : "Preparing source preview..."
+);
 
 const fallbackErrorMessage = computed(() => {
   if (isUsingPreviewProxy.value) {
@@ -999,6 +1028,31 @@ onBeforeUnmount(() => {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   pointer-events: none;
+}
+
+.trim-player-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 11, 18, 0.58);
+  pointer-events: none;
+}
+
+.trim-player-loading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  border-radius: 999px;
+  background: rgba(var(--v-theme-surface), 0.88);
+  color: rgba(var(--v-theme-on-surface), 0.92);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .trim-player-source-input {
