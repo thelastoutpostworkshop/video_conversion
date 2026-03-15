@@ -17,6 +17,14 @@
         <div class="about-hero-badges">
           <v-chip
             size="small"
+            color="info"
+            variant="tonal"
+            prepend-icon="mdi-tag-outline"
+          >
+            Version {{ appVersion }}
+          </v-chip>
+          <v-chip
+            size="small"
             color="primary"
             variant="tonal"
             prepend-icon="mdi-shield-check-outline"
@@ -119,6 +127,10 @@
 </template>
 
 <script setup lang="ts">
+defineProps<{
+  appVersion: string;
+}>();
+
 const aboutSteps: Array<{ number: number; title: string; description: string }> = [
   {
     number: 1,

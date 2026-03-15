@@ -3,6 +3,9 @@
     <v-navigation-drawer permanent width="280" class="app-navigation">
       <div class="pa-4">
         <div class="text-overline text-medium-emphasis">The last outpost workshop</div>
+        <div class="app-navigation__version text-caption text-medium-emphasis">
+          Version {{ appVersion }}
+        </div>
         <v-list nav density="comfortable" class="mt-2">
           <v-list-item
             v-for="item in navigationItems"
@@ -501,7 +504,7 @@
                 />
               </v-card-text>
             </v-card>
-            <AboutView v-else />
+            <AboutView v-else :app-version="appVersion" />
           </v-col>
         </v-row>
       </v-container>
@@ -677,6 +680,7 @@ type TargetSetupMode = "preset" | "custom";
 type AppNavigationId = "boards" | "workspace" | "logs" | "about";
 
 const isElectronApp = ref(isElectronRuntime());
+const appVersion = __APP_VERSION__;
 type AppView = AppNavigationId;
 type AppTheme = "light" | "dark";
 type ProcessingProgressMode = "reliable" | "estimated";
@@ -3438,6 +3442,11 @@ onBeforeUnmount(() => {
 
 .app-navigation {
   border-right: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.app-navigation__version {
+  margin-top: 2px;
+  font-weight: 600;
 }
 
 .app-navigation :deep(.v-navigation-drawer__content) {
