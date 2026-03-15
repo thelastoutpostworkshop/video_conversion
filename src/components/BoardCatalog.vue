@@ -393,16 +393,17 @@
                         </v-card>
                       </div>
                     </div>
-
-                    <v-alert
-                      v-if="!hasSupportingLinks(imagePreviewPreset)"
-                      type="info"
-                      variant="tonal"
-                      density="compact"
-                      class="mt-2"
-                    >
-                      No project links available for this board yet.
-                    </v-alert>
+                    <div v-else class="board-catalog-link-group board-catalog-project-empty">
+                      <div class="board-catalog-link-group-title board-catalog-project-list-title">
+                        <span>The Last Outpost projects</span>
+                        <v-chip size="small" color="primary" variant="tonal">
+                          Coming soon
+                        </v-chip>
+                      </div>
+                      <div class="board-catalog-project-empty__body">
+                        Example projects for this board are coming soon.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -624,10 +625,6 @@ const hasBuyLinks = (preset: BoardPreset): boolean =>
 
 const getBuyLinkCount = (preset: BoardPreset): number =>
   (preset.amazonUrl ? 1 : 0) + (preset.aliexpressUrl ? 1 : 0);
-
-const hasSupportingLinks = (preset: BoardPreset): boolean =>
-  hasBuyLinks(preset) ||
-  buildPreviewProjects(preset).length > 0;
 
 const openImagePreview = (preset: BoardPreset) => {
   hoveredProjectKey.value = null;
@@ -998,6 +995,25 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-project-grid {
   display: grid;
   gap: 10px;
+}
+
+.board-catalog-project-empty {
+  display: grid;
+  gap: 12px;
+}
+
+.board-catalog-project-empty__body {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border: 1px dashed rgba(var(--v-theme-on-surface), 0.18);
+  border-radius: 12px;
+  background: rgba(var(--v-theme-surface), 0.38);
+  color: rgba(var(--v-theme-on-surface), 0.72);
+  font-size: 0.98rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 .board-catalog-project-card {

@@ -58,21 +58,6 @@ export const BOARD_PRESETS: BoardPreset[] = [
       "https://amzn.to/4689Mbm",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_c4S9IVQB",
-    projects: [
-      {
-        name: "Community projects",
-        description:
-          "Community repositories and examples you can adapt for this display.",
-        url: "https://github.com/search?q=ESP32-S3+3.16+display&type=repositories",
-        imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
-        demos: [
-          {
-            label: "Video demos",
-            url: "https://www.youtube.com/results?search_query=Waveshare+ESP32-S3+3.16+demo",
-          },
-        ],
-      },
-    ],
     width: 320,
     height: 820,
     orientation: "none",
