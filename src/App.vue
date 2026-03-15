@@ -191,6 +191,7 @@
                               size="small"
                               color="success"
                               variant="flat"
+                              class="output-ready-action-btn"
                               @click="downloadOutput"
                             >
                               {{ outputPrimaryActionLabel }}
@@ -627,7 +628,12 @@
           <v-btn variant="text" @click="downloadReadyDialogOpen = false">
             {{ outputSecondaryActionLabel }}
           </v-btn>
-          <v-btn color="success" variant="flat" @click="downloadOutput">
+          <v-btn
+            color="success"
+            variant="flat"
+            class="output-ready-action-btn"
+            @click="downloadOutput"
+          >
             {{ outputPrimaryActionLabel }}
           </v-btn>
         </v-card-actions>
@@ -3562,6 +3568,15 @@ onBeforeUnmount(() => {
 
 .workspace-preview-settings__crop-copy {
   line-height: 1.25;
+}
+
+.output-ready-action-btn {
+  min-width: 132px;
+}
+
+.output-ready-action-btn :deep(.v-btn__content) {
+  color: rgb(var(--v-theme-on-success));
+  font-weight: 700;
 }
 
 .output-file-name-extension {
