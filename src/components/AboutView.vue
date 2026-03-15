@@ -67,7 +67,7 @@
             What this app does
           </div>
           <div class="about-story-card__title">
-            A focused conversion tool for ESP boards and display projects
+            A focused conversion tool for ESP32 boards and display projects
           </div>
           <div class="text-body-2 text-medium-emphasis about-story-card__copy">
             Use a board preset or enter a custom screen size, then tune orientation, scale
