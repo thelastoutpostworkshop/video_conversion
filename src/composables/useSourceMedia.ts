@@ -5,6 +5,7 @@ import { isElectronRuntime } from "@/services/runtimeEnvironment";
 
 const videoExtensions = [
   ".avi",
+  ".gif",
   ".mjpeg",
   ".mjpg",
   ".mov",
