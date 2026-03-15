@@ -306,6 +306,7 @@
                                 type="number"
                                 density="compact"
                                 hide-details="auto"
+                                title="Lower number = higher quality."
                                 :disabled="processing"
                                 @update:model-value="(value) => (quality = toNullableNumber(value))"
                               />
