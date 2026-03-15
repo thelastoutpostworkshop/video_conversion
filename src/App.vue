@@ -1228,7 +1228,6 @@ const supportsCustomCrop = computed(
     isVideoOutput.value &&
     outputSizeMode.value === "custom" &&
     scaleMode.value === "fill" &&
-    Boolean(orientedSourceDimensions.value) &&
     Boolean(customCropTargetAspectRatio.value)
 );
 
@@ -1310,15 +1309,13 @@ const toPixelCropRegion = (
 const resetCustomCropRect = () => {
   const dimensions = orientedSourceDimensions.value;
   const targetAspectRatio = customCropTargetAspectRatio.value;
-  if (!dimensions || !targetAspectRatio) {
+  if (!targetAspectRatio) {
     customCropRect.value = null;
     return;
   }
-  customCropRect.value = createCenteredCropRect(
-    dimensions.width,
-    dimensions.height,
-    targetAspectRatio
-  );
+  customCropRect.value = dimensions
+    ? createCenteredCropRect(dimensions.width, dimensions.height, targetAspectRatio)
+    : { x: 0, y: 0, width: 1, height: 1 };
 };
 
 const onCustomCropRectUpdate = (rect: NormalizedCropRect) => {
@@ -1333,19 +1330,21 @@ const activeCustomCropRegion = computed<VideoCropRegion | null>(() => {
   if (!customCropEnabled.value || !supportsCustomCrop.value || !customCropRect.value) {
     return null;
   }
-  const dimensions = orientedSourceDimensions.value;
-  if (!dimensions) {
-    return null;
-  }
-  return toPixelCropRegion(customCropRect.value, dimensions);
+  const normalized = normalizeCropRect(customCropRect.value);
+  return {
+    x: normalized.x,
+    y: normalized.y,
+    width: normalized.width,
+    height: normalized.height,
+    unit: "normalized",
+  };
 });
 
 const customCropSummary = computed(() => {
-  const region = activeCustomCropRegion.value;
-  if (!region) {
+  if (!activeCustomCropRegion.value) {
     return "Adjust the crop box in the preview.";
   }
-  return `Crop: ${region.width}x${region.height} at ${region.x}, ${region.y}`;
+  return "Custom crop active.";
 });
 
 const canResetCustomCrop = computed(() => Boolean(supportsCustomCrop.value && customCropRect.value));
@@ -1355,7 +1354,7 @@ const customCropHint = computed(() => {
     return "Use Fill (crop) to enable custom crop.";
   }
   if (!supportsCustomCrop.value) {
-    return "Load a video and use a custom target size.";
+    return "Use a custom target size to enable custom crop.";
   }
   return "Turn on custom crop, then adjust the box in the preview.";
 });

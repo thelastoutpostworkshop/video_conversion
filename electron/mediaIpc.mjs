@@ -206,15 +206,25 @@ const buildVideoFilter = (options = {}) => {
     typeof cropRegion?.height === "number" &&
     cropRegion.height > 0;
   if (hasCrop) {
-    filters.push(
-      `crop=${Math.max(1, Math.floor(cropRegion.width))}:${Math.max(
-        1,
-        Math.floor(cropRegion.height)
-      )}:${Math.max(0, Math.floor(cropRegion.x ?? 0))}:${Math.max(
-        0,
-        Math.floor(cropRegion.y ?? 0)
-      )}`
-    );
+    if (cropRegion.unit === "normalized") {
+      const cropX = Math.max(0, Math.min(1, cropRegion.x ?? 0)).toFixed(6);
+      const cropY = Math.max(0, Math.min(1, cropRegion.y ?? 0)).toFixed(6);
+      const cropWidth = Math.max(0.02, Math.min(1, cropRegion.width ?? 1)).toFixed(6);
+      const cropHeight = Math.max(0.02, Math.min(1, cropRegion.height ?? 1)).toFixed(6);
+      filters.push(
+        `crop=max(1\\,trunc(iw*${cropWidth})):max(1\\,trunc(ih*${cropHeight})):max(0\\,trunc(iw*${cropX})):max(0\\,trunc(ih*${cropY}))`
+      );
+    } else {
+      filters.push(
+        `crop=${Math.max(1, Math.floor(cropRegion.width))}:${Math.max(
+          1,
+          Math.floor(cropRegion.height)
+        )}:${Math.max(0, Math.floor(cropRegion.x ?? 0))}:${Math.max(
+          0,
+          Math.floor(cropRegion.y ?? 0)
+        )}`
+      );
+    }
   }
 
   const width = options.width ?? null;
