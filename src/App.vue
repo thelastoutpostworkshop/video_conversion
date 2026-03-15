@@ -588,10 +588,7 @@
             {{ processingProgressCaption }}
           </div>
           <div class="text-caption text-medium-emphasis mt-1">
-            {{ processingLiveStatusCaption }}
-          </div>
-          <div class="text-caption text-success mt-1 processing-confidence-line">
-            {{ processingConfidenceCaption }}
+            Elapsed {{ processingElapsedLabel }}
           </div>
           <div
             v-if="processingActivityLine"
@@ -599,6 +596,28 @@
           >
             {{ processingActivityLine }}
           </div>
+          <v-sheet
+            v-if="showProcessingDesktopTip"
+            class="processing-desktop-tip mt-3 pa-3"
+            rounded="lg"
+            border
+          >
+            <div class="text-caption text-medium-emphasis">
+              Get faster conversion by using the desktop application.
+            </div>
+            <v-btn
+              size="small"
+              variant="text"
+              color="primary"
+              class="mt-1 px-0"
+              append-icon="mdi-open-in-new"
+              :href="desktopDownloadUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Download desktop version
+            </v-btn>
+          </v-sheet>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -763,6 +782,9 @@ const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
     href: "https://github.com/thelastoutpostworkshop/video_conversion",
   },
 ];
+
+const desktopDownloadUrl =
+  "https://github.com/thelastoutpostworkshop/video_conversion/releases/latest";
 
 const themeStorageKey = "video-conversion.theme.v1";
 const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
@@ -2674,26 +2696,6 @@ const processingElapsedLabel = computed(() => {
   return formatClockFromMs(Date.now() - startedAt);
 });
 
-const processingLastActivityLabel = computed(() => {
-  void processingUiTick.value;
-  const lastActivityAt = processingLastActivityAtMs.value;
-  if (!lastActivityAt) {
-    return "Waiting for first FFmpeg update...";
-  }
-  const seconds = Math.max(0, Math.floor((Date.now() - lastActivityAt) / 1000));
-  if (seconds <= 1) {
-    return "FFmpeg active just now";
-  }
-  if (seconds < 8) {
-    return `FFmpeg active ${seconds}s ago`;
-  }
-  return `No update for ${seconds}s (still running)`;
-});
-
-const processingLiveStatusCaption = computed(
-  () => `Elapsed ${processingElapsedLabel.value} • ${processingLastActivityLabel.value}`
-);
-
 const refreshElectronRuntimeState = () => {
   isElectronApp.value = isElectronRuntime();
 };
@@ -2714,20 +2716,9 @@ const processingStatusMessage = computed(() => {
   return "Converting media...";
 });
 
-const processingConfidenceCaption = computed(() => {
-  void processingUiTick.value;
-  if (processingPhase.value === "packaging") {
-    return "Everything is on track.";
-  }
-  const lastActivityAt = processingLastActivityAtMs.value;
-  if (!lastActivityAt) {
-    return "Conversion has started.";
-  }
-  const seconds = Math.max(0, Math.floor((Date.now() - lastActivityAt) / 1000));
-  return seconds < 10
-    ? "Conversion is working fine."
-    : "Conversion is still running (status updates may pause briefly).";
-});
+const showProcessingDesktopTip = computed(
+  () => !isElectronApp.value && isVideoSource.value
+);
 
 const buildVideoOptions = (): VideoTranscodeOptions => {
   const options: VideoTranscodeOptions = {
@@ -3726,8 +3717,9 @@ onBeforeUnmount(() => {
   word-break: break-word;
 }
 
-.processing-confidence-line {
-  font-weight: 600;
+.processing-desktop-tip {
+  border-color: rgba(var(--v-theme-primary), 0.16) !important;
+  background: rgba(var(--v-theme-primary), 0.06);
 }
 
 @media (max-width: 959px) {
