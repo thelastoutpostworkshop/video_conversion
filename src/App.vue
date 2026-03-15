@@ -2638,9 +2638,6 @@ const processingProgressIndeterminate = computed(() => {
   if (processingPhase.value === "preparing") {
     return true;
   }
-  if (processingProgressMode.value === "estimated") {
-    return true;
-  }
   return processingProgressDisplay.value <= 0;
 });
 
