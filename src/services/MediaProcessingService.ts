@@ -19,6 +19,8 @@ export interface AudioTranscodeOptions {
   bitrateKbps?: number;
   sampleRate?: number;
   channels?: number;
+  startSeconds?: number;
+  endSeconds?: number;
   outputPath?: string;
 }
 
@@ -958,6 +960,7 @@ export class MediaProcessingService {
     onLog?: MediaLogCallback,
     signal?: AbortSignal
   ): Promise<MediaProcessingResult> {
+    const { preInputArgs, postInputArgs } = resolveTrimWindowArgs(options);
     const args: string[] = ["-vn"];
     const bitrate = options?.bitrateKbps ?? 128;
     args.push("-c:a", "libmp3lame", "-b:a", `${bitrate}k`);
@@ -967,7 +970,10 @@ export class MediaProcessingService {
     if (options?.channels) {
       args.push("-ac", `${options.channels}`);
     }
-    return this.runTranscode(file, "mp3", args, onProgress, onLog, signal);
+    args.push(...postInputArgs);
+    return this.runTranscode(file, "mp3", args, onProgress, onLog, signal, {
+      preInputArgs,
+    });
   }
 
   async extractAudioFromVideo(

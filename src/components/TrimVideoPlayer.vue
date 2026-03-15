@@ -226,7 +226,7 @@
         </div>
       </div>
 
-      <div v-if="isVideoOutput" class="trim-player-manual-fields mt-3">
+      <div v-if="isVideoSource" class="trim-player-manual-fields mt-3">
         <div class="text-caption text-medium-emphasis trim-player-manual-fields__copy">
           Fine-tune trim times directly here if you need exact start or end values.
         </div>
@@ -393,9 +393,7 @@ const stopSelectionLoop = (pauseVideo = false) => {
   }
 };
 
-const canRenderVideo = computed(
-  () => Boolean(props.sourceFile) && props.isVideoSource && props.isVideoOutput
-);
+const canRenderVideo = computed(() => Boolean(props.sourceFile) && props.isVideoSource);
 
 const isUsingPreviewProxy = computed(() => Boolean(props.sourceProxyUrl));
 
@@ -524,9 +522,6 @@ const fallbackTitle = computed(() => {
   if (!props.isVideoSource) {
     return "No visual preview is available for this file.";
   }
-  if (!props.isVideoOutput) {
-    return "Switch to a video output to preview and trim here.";
-  }
   if (isUsingPreviewProxy.value) {
     return "Browser preview unavailable.";
   }
@@ -542,9 +537,6 @@ const fallbackDescription = computed(() => {
   }
   if (!props.isVideoSource) {
     return "Choose a video file if you want to trim with a visual preview, or continue with audio conversion.";
-  }
-  if (!props.isVideoOutput) {
-    return "Switch the output back to video if you want to trim against a visual preview.";
   }
   if (isUsingPreviewProxy.value) {
     return "The browser preview could not be played. You can still trim by time below.";
@@ -830,20 +822,20 @@ const onVideoSeeked = () => {
 };
 
 watch(
-  [() => props.sourceFile, () => props.isVideoSource, () => props.isVideoOutput],
-  ([file, isVideoSource, isVideoOutput]) => {
+  [() => props.sourceFile, () => props.isVideoSource],
+  ([file, isVideoSource]) => {
     resetStageDragState();
     stopSelectionLoop();
     isVideoPlaying.value = false;
     loadedDurationSeconds.value = null;
     currentTimeSeconds.value = 0;
     emit("duration-detected", null);
-    nativePlaybackState.value = file && isVideoSource && isVideoOutput ? "loading" : "idle";
+    nativePlaybackState.value = file && isVideoSource ? "loading" : "idle";
     nativePlaybackError.value = null;
     proxyPlaybackState.value = "idle";
     proxyPlaybackError.value = null;
     revokeSourceUrl();
-    if (file && isVideoSource && isVideoOutput) {
+    if (file && isVideoSource) {
       sourceUrl.value = URL.createObjectURL(file);
     }
   },

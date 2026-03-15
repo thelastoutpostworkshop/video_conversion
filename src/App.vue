@@ -2738,6 +2738,12 @@ const buildAudioOptions = (): AudioTranscodeOptions => {
   if (mp3Bitrate.value && mp3Bitrate.value > 0) {
     options.bitrateKbps = Math.round(mp3Bitrate.value);
   }
+  if (typeof startSeconds.value === "number") {
+    options.startSeconds = Math.max(0, startSeconds.value);
+  }
+  if (typeof endSeconds.value === "number") {
+    options.endSeconds = Math.max(0, endSeconds.value);
+  }
   return options;
 };
 
