@@ -136,9 +136,6 @@
                           <div class="text-subtitle-1 font-weight-medium">
                             {{ outputWorkflowHeading }}
                           </div>
-                          <div class="text-caption text-medium-emphasis">
-                            {{ outputWorkflowDescription }}
-                          </div>
                         </div>
 
                         <v-row density="comfortable">
@@ -147,7 +144,6 @@
                               v-model="outputFileBaseName"
                               label="Output file name"
                               density="comfortable"
-                              hint="Extension is generated from the selected output format."
                               persistent-hint
                               :disabled="processing"
                             >
@@ -955,11 +951,6 @@ const outputSecondaryActionLabel = computed(() =>
 );
 const outputWorkflowHeading = computed(() =>
   isElectronApp.value ? "Convert and save" : "Convert and download"
-);
-const outputWorkflowDescription = computed(() =>
-  isElectronApp.value
-    ? "Launch conversion, monitor progress, and save the output file directly to disk."
-    : "Launch conversion, monitor progress, and download the output file."
 );
 
 const formatDurationClock = (
