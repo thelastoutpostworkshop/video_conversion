@@ -112,6 +112,7 @@
                       :source-proxy-error="sourcePreviewProxyError"
                       :is-video-source="isVideoSource"
                       :is-video-output="isVideoOutput"
+                      :prefer-native-source-picker="isElectronApp"
                       :duration-seconds="sourceDurationSeconds ?? trimPlayerDurationSeconds"
                       :preview-frame-busy="previewFrameBusy"
                       :motion-preview-busy="previewMotionBusy"
@@ -123,6 +124,7 @@
                       @current-time-update="onTrimPlayerCurrentTimeUpdate"
                       @preview-time-request="syncOutputPreviewToTime"
                       @request-playable-preview="generateSourcePreviewProxy"
+                      @request-native-source-file="requestNativeSourceFile"
                       @select-source-file="onSourceFileSelected"
                       @update:start-time-input="(value) => (startTimeInput = value)"
                       @update:end-time-input="(value) => (endTimeInput = value)"
@@ -1442,6 +1444,23 @@ const tryRegisterNativeFilePath = (file: File) => {
 const onSourceFileSelected = (file: File) => {
   tryRegisterNativeFilePath(file);
   sourceFile.value = file;
+};
+
+const requestNativeSourceFile = async () => {
+  if (!isElectronApp.value || !window.electronMedia) {
+    return;
+  }
+  const result = await window.electronMedia.pickSourceFile();
+  if (result.canceled || !result.file) {
+    return;
+  }
+  const pickedFile = result.file;
+  const file = new File([pickedFile.data], pickedFile.name, {
+    type: pickedFile.type,
+    lastModified: pickedFile.lastModified,
+  });
+  registerElectronFilePath(file, pickedFile.path);
+  onSourceFileSelected(file);
 };
 
 const toNullableNumber = (value: string | number | null): number | null => {

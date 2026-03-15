@@ -341,7 +341,8 @@ const proxyPlaybackState = ref<PlaybackState>("idle");
 const proxyPlaybackError = ref<string | null>(null);
 const isStageDragActive = ref(false);
 
-const sourceFileAccept = "video/*,audio/*,.gif,.mjpeg,.mjpg,.avi,.mov,.mkv,.mp4,.webm";
+const sourceFileAccept =
+  "video/*,audio/*,image/gif,.gif,.mjpeg,.mjpg,.avi,.mov,.mkv,.mp4,.webm";
 
 let selectionLoopFrameId: number | null = null;
 let dragDepth = 0;

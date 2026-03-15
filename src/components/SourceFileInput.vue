@@ -3,7 +3,7 @@
     :model-value="modelValue"
     label="Source media"
     prepend-icon="mdi-file-video"
-    accept="video/*,audio/*,.mjpeg,.mjpg,.avi,.mov,.mkv,.mp4,.webm"
+    accept="video/*,audio/*,image/gif,.gif,.mjpeg,.mjpg,.avi,.mov,.mkv,.mp4,.webm"
     density="compact"
     hide-details="auto"
     :disabled="disabled"
