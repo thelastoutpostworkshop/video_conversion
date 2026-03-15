@@ -1439,7 +1439,7 @@ const serializeElectronInputFile = async (
 });
 
 const tryRegisterNativeFilePath = (file: File) => {
-  const maybePath = (file as File & { path?: unknown }).path;
+  const maybePath = getElectronFilePath(file);
   if (typeof maybePath === "string" && maybePath.trim().length > 0) {
     registerElectronFilePath(file, maybePath);
   }

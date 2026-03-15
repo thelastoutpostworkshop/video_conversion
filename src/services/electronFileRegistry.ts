@@ -13,7 +13,14 @@ export const getElectronFilePath = (file: File): string | null => {
     return registeredPath;
   }
   const maybePath = (file as File & { path?: unknown }).path;
-  return typeof maybePath === "string" && maybePath.trim().length > 0
-    ? maybePath
+  if (typeof maybePath === "string" && maybePath.trim().length > 0) {
+    return maybePath;
+  }
+  const bridgedPath =
+    typeof window !== "undefined" && window.electronMedia?.isElectron
+      ? window.electronMedia.getPathForFile(file)
+      : null;
+  return typeof bridgedPath === "string" && bridgedPath.trim().length > 0
+    ? bridgedPath
     : null;
 };

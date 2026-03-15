@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 const mediaCheckAvailabilityChannel = "media:check-availability";
 const mediaRunJobChannel = "media:run-job";
@@ -42,6 +42,14 @@ contextBridge.exposeInMainWorld("electronMedia", {
   cancelJob: (jobId) => ipcRenderer.invoke(mediaCancelJobChannel, { jobId }),
   pickSourceFile: () => ipcRenderer.invoke(mediaPickSourceFileChannel),
   pickSavePath: (request) => ipcRenderer.invoke(mediaPickSavePathChannel, request),
+  getPathForFile: (file) => {
+    try {
+      const resolvedPath = webUtils.getPathForFile(file);
+      return typeof resolvedPath === "string" && resolvedPath.trim() ? resolvedPath : null;
+    } catch {
+      return null;
+    }
+  },
   revealPath: (targetPath) =>
     ipcRenderer.invoke(mediaRevealPathChannel, { path: targetPath }),
   playMotionPreview: (request) => ipcRenderer.invoke(mediaPlayMotionPreviewChannel, request),

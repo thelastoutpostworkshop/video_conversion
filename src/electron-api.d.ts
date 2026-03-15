@@ -68,6 +68,7 @@ interface ElectronMediaBridge {
   cancelJob(jobId: string): Promise<{ ok: boolean }>;
   pickSourceFile(): Promise<ElectronPickSourceFileResult>;
   pickSavePath(request: ElectronPickSavePathRequest): Promise<ElectronPickSavePathResult>;
+  getPathForFile(file: File): string | null;
   revealPath(targetPath: string): Promise<{ ok: boolean }>;
   playMotionPreview(request: ElectronPlayMotionPreviewRequest): Promise<{ ok: boolean }>;
   subscribeToJobEvents(callback: (event: ElectronMediaEventPayload) => void): string;
