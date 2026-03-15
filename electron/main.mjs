@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, protocol, shell } from "electron";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerMediaIpcHandlers } from "./mediaIpc.mjs";
@@ -10,6 +10,11 @@ const rendererDistDir = path.join(projectRootDir, "dist");
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 const productionRendererOrigin = "app://video-conversion";
 const preloadPath = path.join(__dirname, "preload.cjs");
+const windowStatePath = path.join(app.getPath("userData"), "window-state.json");
+const defaultWindowWidth = 1440;
+const defaultWindowHeight = 960;
+const minWindowWidth = 1100;
+const minWindowHeight = 760;
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -142,16 +147,60 @@ const ensureNavigationAllowed = async (url) => {
   }
 };
 
+const loadWindowState = async () => {
+  try {
+    const raw = await readFile(windowStatePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    const width =
+      typeof parsed.width === "number" && Number.isFinite(parsed.width)
+        ? Math.max(minWindowWidth, Math.round(parsed.width))
+        : defaultWindowWidth;
+    const height =
+      typeof parsed.height === "number" && Number.isFinite(parsed.height)
+        ? Math.max(minWindowHeight, Math.round(parsed.height))
+        : defaultWindowHeight;
+    return {
+      width,
+      height,
+      isMaximized: parsed.isMaximized === true,
+    };
+  } catch {
+    return {
+      width: defaultWindowWidth,
+      height: defaultWindowHeight,
+      isMaximized: false,
+    };
+  }
+};
+
+const persistWindowState = async (window) => {
+  if (window.isDestroyed()) {
+    return;
+  }
+  const bounds = window.isMaximized() ? window.getNormalBounds() : window.getBounds();
+  const payload = {
+    width: Math.max(minWindowWidth, Math.round(bounds.width)),
+    height: Math.max(minWindowHeight, Math.round(bounds.height)),
+    isMaximized: window.isMaximized(),
+  };
+  try {
+    await writeFile(windowStatePath, JSON.stringify(payload, null, 2), "utf-8");
+  } catch (error) {
+    console.error("[electron] Failed to persist window state", error);
+  }
+};
+
 const createMainWindow = async () => {
   if (!devServerUrl) {
     await registerRendererProtocol();
   }
 
+  const windowState = await loadWindowState();
   const window = new BrowserWindow({
-    width: 1440,
-    height: 960,
-    minWidth: 1100,
-    minHeight: 760,
+    width: windowState.width,
+    height: windowState.height,
+    minWidth: minWindowWidth,
+    minHeight: minWindowHeight,
     autoHideMenuBar: true,
     backgroundColor: "#11131a",
     webPreferences: {
@@ -161,6 +210,32 @@ const createMainWindow = async () => {
       sandbox: true,
     },
   });
+
+  let persistWindowStateTimer = null;
+  const schedulePersistWindowState = () => {
+    if (persistWindowStateTimer) {
+      clearTimeout(persistWindowStateTimer);
+    }
+    persistWindowStateTimer = setTimeout(() => {
+      persistWindowStateTimer = null;
+      void persistWindowState(window);
+    }, 200);
+  };
+
+  window.on("resize", schedulePersistWindowState);
+  window.on("maximize", schedulePersistWindowState);
+  window.on("unmaximize", schedulePersistWindowState);
+  window.on("close", () => {
+    if (persistWindowStateTimer) {
+      clearTimeout(persistWindowStateTimer);
+      persistWindowStateTimer = null;
+    }
+    void persistWindowState(window);
+  });
+
+  if (windowState.isMaximized) {
+    window.maximize();
+  }
 
   window.webContents.setWindowOpenHandler(({ url }) => {
     void ensureNavigationAllowed(url);
