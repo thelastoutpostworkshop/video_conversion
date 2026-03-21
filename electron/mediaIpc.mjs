@@ -590,6 +590,28 @@ const resolveMotionPreviewDimensions = async (inputPath, fileName, options = {})
   return { width, height };
 };
 
+const renderMotionPreviewFile = async (inputPath, fileName, workspaceDir, options = {}) => {
+  const toolPaths = await resolveNativeToolPaths();
+  const definition = buildJobDefinition("transcodeVideoToAvi", {
+    ...options,
+    quality: 4,
+  });
+  const outputPath = path.join(
+    workspaceDir,
+    `${randomUUID()}-motion-preview.${definition.outputExt}`
+  );
+  const inputArgs = isMjpegInput(fileName)
+    ? ["-f", "mjpeg", "-i", inputPath]
+    : ["-i", inputPath];
+  const execArgs = ["-y", ...definition.preInputArgs, ...inputArgs, ...definition.args, outputPath];
+  await runCommand(toolPaths.ffmpegPath, execArgs);
+  const outputStats = await stat(outputPath);
+  if (outputStats.size <= 0) {
+    throw new Error("FFmpeg produced an empty motion preview file.");
+  }
+  return outputPath;
+};
+
 const resolveExpectedDurationSeconds = async (job, inputPath, fileName, webContents) => {
   const trim = resolveTrimWindowArgs(job.options ?? {});
   if (typeof trim.durationSeconds === "number" && trim.durationSeconds > 0) {
@@ -785,12 +807,19 @@ const playMotionPreview = async (request) => {
 
   try {
     const inputPath = await writeSerializedInputFile(workspaceDir, request.file);
-    const trim = resolveTrimWindowArgs(request.options ?? {});
-    const ffplayArgs = ["-autoexit", "-window_title", "Video Conversion Studio Motion Preview"];
-    const previewSize = await resolveMotionPreviewDimensions(
+    const previewPath = await renderMotionPreviewFile(
       inputPath,
       request.file.name,
+      workspaceDir,
       request.options ?? {}
+    );
+    const ffplayArgs = ["-autoexit", "-window_title", "Video Conversion Studio Motion Preview"];
+    const previewSize = await runFfprobe(
+      previewPath,
+      path.basename(previewPath),
+      null,
+      null,
+      false
     );
     const displayScale = normalizePreviewDisplayScale(request.displayScale);
     ffplayArgs.push(
@@ -799,17 +828,7 @@ const playMotionPreview = async (request) => {
       "-y",
       `${Math.max(1, Math.round(previewSize.height * displayScale))}`
     );
-    ffplayArgs.push(...trim.preInputArgs);
-    if (isMjpegInput(request.file.name)) {
-      ffplayArgs.push("-f", "mjpeg");
-    }
-    ffplayArgs.push("-i", inputPath, "-an");
-    ffplayArgs.push(...trim.postInputArgs);
-
-    const filter = buildMotionPreviewFilter(request.options ?? {});
-    if (filter) {
-      ffplayArgs.push("-vf", filter);
-    }
+    ffplayArgs.push("-an", "-i", previewPath);
 
     const child = spawn(toolPaths.ffplayPath, ffplayArgs, {
       detached: true,
