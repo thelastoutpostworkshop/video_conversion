@@ -2657,6 +2657,7 @@ const openMotionPreviewInFfplay = async (file: File, options: VideoTranscodeOpti
   }
   await electronMedia.playMotionPreview({
     file: await serializeElectronInputFile(file),
+    displayScale: previewDisplayScale.value,
     options: {
       width: options.width,
       height: options.height,

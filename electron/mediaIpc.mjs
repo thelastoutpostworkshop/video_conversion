@@ -540,6 +540,14 @@ const normalizePositiveInteger = (value) => {
   return Math.max(1, Math.round(parsed));
 };
 
+const normalizePreviewDisplayScale = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 1;
+  }
+  return Math.max(0.25, Math.min(3, parsed));
+};
+
 const resolveMotionPreviewDimensions = async (inputPath, fileName, options = {}) => {
   const metadata = await runFfprobe(inputPath, fileName, null, null, false);
 
@@ -784,7 +792,13 @@ const playMotionPreview = async (request) => {
       request.file.name,
       request.options ?? {}
     );
-    ffplayArgs.push("-x", `${previewSize.width}`, "-y", `${previewSize.height}`);
+    const displayScale = normalizePreviewDisplayScale(request.displayScale);
+    ffplayArgs.push(
+      "-x",
+      `${Math.max(1, Math.round(previewSize.width * displayScale))}`,
+      "-y",
+      `${Math.max(1, Math.round(previewSize.height * displayScale))}`
+    );
     ffplayArgs.push(...trim.preInputArgs);
     if (isMjpegInput(request.file.name)) {
       ffplayArgs.push("-f", "mjpeg");

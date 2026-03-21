@@ -48,6 +48,7 @@ interface ElectronSerializedInputFile {
 
 interface ElectronPlayMotionPreviewRequest {
   file: ElectronSerializedInputFile;
+  displayScale?: number;
   options?: Pick<
     VideoTranscodeOptions,
     | "width"
