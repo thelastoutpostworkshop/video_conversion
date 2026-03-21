@@ -528,6 +528,56 @@ const buildMotionPreviewFilter = (options = {}) => {
   return filterParts.length > 0 ? filterParts.join(",") : null;
 };
 
+const normalizePositiveInteger = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.max(1, Math.round(parsed));
+};
+
+const resolveMotionPreviewDimensions = async (inputPath, fileName, options = {}) => {
+  const metadata = await runFfprobe(inputPath, fileName, null, null, false);
+
+  let width = metadata.width;
+  let height = metadata.height;
+
+  const orientation = options.orientation ?? "none";
+  if (orientation === "cw90" || orientation === "ccw90") {
+    [width, height] = [height, width];
+  }
+
+  const cropRegion = options.cropRegion;
+  const hasCrop =
+    typeof cropRegion?.width === "number" &&
+    Number.isFinite(cropRegion.width) &&
+    cropRegion.width > 0 &&
+    typeof cropRegion?.height === "number" &&
+    Number.isFinite(cropRegion.height) &&
+    cropRegion.height > 0;
+  if (hasCrop) {
+    if (cropRegion.unit === "normalized") {
+      width = Math.max(1, Math.trunc(width * Math.max(0.02, Math.min(1, cropRegion.width))));
+      height = Math.max(
+        1,
+        Math.trunc(height * Math.max(0.02, Math.min(1, cropRegion.height)))
+      );
+    } else {
+      width = Math.max(1, Math.floor(cropRegion.width));
+      height = Math.max(1, Math.floor(cropRegion.height));
+    }
+  }
+
+  const targetWidth = normalizePositiveInteger(options.width);
+  const targetHeight = normalizePositiveInteger(options.height);
+  if (targetWidth && targetHeight) {
+    width = targetWidth;
+    height = targetHeight;
+  }
+
+  return { width, height };
+};
+
 const resolveExpectedDurationSeconds = async (job, inputPath, fileName, webContents) => {
   const trim = resolveTrimWindowArgs(job.options ?? {});
   if (typeof trim.durationSeconds === "number" && trim.durationSeconds > 0) {
@@ -725,6 +775,12 @@ const playMotionPreview = async (request) => {
     const inputPath = await writeSerializedInputFile(workspaceDir, request.file);
     const trim = resolveTrimWindowArgs(request.options ?? {});
     const ffplayArgs = ["-autoexit", "-window_title", "Video Conversion Studio Motion Preview"];
+    const previewSize = await resolveMotionPreviewDimensions(
+      inputPath,
+      request.file.name,
+      request.options ?? {}
+    );
+    ffplayArgs.push("-x", `${previewSize.width}`, "-y", `${previewSize.height}`);
     ffplayArgs.push(...trim.preInputArgs);
     if (isMjpegInput(request.file.name)) {
       ffplayArgs.push("-f", "mjpeg");
