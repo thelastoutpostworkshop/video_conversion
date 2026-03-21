@@ -45,6 +45,7 @@ const props = defineProps<{
   roundDisplay?: boolean;
   targetWidth: number | null;
   targetHeight: number | null;
+  displayScale?: number;
 }>();
 
 const toPositivePixelDimension = (value: number | null): number | null => {
@@ -54,11 +55,19 @@ const toPositivePixelDimension = (value: number | null): number | null => {
   return Math.max(1, Math.round(value));
 };
 
+const toPositiveScale = (value: number | undefined): number => {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return 1;
+  }
+  return Math.max(0.1, value);
+};
+
 const previewSurfaceStyle = computed<Record<string, string>>(() => {
   const width = toPositivePixelDimension(props.targetWidth);
   const height = toPositivePixelDimension(props.targetHeight);
+  const scale = toPositiveScale(props.displayScale);
   if (props.roundDisplay && width && height) {
-    const size = Math.max(1, Math.min(width, height));
+    const size = Math.max(1, Math.round(Math.min(width, height) * scale));
     return {
       width: `${size}px`,
       height: `${size}px`,
@@ -69,10 +78,12 @@ const previewSurfaceStyle = computed<Record<string, string>>(() => {
   if (!width || !height) {
     return { borderRadius: props.roundDisplay ? "50%" : "0" };
   }
+  const scaledWidth = Math.max(1, Math.round(width * scale));
+  const scaledHeight = Math.max(1, Math.round(height * scale));
   return {
-    width: `${width}px`,
-    height: `${height}px`,
-    minHeight: `${height}px`,
+    width: `${scaledWidth}px`,
+    height: `${scaledHeight}px`,
+    minHeight: `${scaledHeight}px`,
     borderRadius: props.roundDisplay ? "50%" : "0",
   };
 });

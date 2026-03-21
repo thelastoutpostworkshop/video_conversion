@@ -344,7 +344,71 @@
                       </div>
 
                       <div class="workspace-preview-panel__preview mt-4">
-                        <div class="workspace-section-label">Preview</div>
+                        <div class="workspace-preview-panel__preview-header">
+                          <div class="workspace-section-label">Preview</div>
+
+                          <div class="workspace-preview-panel__scale">
+                            <div class="text-caption text-medium-emphasis">
+                              UI scale only
+                            </div>
+
+                            <div class="workspace-preview-panel__scale-controls">
+                              <v-btn
+                                icon="mdi-magnify-minus-outline"
+                                size="x-small"
+                                variant="text"
+                                :disabled="
+                                  previewDisplayScalePercent <= previewDisplayScaleMinPercent
+                                "
+                                aria-label="Decrease preview scale"
+                                @click="
+                                  adjustPreviewDisplayScale(
+                                    -previewDisplayScaleStepPercent
+                                  )
+                                "
+                              />
+
+                              <v-slider
+                                v-model="previewDisplayScalePercent"
+                                class="workspace-preview-panel__scale-slider"
+                                density="compact"
+                                hide-details
+                                :min="previewDisplayScaleMinPercent"
+                                :max="previewDisplayScaleMaxPercent"
+                                :step="previewDisplayScaleStepPercent"
+                                color="primary"
+                              />
+
+                              <v-btn
+                                icon="mdi-magnify-plus-outline"
+                                size="x-small"
+                                variant="text"
+                                :disabled="
+                                  previewDisplayScalePercent >= previewDisplayScaleMaxPercent
+                                "
+                                aria-label="Increase preview scale"
+                                @click="
+                                  adjustPreviewDisplayScale(
+                                    previewDisplayScaleStepPercent
+                                  )
+                                "
+                              />
+
+                              <div class="workspace-preview-panel__scale-value">
+                                {{ previewDisplayScaleLabel }}
+                              </div>
+
+                              <v-btn
+                                size="x-small"
+                                variant="text"
+                                :disabled="previewDisplayScalePercent === 100"
+                                @click="resetPreviewDisplayScale"
+                              >
+                                100%
+                              </v-btn>
+                            </div>
+                          </div>
+                        </div>
 
                         <div class="workspace-preview-panel__surface">
                           <PreviewFrameSurface
@@ -356,6 +420,7 @@
                             :round-display="workspaceRoundDisplay"
                             :target-width="previewTargetDimensions?.width ?? null"
                             :target-height="previewTargetDimensions?.height ?? null"
+                            :display-scale="previewDisplayScale"
                             :crop-enabled="customCropEnabled && supportsCustomCrop"
                             :crop-rect="customCropRect"
                             :crop-aspect-ratio="customCropTargetAspectRatio"
@@ -553,6 +618,7 @@
             :round-display="workspaceRoundDisplay"
             :target-width="previewTargetDimensions?.width ?? null"
             :target-height="previewTargetDimensions?.height ?? null"
+            :display-scale="previewDisplayScale"
           />
 
           <v-alert
@@ -729,6 +795,7 @@ interface PersistedDisplayConversionSettings {
   scaleMode: VideoScaleMode;
   fps: number | null;
   quality: number | null;
+  previewDisplayScalePercent: number;
 }
 
 interface NormalizedCropRect {
@@ -811,6 +878,7 @@ const defaultDisplayConversionSettings: PersistedDisplayConversionSettings = {
   scaleMode: "fit",
   fps: 20,
   quality: 5,
+  previewDisplayScalePercent: 100,
 };
 
 const outputFileUrl = ref<string | null>(null);
@@ -881,6 +949,10 @@ const previewMotionError = ref<string | null>(null);
 const previewMotionStartSeconds = ref<number | null>(null);
 const previewMotionDurationSeconds = ref<number | null>(null);
 const motionPreviewDialogOpen = ref(false);
+const previewDisplayScaleMinPercent = 25;
+const previewDisplayScaleMaxPercent = 300;
+const previewDisplayScaleStepPercent = 5;
+const previewDisplayScalePercent = ref(100);
 const trimPlayerCurrentSeconds = ref(0);
 const sourceSelectionBusy = ref(false);
 const sourcePreviewProxyUrl = ref<string | null>(null);
@@ -888,6 +960,17 @@ const sourcePreviewProxyBusy = ref(false);
 const sourcePreviewProxyError = ref<string | null>(null);
 const previewJobsBusy = computed(
   () => previewMotionBusy.value || sourcePreviewProxyBusy.value
+);
+const clampPreviewDisplayScalePercent = (value: number) =>
+  Math.min(
+    previewDisplayScaleMaxPercent,
+    Math.max(previewDisplayScaleMinPercent, Math.round(value))
+  );
+const previewDisplayScale = computed(() =>
+  clampPreviewDisplayScalePercent(previewDisplayScalePercent.value) / 100
+);
+const previewDisplayScaleLabel = computed(
+  () => `${Math.round(previewDisplayScale.value * 100)}%`
 );
 
 const isVideoOutput = computed(() => outputFormat.value !== "mp3");
@@ -1542,11 +1625,20 @@ const normalizePersistedDisplayConversionSettings = (
   const scaleModeValue = parsed.scaleMode;
   const fpsValue = parsePersistedNullableNumber(parsed.fps);
   const qualityValue = parsePersistedNullableNumber(parsed.quality);
+  const previewDisplayScalePercentValue = parsed.previewDisplayScalePercent;
+  const normalizedPreviewDisplayScalePercent =
+    previewDisplayScalePercentValue === undefined
+      ? defaultDisplayConversionSettings.previewDisplayScalePercent
+      : typeof previewDisplayScalePercentValue === "number" &&
+          Number.isFinite(previewDisplayScalePercentValue)
+        ? clampPreviewDisplayScalePercent(previewDisplayScalePercentValue)
+        : null;
   if (
     !isVideoOrientation(orientationValue) ||
     !isVideoScaleMode(scaleModeValue) ||
     fpsValue === "invalid" ||
-    qualityValue === "invalid"
+    qualityValue === "invalid" ||
+    normalizedPreviewDisplayScalePercent === null
   ) {
     return null;
   }
@@ -1555,6 +1647,7 @@ const normalizePersistedDisplayConversionSettings = (
     scaleMode: scaleModeValue,
     fps: fpsValue,
     quality: qualityValue,
+    previewDisplayScalePercent: normalizedPreviewDisplayScalePercent,
   };
 };
 
@@ -1618,6 +1711,9 @@ const applyDisplayConversionSettings = (settings: PersistedDisplayConversionSett
   scaleMode.value = settings.scaleMode;
   fps.value = settings.fps;
   quality.value = settings.quality;
+  previewDisplayScalePercent.value = clampPreviewDisplayScalePercent(
+    settings.previewDisplayScalePercent
+  );
 };
 
 let suppressDisplaySettingsPersistence = false;
@@ -1838,7 +1934,9 @@ const applySelectedBoardPreset = (
     applyTargetProfile(preset, options);
     if (persistedSettings) {
       applyDisplayConversionSettings(persistedSettings);
+      return;
     }
+    previewDisplayScalePercent.value = defaultDisplayConversionSettings.previewDisplayScalePercent;
   });
 };
 
@@ -2395,6 +2493,16 @@ const requestFramePreviewFromPanel = () => {
     return;
   }
   syncOutputPreviewToTime(trimPlayerCurrentSeconds.value);
+};
+
+const resetPreviewDisplayScale = () => {
+  previewDisplayScalePercent.value = 100;
+};
+
+const adjustPreviewDisplayScale = (deltaPercent: number) => {
+  previewDisplayScalePercent.value = clampPreviewDisplayScalePercent(
+    previewDisplayScalePercent.value + deltaPercent
+  );
 };
 
 let sourcePreviewProxyGenerationId = 0;
@@ -3129,7 +3237,7 @@ watch(outputFormat, () => {
 });
 
 watch(
-  [orientation, scaleMode, fps, quality],
+  [orientation, scaleMode, fps, quality, previewDisplayScalePercent],
   () => {
     if (suppressDisplaySettingsPersistence) {
       return;
@@ -3143,6 +3251,9 @@ watch(
       scaleMode: scaleMode.value,
       fps: fps.value,
       quality: quality.value,
+      previewDisplayScalePercent: clampPreviewDisplayScalePercent(
+        previewDisplayScalePercent.value
+      ),
     });
   },
   { flush: "sync" }
@@ -3608,6 +3719,48 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
+.workspace-preview-panel__preview-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspace-preview-panel__scale {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 320px;
+  min-width: 0;
+  max-width: 420px;
+  margin-left: auto;
+}
+
+.workspace-preview-panel__scale-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.workspace-preview-panel__scale-value {
+  min-width: 44px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.workspace-preview-panel__scale-slider {
+  flex: 1 1 160px;
+  min-width: 96px;
+}
+
+.workspace-preview-panel__scale-slider :deep(.v-input__details) {
+  display: none;
+}
+
 .workspace-preview-panel__footer {
   display: flex;
   flex-wrap: wrap;
@@ -3757,6 +3910,18 @@ onBeforeUnmount(() => {
 
   .workspace-preview-panel__header {
     flex-direction: column;
+  }
+
+  .workspace-preview-panel__preview-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workspace-preview-panel__scale {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin-left: 0;
   }
 
   .app-nav-target {
