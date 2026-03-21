@@ -149,6 +149,10 @@ const buildVideoFilter = (options?: VideoTranscodeOptions): string | null => {
     }
   }
 
+  if (filters.length > 0) {
+    filters.push("setsar=1");
+  }
+
   return filters.length > 0 ? filters.join(",") : null;
 };
 
