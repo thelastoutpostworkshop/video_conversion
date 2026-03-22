@@ -51,22 +51,6 @@ export interface BoardPreset {
 
 export const BOARD_PRESETS: BoardPreset[] = [
   {
-    id: "ESP32-S3-LCD-3.16",
-    name: "Waveshare ESP32-S3 3.16\"",
-    imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
-    amazonUrl:
-      "https://amzn.to/4689Mbm",
-    aliexpressUrl:
-      "https://s.click.aliexpress.com/e/_c4S9IVQB",
-    width: 320,
-    height: 820,
-    orientation: "none",
-    scaleMode: "fit",
-    fps: 15,
-    quality: 7,
-    notes: "320x820 Pixels 262K Color, Micro SD Card reader, WiFi and Bluetooth 5.",
-  },
-  {
     id: "jc4827w543",
     name: "Guiton JC4827W543 4.3\" IPS",
     imagePath: "board-catalog/JC4827W543/JC4827W543.png",
@@ -320,5 +304,21 @@ export const BOARD_PRESETS: BoardPreset[] = [
     fps: 12,
     quality: 8,
     notes: "1.28\" Round LCD IPS Module 240x240, 65K RGB Colors, SPI Interface",
+  },
+  {
+    id: "ESP32-S3-LCD-3.16",
+    name: "Waveshare ESP32-S3 3.16\"",
+    imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
+    amazonUrl:
+      "https://amzn.to/4689Mbm",
+    aliexpressUrl:
+      "https://s.click.aliexpress.com/e/_c4S9IVQB",
+    width: 320,
+    height: 820,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    notes: "320x820 Pixels 262K Color, Micro SD Card reader, WiFi and Bluetooth 5.",
   },
 ];
