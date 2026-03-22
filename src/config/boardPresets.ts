@@ -119,7 +119,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     orientation: "none",
     scaleMode: "fit",
     fps: 15,
-    quality: 7,
+    quality: 10,
     notes: "Discover the all-in-one JC4827W543 ESP32-S3 development board! With 8Mb PSRAM, 4Mb FLASH Memory, RGB 65K true-to-life colours, Micro SD Card reader, capacitive or resistance touch.",
   },
   {
@@ -163,8 +163,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     height: 320,
     orientation: "none",
     scaleMode: "fit",
-    fps: 20,
-    quality: 6,
+    fps: 15,
+    quality: 10,
     notes: "ESP32-C6, 172×320, 262K Color, 160MHz Single-core Processor, Supports WiFi 6 & Bluetooth 5, Onboard Antenna, Micro SD card reader",
   },
   {
@@ -209,8 +209,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     height: 466,
     orientation: "none",
     scaleMode: "fit",
-    fps: 18,
-    quality: 7,
+    fps: 15,
+    quality: 10,
     notes: "ESP32-S3 16Mb Flash, 8Mb psram, 466×466, 16.7M Color, Acceleromete And Gyroscope Sensor, Micro SD card reader",
   },
   {
@@ -240,8 +240,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     height: 240,
     orientation: "none",
     scaleMode: "fit",
-    fps: 20,
-    quality: 6,
+    fps: 15,
+    quality: 10,
     notes: "ESP32-2432S028R Resistive Touch Screen 240x320, RGB 65K color , Micro SD card reader",
   },
   {
@@ -301,8 +301,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
     height: 240,
     orientation: "none",
     scaleMode: "fit",
-    fps: 12,
-    quality: 8,
+    fps: 15,
+    quality: 10,
     notes: "1.28\" Round LCD IPS Module 240x240, 65K RGB Colors, SPI Interface",
   },
   {
