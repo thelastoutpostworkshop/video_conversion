@@ -829,18 +829,33 @@ export class MediaProcessingService {
     onLog?: MediaLogCallback,
     signal?: AbortSignal
   ): Promise<MediaProcessingResult> {
-    const filter = buildVideoFilter(options);
-    const args: string[] = ["-an", "-sn", "-dn", "-map", "0:v:0"];
+    const args: string[] = ["-sn", "-dn", "-map", "0:v:0", "-map", "0:a:0?"];
     const { preInputArgs, postInputArgs } = resolveTrimWindowArgs(options);
-    if (filter) {
-      args.push("-vf", filter);
-    }
+    const filterParts: string[] = [];
     if (options?.fps) {
-      args.push("-r", `${options.fps}`);
+      filterParts.push(`fps=${Math.max(1, Math.round(options.fps))}`);
+    }
+    const filter = buildVideoFilter(options);
+    if (filter) {
+      filterParts.push(filter);
+    }
+    if (filterParts.length > 0) {
+      args.push("-vf", filterParts.join(","));
     }
     args.push(...postInputArgs);
-    const quality = options?.quality ?? 4;
-    args.push("-c:v", "mjpeg", "-q:v", `${quality}`);
+    const quality = options?.quality ?? 10;
+    args.push(
+      "-c:v",
+      "cinepak",
+      "-q:v",
+      `${quality}`,
+      "-c:a",
+      "libmp3lame",
+      "-ac",
+      "1",
+      "-ar",
+      "22050"
+    );
     return this.runTranscode(file, "avi", args, onProgress, onLog, signal, {
       preInputArgs,
     });

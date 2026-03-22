@@ -115,7 +115,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
       },
     ],
     width: 480,
-    height: 270,
+    height: 272,
     orientation: "none",
     scaleMode: "fit",
     fps: 15,

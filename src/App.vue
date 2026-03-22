@@ -353,6 +353,16 @@
                         >
                           {{ trimValidationMessage }}
                         </v-alert>
+
+                        <v-alert
+                          v-if="aviCinepakValidationMessage"
+                          type="warning"
+                          variant="tonal"
+                          density="compact"
+                          class="mt-2"
+                        >
+                          {{ aviCinepakValidationMessage }}
+                        </v-alert>
                       </div>
 
                       <div class="workspace-preview-panel__preview mt-4">
@@ -936,6 +946,13 @@ const toRoundedPositiveDimension = (value: number | null): number | null => {
   return Math.max(1, Math.round(value));
 };
 
+const roundUpToMultiple = (value: number, multiple: number): number => {
+  if (!Number.isFinite(value) || !Number.isFinite(multiple) || multiple <= 0) {
+    return Math.max(1, Math.round(value));
+  }
+  return Math.max(multiple, Math.ceil(value / multiple) * multiple);
+};
+
 const theme = useTheme();
 
 const {
@@ -1500,6 +1517,24 @@ const customCropHint = computed(() => {
   return "Turn on custom crop, then adjust the box in the preview.";
 });
 
+const aviCinepakValidationMessage = computed(() => {
+  if (outputFormat.value !== "avi" || !isVideoOutput.value) {
+    return null;
+  }
+  const targetWidth = toRoundedPositiveDimension(width.value);
+  const targetHeight = toRoundedPositiveDimension(height.value);
+  if (!targetWidth || !targetHeight) {
+    return null;
+  }
+  if (targetWidth % 4 === 0 && targetHeight % 4 === 0) {
+    return null;
+  }
+  return `AVI uses the Cinepak codec, which requires width and height divisible by 4. Try ${roundUpToMultiple(
+    targetWidth,
+    4
+  )}x${roundUpToMultiple(targetHeight, 4)}.`;
+});
+
 const canConvert = computed(() => {
   if (!hasBoardSelection.value) {
     return false;
@@ -1520,6 +1555,9 @@ const canConvert = computed(() => {
     }
   }
   if (customCropEnabled.value && supportsCustomCrop.value && !activeCustomCropRegion.value) {
+    return false;
+  }
+  if (aviCinepakValidationMessage.value) {
     return false;
   }
   return true;
@@ -2917,6 +2955,10 @@ const runConversion = async () => {
   }
   if (hasRangeError.value) {
     processingError.value = "End time must be greater than start time.";
+    return;
+  }
+  if (aviCinepakValidationMessage.value) {
+    processingError.value = aviCinepakValidationMessage.value;
     return;
   }
   const ready = await initializeFfmpeg();

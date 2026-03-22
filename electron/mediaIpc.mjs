@@ -441,11 +441,25 @@ const buildJobDefinition = (action, options = {}) => {
     return { kind: "ffmpeg", outputExt: "gif", args, preInputArgs: trim.preInputArgs, suppressedLogPatterns: [] };
   }
   if (action === "transcodeVideoToAvi") {
-    const args = ["-an", "-sn", "-dn", "-map", "0:v:0"];
+    const args = ["-sn", "-dn", "-map", "0:v:0", "-map", "0:a:0?"];
+    const filterParts = [];
+    if (options.fps) filterParts.push(`fps=${Math.max(1, Math.round(options.fps))}`);
     const filter = buildVideoFilter(options);
-    if (filter) args.push("-vf", filter);
-    if (options.fps) args.push("-r", `${options.fps}`);
-    args.push(...trim.postInputArgs, "-c:v", "mjpeg", "-q:v", `${options.quality ?? 4}`);
+    if (filter) filterParts.push(filter);
+    if (filterParts.length > 0) args.push("-vf", filterParts.join(","));
+    args.push(
+      ...trim.postInputArgs,
+      "-c:v",
+      "cinepak",
+      "-q:v",
+      `${options.quality ?? 10}`,
+      "-c:a",
+      "libmp3lame",
+      "-ac",
+      "1",
+      "-ar",
+      "22050"
+    );
     return { kind: "ffmpeg", outputExt: "avi", args, preInputArgs: trim.preInputArgs, suppressedLogPatterns: [] };
   }
   if (action === "renderVideoFramePreview") {
@@ -592,18 +606,43 @@ const resolveMotionPreviewDimensions = async (inputPath, fileName, options = {})
 
 const renderMotionPreviewFile = async (inputPath, fileName, workspaceDir, options = {}) => {
   const toolPaths = await resolveNativeToolPaths();
-  const definition = buildJobDefinition("transcodeVideoToAvi", {
-    ...options,
-    quality: 4,
+  const motionTrim = resolveTrimWindowArgs({
+    startSeconds: options.startSeconds,
+    durationSeconds: options.durationSeconds,
   });
+  const filter = buildMotionPreviewFilter(options);
   const outputPath = path.join(
     workspaceDir,
-    `${randomUUID()}-motion-preview.${definition.outputExt}`
+    `${randomUUID()}-motion-preview.avi`
   );
   const inputArgs = isMjpegInput(fileName)
     ? ["-f", "mjpeg", "-i", inputPath]
     : ["-i", inputPath];
-  const execArgs = ["-y", ...definition.preInputArgs, ...inputArgs, ...definition.args, outputPath];
+  const execArgs = [
+    "-y",
+    ...motionTrim.preInputArgs,
+    ...inputArgs,
+    "-an",
+    "-sn",
+    "-dn",
+    "-map",
+    "0:v:0",
+  ];
+  if (filter) {
+    execArgs.push("-vf", filter);
+  }
+  execArgs.push(
+    ...motionTrim.postInputArgs,
+    "-c:v",
+    "mjpeg",
+    "-pix_fmt",
+    "yuvj420p",
+    "-color_range",
+    "pc",
+    "-q:v",
+    "4",
+    outputPath
+  );
   await runCommand(toolPaths.ffmpegPath, execArgs);
   const outputStats = await stat(outputPath);
   if (outputStats.size <= 0) {
