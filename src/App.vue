@@ -293,27 +293,39 @@
                               </div>
                             </v-col>
                             <v-col cols="6" sm="3" lg="2">
-                              <v-text-field
-                                :model-value="fps"
-                                label="FPS"
-                                type="number"
-                                density="compact"
-                                hide-details="auto"
-                                :disabled="processing"
-                                @update:model-value="(value) => (fps = toNullableNumber(value))"
-                              />
+                              <v-tooltip text="Frames per second." location="top">
+                                <template #activator="{ props: tooltipProps }">
+                                  <v-text-field
+                                    v-bind="tooltipProps"
+                                    :model-value="fps"
+                                    label="FPS"
+                                    type="number"
+                                    density="compact"
+                                    hide-details="auto"
+                                    :disabled="processing"
+                                    @update:model-value="(value) => (fps = toNullableNumber(value))"
+                                  />
+                                </template>
+                              </v-tooltip>
                             </v-col>
                             <v-col cols="6" sm="3" lg="2">
-                              <v-text-field
-                                :model-value="quality"
-                                label="Quality"
-                                type="number"
-                                density="compact"
-                                hide-details="auto"
-                                title="Lower number = higher quality."
-                                :disabled="processing"
-                                @update:model-value="(value) => (quality = toNullableNumber(value))"
-                              />
+                              <v-tooltip
+                                text="Lower number = higher quality."
+                                location="top"
+                              >
+                                <template #activator="{ props: tooltipProps }">
+                                  <v-text-field
+                                    v-bind="tooltipProps"
+                                    :model-value="quality"
+                                    label="Quality"
+                                    type="number"
+                                    density="compact"
+                                    hide-details="auto"
+                                    :disabled="processing"
+                                    @update:model-value="(value) => (quality = toNullableNumber(value))"
+                                  />
+                                </template>
+                              </v-tooltip>
                             </v-col>
                           </template>
 
