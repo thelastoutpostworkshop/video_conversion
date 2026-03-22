@@ -12,7 +12,7 @@
             </div>
             <div class="text-body-1 text-medium-emphasis about-hero__description">
               Video Conversion Studio helps you take regular video or audio files and turn
-              them into output that fits ESP display projects. Choose a board, trim the
+              them into output that fits ESP32 display projects. Choose a board, trim the
               source, preview the result, and export the format your build actually needs.
             </div>
           </div>
