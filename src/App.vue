@@ -976,7 +976,7 @@ const logLines = ref<string[]>([]);
 let convertAbortController: AbortController | null = null;
 let processingUiTimer: ReturnType<typeof setInterval> | null = null;
 const cancelRequested = ref(false);
-const initializePreviewAtMidpointPending = ref(false);
+const initializePreviewAtSelectionStartPending = ref(false);
 const trimPlayerDurationSeconds = ref<number | null>(null);
 const previewMotionUrl = ref<string | null>(null);
 const previewMotionBusy = ref(false);
@@ -2495,19 +2495,13 @@ const motionPreviewDialogStatus = computed(() => {
   })}`;
 });
 
-const initializePreviewAtMidpoint = () => {
-  if (!initializePreviewAtMidpointPending.value || !hasPreviewSource.value) {
+const initializePreviewAtSelectionStart = () => {
+  if (!initializePreviewAtSelectionStartPending.value || !hasPreviewSource.value) {
     return false;
   }
-  const duration = sourceDurationSeconds.value ?? trimPlayerDurationSeconds.value;
-  const hasDuration =
-    typeof duration === "number" && Number.isFinite(duration) && duration > 0;
-  if (hasDuration) {
-    previewSecondModel.value = clampPreviewSecond(duration / 2);
-  } else {
-    previewSecondModel.value = 0;
-  }
-  initializePreviewAtMidpointPending.value = false;
+  const [selectionStart] = trimRangeModel.value;
+  previewSecondModel.value = clampPreviewSecond(selectionStart);
+  initializePreviewAtSelectionStartPending.value = false;
   schedulePreviewFrameRefresh(50);
   return true;
 };
@@ -3410,13 +3404,13 @@ watch(
       (typeof sourceDuration === "number" && Number.isFinite(sourceDuration) && sourceDuration > 0) ||
       (typeof playerDuration === "number" && Number.isFinite(playerDuration) && playerDuration > 0);
     if (
-      !initializePreviewAtMidpointPending.value ||
+      !initializePreviewAtSelectionStartPending.value ||
       !hasSource ||
       (metadataLoading && !hasKnownDuration)
     ) {
       return;
     }
-    void initializePreviewAtMidpoint();
+    void initializePreviewAtSelectionStart();
   }
 );
 
@@ -3427,7 +3421,7 @@ watch(sourceFile, (file) => {
   invalidatePreviewMotion();
   invalidateSourcePreviewProxy();
   trimPlayerCurrentSeconds.value = 0;
-  initializePreviewAtMidpointPending.value = false;
+  initializePreviewAtSelectionStartPending.value = false;
   customCropEnabled.value = false;
   customCropRect.value = null;
   processingError.value = null;
@@ -3447,9 +3441,9 @@ watch(sourceFile, (file) => {
 
   if (isVideoSource.value && isVideoOutput.value) {
     previewFrameSeconds.value = null;
-    initializePreviewAtMidpointPending.value = true;
+    initializePreviewAtSelectionStartPending.value = true;
     if (!sourceMetadataLoading.value) {
-      void initializePreviewAtMidpoint();
+      void initializePreviewAtSelectionStart();
     }
   }
 });
@@ -3468,15 +3462,15 @@ watch(outputFormat, (format) => {
 watch(isVideoOutput, (isVideo) => {
   if (!isVideo) {
     trimPlayerCurrentSeconds.value = 0;
-    initializePreviewAtMidpointPending.value = false;
+    initializePreviewAtSelectionStartPending.value = false;
     return;
   }
   if (!sourceFile.value || !isVideoSource.value || typeof previewFrameSeconds.value === "number") {
     return;
   }
-  initializePreviewAtMidpointPending.value = true;
+  initializePreviewAtSelectionStartPending.value = true;
   if (!sourceMetadataLoading.value) {
-    void initializePreviewAtMidpoint();
+    void initializePreviewAtSelectionStart();
   }
 });
 
