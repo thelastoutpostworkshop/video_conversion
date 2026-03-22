@@ -345,7 +345,15 @@
 
                       <div class="workspace-preview-panel__preview mt-4">
                         <div class="workspace-preview-panel__preview-header">
-                          <div class="workspace-section-label">Preview</div>
+                          <div class="workspace-preview-panel__preview-copy">
+                            <div class="workspace-section-label">Preview</div>
+                            <div
+                              v-if="previewTargetSizeLabel"
+                              class="workspace-preview-panel__screen-size"
+                            >
+                              Screen {{ previewTargetSizeLabel }}
+                            </div>
+                          </div>
 
                           <div class="workspace-preview-panel__scale">
                             <div class="text-caption text-medium-emphasis">
@@ -1305,6 +1313,16 @@ const previewTargetDimensions = computed<{ width: number; height: number } | nul
   }
 
   return { width: targetWidth, height: targetHeight };
+});
+
+const previewTargetSizeLabel = computed(() => {
+  const target = previewTargetDimensions.value;
+  if (!target) {
+    return null;
+  }
+  return workspaceRoundDisplay.value
+    ? `${target.width}x${target.height} round`
+    : `${target.width}x${target.height}`;
 });
 
 const orientedSourceDimensions = computed<{ width: number; height: number } | null>(() => {
@@ -3726,6 +3744,17 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.workspace-preview-panel__preview-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.workspace-preview-panel__screen-size {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.72);
 }
 
 .workspace-preview-panel__scale {
