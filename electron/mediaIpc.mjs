@@ -299,9 +299,35 @@ const parseMetadataFromProbeOutput = (raw) => {
     if (!stream) {
       return null;
     }
+    const parseFiniteNumber = (value) => {
+      const parsedValue =
+        typeof value === "number"
+          ? value
+          : typeof value === "string" && value.trim()
+            ? Number(value)
+            : NaN;
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    };
+    const sideDataList = Array.isArray(stream.side_data_list) ? stream.side_data_list : [];
+    let rotation = null;
+    for (const sideData of sideDataList) {
+      const parsedRotation = parseFiniteNumber(sideData?.rotation);
+      if (parsedRotation !== null) {
+        rotation = parsedRotation;
+        break;
+      }
+    }
+    if (rotation === null) {
+      rotation = parseFiniteNumber(stream.tags?.rotate);
+    }
+    const quarterTurns =
+      rotation === null ? null : ((Math.round(rotation / 90) % 4) + 4) % 4;
+    const swapDimensions = quarterTurns === 1 || quarterTurns === 3;
+    const width = Math.round(Number(stream.width));
+    const height = Math.round(Number(stream.height));
     return {
-      width: Math.round(Number(stream.width)),
-      height: Math.round(Number(stream.height)),
+      width: swapDimensions ? height : width,
+      height: swapDimensions ? width : height,
       durationSeconds:
         parsed.format?.duration !== undefined &&
         Number.isFinite(Number(parsed.format.duration)) &&
@@ -321,8 +347,8 @@ const runFfprobe = async (inputPath, fileName, webContents, jobId, emitLog = tru
     "error",
     "-select_streams",
     "v:0",
-    "-show_entries",
-    "stream=width,height:format=duration",
+    "-show_streams",
+    "-show_format",
     "-of",
     "json",
     ...(isMjpegInput(fileName) ? ["-f", "mjpeg", inputPath] : [inputPath]),

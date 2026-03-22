@@ -256,6 +256,41 @@ const parseDurationNumber = (rawValue: unknown): number | null => {
   return value;
 };
 
+const parseFiniteNumber = (rawValue: unknown): number | null => {
+  if (rawValue === null || rawValue === undefined) {
+    return null;
+  }
+  const value =
+    typeof rawValue === "number"
+      ? rawValue
+      : typeof rawValue === "string" && rawValue.trim()
+        ? Number(rawValue)
+        : NaN;
+  return Number.isFinite(value) ? value : null;
+};
+
+const shouldSwapDisplayDimensions = (rotationDegrees: number | null): boolean => {
+  if (rotationDegrees === null) {
+    return false;
+  }
+  const quarterTurns = ((Math.round(rotationDegrees / 90) % 4) + 4) % 4;
+  return quarterTurns === 1 || quarterTurns === 3;
+};
+
+const parseRotationFromProbeStream = (stream: {
+  tags?: { rotate?: unknown };
+  side_data_list?: Array<{ rotation?: unknown }>;
+}): number | null => {
+  const sideDataList = Array.isArray(stream.side_data_list) ? stream.side_data_list : [];
+  for (const sideData of sideDataList) {
+    const rotation = parseFiniteNumber(sideData?.rotation);
+    if (rotation !== null) {
+      return rotation;
+    }
+  }
+  return parseFiniteNumber(stream.tags?.rotate);
+};
+
 const parseMetadataFromFfprobeOutput = (
   rawOutput: string
 ): VideoMetadataResult | null => {
@@ -265,7 +300,12 @@ const parseMetadataFromFfprobeOutput = (
 
   try {
     const parsedUnknown = JSON.parse(rawOutput) as {
-      streams?: Array<{ width?: unknown; height?: unknown }>;
+      streams?: Array<{
+        width?: unknown;
+        height?: unknown;
+        tags?: { rotate?: unknown };
+        side_data_list?: Array<{ rotation?: unknown }>;
+      }>;
       format?: { duration?: unknown };
     };
     const streams = Array.isArray(parsedUnknown.streams)
@@ -287,10 +327,15 @@ const parseMetadataFromFfprobeOutput = (
     if (width === null || height === null) {
       return null;
     }
+    const swapDimensions = shouldSwapDisplayDimensions(
+      parseRotationFromProbeStream(streamWithDimensions)
+    );
+    const displayWidth = swapDimensions ? height : width;
+    const displayHeight = swapDimensions ? width : height;
 
     return {
-      width: Math.round(width),
-      height: Math.round(height),
+      width: Math.round(displayWidth),
+      height: Math.round(displayHeight),
       durationSeconds: parseDurationNumber(parsedUnknown.format?.duration),
     };
   } catch {
@@ -684,8 +729,8 @@ export class MediaProcessingService {
         "error",
         "-select_streams",
         "v:0",
-        "-show_entries",
-        "stream=width,height:format=duration",
+        "-show_streams",
+        "-show_format",
         "-of",
         "json",
         ...inputArgs,
@@ -697,7 +742,7 @@ export class MediaProcessingService {
           ? ["-f", "mjpeg", file.name]
           : [file.name];
         onLog(
-          `[app] ffprobe -v error -select_streams v:0 -show_entries stream=width,height:format=duration -of json ${displayInputArgs.join(
+          `[app] ffprobe -v error -select_streams v:0 -show_streams -show_format -of json ${displayInputArgs.join(
             " "
           )} -o probe.json`
         );
