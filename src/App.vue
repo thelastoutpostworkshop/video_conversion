@@ -46,28 +46,6 @@
         Video Conversion Studio
       </v-toolbar-title>
       <v-spacer />
-      <div v-if="hasBoardSelection" class="app-bar-display mr-2">
-        <div class="app-bar-display__label text-caption text-medium-emphasis">Display</div>
-        <v-chip
-          color="info"
-          variant="tonal"
-          size="small"
-          class="app-bar-display__chip"
-        >
-          {{ workspaceBoardSummary }}
-        </v-chip>
-        <v-btn
-          v-if="activeView !== 'boards'"
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-view-grid-outline"
-          :disabled="processing"
-          class="app-bar-display__action"
-          @click="navigateToView('boards')"
-        >
-          Change board
-        </v-btn>
-      </div>
       <v-btn
         :icon="themeToggleIcon"
         variant="text"
@@ -370,10 +348,30 @@
                           <div class="workspace-preview-panel__preview-copy">
                             <div class="workspace-section-label">Preview</div>
                             <div
-                              v-if="previewTargetSizeLabel"
-                              class="workspace-preview-panel__screen-size"
+                              v-if="hasBoardSelection"
+                              class="workspace-preview-panel__display"
                             >
-                              Screen {{ previewTargetSizeLabel }}
+                              <div class="workspace-preview-panel__display-label">
+                                Display
+                              </div>
+                              <v-chip
+                                color="info"
+                                variant="tonal"
+                                size="small"
+                                class="workspace-preview-panel__display-chip"
+                              >
+                                {{ workspaceBoardSummary }}
+                              </v-chip>
+                              <v-btn
+                                size="small"
+                                variant="tonal"
+                                prepend-icon="mdi-view-grid-outline"
+                                :disabled="processing"
+                                class="workspace-preview-panel__display-action"
+                                @click="navigateToView('boards')"
+                              >
+                                Change board
+                              </v-btn>
                             </div>
                           </div>
 
@@ -1342,16 +1340,6 @@ const previewTargetDimensions = computed<{ width: number; height: number } | nul
   }
 
   return { width: targetWidth, height: targetHeight };
-});
-
-const previewTargetSizeLabel = computed(() => {
-  const target = previewTargetDimensions.value;
-  if (!target) {
-    return null;
-  }
-  return workspaceRoundDisplay.value
-    ? `${target.width}x${target.height} round`
-    : `${target.width}x${target.height}`;
 });
 
 const orientedSourceDimensions = computed<{ width: number; height: number } | null>(() => {
@@ -3639,35 +3627,6 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(10px);
 }
 
-.app-bar-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.app-bar-display__label {
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.app-bar-display__chip {
-  min-width: 0;
-  max-width: min(420px, 38vw);
-  border-radius: 0 !important;
-}
-
-.app-bar-display__chip :deep(.v-chip__content) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-bar-display__action {
-  white-space: nowrap;
-}
-
 .resources-title {
   font-size: 0.78rem;
   font-weight: 700;
@@ -3805,10 +3764,36 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 
-.workspace-preview-panel__screen-size {
-  font-size: 0.8rem;
-  font-weight: 600;
+.workspace-preview-panel__display {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workspace-preview-panel__display-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: rgba(var(--v-theme-on-surface), 0.72);
+  white-space: nowrap;
+}
+
+.workspace-preview-panel__display-chip {
+  min-width: 0;
+  max-width: min(520px, 100%);
+  border-radius: 0 !important;
+}
+
+.workspace-preview-panel__display-chip :deep(.v-chip__content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-preview-panel__display-action {
+  white-space: nowrap;
 }
 
 .workspace-preview-panel__scale {
@@ -3965,19 +3950,6 @@ onBeforeUnmount(() => {
     padding-right: 12px !important;
   }
 
-  .app-bar-display__label {
-    display: none;
-  }
-
-  .app-bar-display__chip {
-    max-width: min(220px, 48vw);
-  }
-
-  .app-bar-display__action {
-    min-width: auto;
-    padding-inline: 10px !important;
-  }
-
   .workspace-preview-panel__toolbar {
     justify-content: flex-start;
   }
@@ -3999,6 +3971,20 @@ onBeforeUnmount(() => {
   .workspace-preview-panel__preview-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .workspace-preview-panel__display {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workspace-preview-panel__display-chip {
+    max-width: min(100%, 420px);
+  }
+
+  .workspace-preview-panel__display-action {
+    min-width: auto;
+    padding-inline: 10px !important;
   }
 
   .workspace-preview-panel__scale {
