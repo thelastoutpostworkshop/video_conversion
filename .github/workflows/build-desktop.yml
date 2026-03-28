@@ -59,6 +59,10 @@ jobs:
         shell: powershell
         run: |
           choco install ffmpeg -y --no-progress
+          $chocoFfmpegBin = Join-Path $env:ChocolateyInstall "lib\ffmpeg\tools\ffmpeg\bin"
+          if (Test-Path (Join-Path $chocoFfmpegBin "ffmpeg.exe")) {
+            $chocoFfmpegBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
           $ffmpegCommand = Get-Command ffmpeg.exe -ErrorAction SilentlyContinue
           if (-not $ffmpegCommand) {
             $ffmpegCommand = Get-ChildItem "$env:ChocolateyInstall\lib" -Recurse -Filter ffmpeg.exe |

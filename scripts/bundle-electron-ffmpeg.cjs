@@ -1,4 +1,5 @@
 const { execFileSync } = require("node:child_process");
+const fsSync = require("node:fs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -12,6 +13,48 @@ const bundlePlatformDir = path.join(
 const toolNames = ["ffmpeg", "ffprobe", "ffplay"];
 const executableSuffix = process.platform === "win32" ? ".exe" : "";
 const pathResolverCommand = process.platform === "win32" ? "where.exe" : "which";
+
+const resolveChocolateyShimTarget = (toolName, candidatePath) => {
+  if (process.platform !== "win32") {
+    return null;
+  }
+
+  const normalizedCandidatePath = path.normalize(candidatePath);
+  const lowerCandidatePath = normalizedCandidatePath.toLowerCase();
+  const chocolateyRoot =
+    process.env.ChocolateyInstall && process.env.ChocolateyInstall.trim()
+      ? path.normalize(process.env.ChocolateyInstall)
+      : "C:\\ProgramData\\Chocolatey";
+  const chocolateyBinDir = path.join(chocolateyRoot, "bin").toLowerCase();
+
+  if (!lowerCandidatePath.startsWith(chocolateyBinDir)) {
+    return null;
+  }
+
+  const packagedToolPath = path.join(
+    chocolateyRoot,
+    "lib",
+    "ffmpeg",
+    "tools",
+    "ffmpeg",
+    "bin",
+    `${toolName}${executableSuffix}`
+  );
+  return fsSync.existsSync(packagedToolPath) ? packagedToolPath : null;
+};
+
+const resolveRealExecutablePath = (toolName, candidatePath) => {
+  const chocolateyToolPath = resolveChocolateyShimTarget(toolName, candidatePath);
+  if (chocolateyToolPath) {
+    return chocolateyToolPath;
+  }
+
+  try {
+    return fsSync.realpathSync.native(candidatePath);
+  } catch {
+    return candidatePath;
+  }
+};
 
 const resolveExecutablePath = (toolName) => {
   let output = "";
@@ -32,7 +75,10 @@ const resolveExecutablePath = (toolName) => {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const resolvedPath = matches[0];
+  const resolvedMatches = matches.map((candidatePath) =>
+    resolveRealExecutablePath(toolName, candidatePath)
+  );
+  const resolvedPath = resolvedMatches[0];
   if (!resolvedPath) {
     throw new Error(`Unable to find ${toolName}${executableSuffix} on PATH.`);
   }
