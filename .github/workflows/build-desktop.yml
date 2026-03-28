@@ -122,15 +122,21 @@ jobs:
       contents: write
     steps:
       - name: Download packaged app archives
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: video-conversion-studio-*
           path: release-assets
           merge-multiple: true
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/*
-          fail_on_unmatched_files: true
-          generate_release_notes: true
+      - name: Create or update GitHub release
+        shell: bash
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" release-assets/* --clobber
+          else
+            gh release create "$TAG_NAME" release-assets/* --generate-notes --verify-tag
+          fi
