@@ -49,13 +49,6 @@ const getMimeTypeForPath = (filePath) => {
 
 const getParentWindow = (webContents) => BrowserWindow.fromWebContents(webContents) ?? undefined;
 
-const getBundledToolPlatformDir = () => {
-  const relativeBundleDir = path.join("ffmpeg", `${process.platform}-${process.arch}`);
-  return app.isPackaged
-    ? path.join(process.resourcesPath, relativeBundleDir)
-    : path.join(projectRootDir, "vendor", relativeBundleDir);
-};
-
 const bundledExecutableSuffix = process.platform === "win32" ? ".exe" : "";
 
 const tryStatFile = async (candidatePath) => {
@@ -67,35 +60,68 @@ const tryStatFile = async (candidatePath) => {
   }
 };
 
+const getBundledToolCandidateDirs = () => {
+  const platformDirName = `${process.platform}-${process.arch}`;
+  if (!app.isPackaged) {
+    return [path.join(projectRootDir, "vendor", "ffmpeg", platformDirName)];
+  }
+
+  const bundledRootDir = path.join(process.resourcesPath, "ffmpeg");
+  return [
+    path.join(bundledRootDir, platformDirName),
+    bundledRootDir,
+    path.join(bundledRootDir, "bin"),
+    path.join(bundledRootDir, "tools"),
+    path.join(bundledRootDir, "lib", "ffmpeg", "tools", "ffmpeg", "bin"),
+  ];
+};
+
+const resolveBundledToolPaths = async () => {
+  const candidateDirs = getBundledToolCandidateDirs();
+  for (const candidateDir of candidateDirs) {
+    const ffmpegPath = await tryStatFile(
+      path.join(candidateDir, `ffmpeg${bundledExecutableSuffix}`)
+    );
+    const ffprobePath = await tryStatFile(
+      path.join(candidateDir, `ffprobe${bundledExecutableSuffix}`)
+    );
+    const ffplayPath = await tryStatFile(
+      path.join(candidateDir, `ffplay${bundledExecutableSuffix}`)
+    );
+    if (ffmpegPath && ffprobePath) {
+      return {
+        source: "bundled",
+        baseDir: candidateDir,
+        ffmpegPath,
+        ffprobePath,
+        ffplayPath,
+      };
+    }
+  }
+
+  return {
+    source: "missing",
+    checkedDirs: candidateDirs,
+  };
+};
+
 const resolveNativeToolPaths = async () => {
   if (resolvedNativeToolPathsPromise) {
     return resolvedNativeToolPathsPromise;
   }
 
   resolvedNativeToolPathsPromise = (async () => {
-    const bundledToolDir = getBundledToolPlatformDir();
-    const bundledFfmpegPath = await tryStatFile(
-      path.join(bundledToolDir, `ffmpeg${bundledExecutableSuffix}`)
-    );
-    const bundledFfprobePath = await tryStatFile(
-      path.join(bundledToolDir, `ffprobe${bundledExecutableSuffix}`)
-    );
-    const bundledFfplayPath = await tryStatFile(
-      path.join(bundledToolDir, `ffplay${bundledExecutableSuffix}`)
-    );
+    const bundledTools = await resolveBundledToolPaths();
 
-    if (bundledFfmpegPath && bundledFfprobePath) {
-      return {
-        source: "bundled",
-        ffmpegPath: bundledFfmpegPath,
-        ffprobePath: bundledFfprobePath,
-        ffplayPath: bundledFfplayPath,
-      };
+    if (bundledTools.source === "bundled") {
+      return bundledTools;
     }
 
     if (app.isPackaged) {
       throw new Error(
-        `Bundled FFmpeg tools are missing from ${bundledToolDir}. Rebuild the Electron app to repackage ffmpeg, ffprobe, and ffplay.`
+        `Bundled FFmpeg tools were not found. Checked: ${bundledTools.checkedDirs.join(
+          "; "
+        )}. Rebuild the Electron app to repackage ffmpeg, ffprobe, and ffplay.`
       );
     }
 
