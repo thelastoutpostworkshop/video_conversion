@@ -20,15 +20,19 @@ jobs:
           - name: Windows x64
             runner: windows-latest
             artifact_name: video-conversion-studio-windows-x64
+            archive_name: video-conversion-studio-windows-x64.zip
           - name: Linux x64
             runner: ubuntu-latest
             artifact_name: video-conversion-studio-linux-x64
+            archive_name: video-conversion-studio-linux-x64.tar.gz
           - name: macOS Intel
             runner: macos-15-intel
             artifact_name: video-conversion-studio-macos-x64
+            archive_name: video-conversion-studio-macos-x64.tar.gz
           - name: macOS Apple Silicon
             runner: macos-14
             artifact_name: video-conversion-studio-macos-arm64
+            archive_name: video-conversion-studio-macos-arm64.tar.gz
 
     steps:
       - name: Checkout repository
@@ -78,9 +82,55 @@ jobs:
       - name: Build Electron app
         run: npm run electron:build
 
+      - name: Archive packaged app on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $packageDir = Get-ChildItem -Path dist-electron -Directory | Select-Object -First 1
+          if (-not $packageDir) {
+            throw "No packaged app directory was found in dist-electron."
+          }
+
+          $archivePath = Join-Path "dist-electron" "${{ matrix.archive_name }}"
+          Compress-Archive -Path $packageDir.FullName -DestinationPath $archivePath
+
+      - name: Archive packaged app on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          package_dir="$(find dist-electron -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+          if [ -z "$package_dir" ]; then
+            echo "No packaged app directory was found in dist-electron." >&2
+            exit 1
+          fi
+
+          tar -C dist-electron -czf "dist-electron/${{ matrix.archive_name }}" "$(basename "$package_dir")"
+
       - name: Upload packaged app
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist-electron/**
+          path: dist-electron/${{ matrix.archive_name }}
           if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Download packaged app archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: video-conversion-studio-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
