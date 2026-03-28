@@ -7,7 +7,21 @@ const packageJson = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf-8")
 ) as { version?: string };
 
+const normalizeBasePath = (rawValue: string | undefined): string => {
+  const value = rawValue?.trim();
+  if (!value || value === "/") {
+    return "/";
+  }
+  const withLeadingSlash = value.startsWith("/") ? value : `/${value}`;
+  return withLeadingSlash.endsWith("/")
+    ? withLeadingSlash
+    : `${withLeadingSlash}/`;
+};
+
+const basePath = normalizeBasePath(process.env.VITE_BASE_PATH);
+
 export default defineConfig({
+  base: basePath,
   plugins: [vue()],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version ?? "0.0.0"),

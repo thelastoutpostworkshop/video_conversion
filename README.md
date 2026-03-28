@@ -31,6 +31,17 @@ npm run build
 
 `npm run build` runs typecheck first (`npm run typecheck`) and then builds with Vite.
 
+For subpath hosting such as GitHub Pages project sites, set `VITE_BASE_PATH`
+before building. Example:
+
+```sh
+$env:VITE_BASE_PATH="/video_conversion/"
+npm run build
+```
+
+The included GitHub Pages workflow does this automatically and deploys the
+generated `dist/` output, not the repository source tree.
+
 ## Electron development
 
 ```sh
