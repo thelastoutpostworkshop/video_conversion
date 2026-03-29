@@ -2,8 +2,7 @@ name: Board request
 description: Request support for a new board
 title: "[Board request]: "
 labels:
-  - enhancement
-  - board-request
+  - board request
 body:
   - type: input
     id: board_name
