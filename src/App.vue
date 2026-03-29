@@ -2022,7 +2022,7 @@ const selectBoardFromCatalog = (presetId: string) => {
 
 const applySizingDefaults = () => {
   if (targetSetupMode.value === "preset" && selectedBoardPreset.value) {
-    applySelectedBoardPreset({ setOutputFormat: false, writeLog: false });
+    applySelectedBoardPreset({ setOutputFormat: true, writeLog: false });
   }
 };
 
@@ -3554,7 +3554,7 @@ onMounted(() => {
   }
   applySizingDefaults();
   const persistedPreferences = loadPersistedConversionPreferences();
-  if (persistedPreferences) {
+  if (persistedPreferences && targetSetupMode.value !== "preset") {
     outputFormat.value = persistedPreferences.outputFormat;
   }
   void initializeFfmpeg();
