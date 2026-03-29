@@ -753,8 +753,19 @@
             {{ outputPrimaryActionLabel }}
           </v-btn>
         </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </v-card>
+      </v-dialog>
+
+    <v-snackbar
+      :key="logCopyFeedbackKey"
+      v-model="logCopyFeedbackVisible"
+      :color="logCopyFeedbackColor"
+      location="bottom end"
+      timeout="2200"
+      variant="elevated"
+    >
+      {{ logCopyFeedbackMessage }}
+    </v-snackbar>
   </v-app>
 </template>
 
@@ -912,6 +923,10 @@ const defaultDisplayConversionSettings: PersistedDisplayConversionSettings = {
 
 const outputFileUrl = ref<string | null>(null);
 const outputSavedPath = ref<string | null>(null);
+const logCopyFeedbackVisible = ref(false);
+const logCopyFeedbackMessage = ref("");
+const logCopyFeedbackColor = ref<"success" | "error">("success");
+const logCopyFeedbackKey = ref(0);
 
 const outputFormat = ref<OutputFormat>("gif");
 const outputFileName = ref("");
@@ -2206,6 +2221,16 @@ const createLogFileName = (): string => {
   return `ffmpeg-logs-${timestamp}.txt`;
 };
 
+const showLogCopyFeedback = (
+  message: string,
+  color: "success" | "error" = "success"
+) => {
+  logCopyFeedbackMessage.value = message;
+  logCopyFeedbackColor.value = color;
+  logCopyFeedbackKey.value += 1;
+  logCopyFeedbackVisible.value = true;
+};
+
 const copyLogsToClipboard = async () => {
   const text = logsText.value;
   if (!text) {
@@ -2215,6 +2240,7 @@ const copyLogsToClipboard = async () => {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
+      showLogCopyFeedback("Session log copied to clipboard.");
       return;
     } catch {
       // Clipboard permission might be blocked; fall back to execCommand.
@@ -2222,6 +2248,7 @@ const copyLogsToClipboard = async () => {
   }
 
   if (typeof document === "undefined") {
+    showLogCopyFeedback("Copy failed. Copy the session log manually.", "error");
     return;
   }
 
@@ -2235,7 +2262,12 @@ const copyLogsToClipboard = async () => {
   textarea.focus();
   textarea.select();
   try {
-    document.execCommand("copy");
+    const copied = document.execCommand("copy");
+    if (copied) {
+      showLogCopyFeedback("Session log copied to clipboard.");
+      return;
+    }
+    showLogCopyFeedback("Copy failed. Copy the session log manually.", "error");
   } finally {
     textarea.remove();
   }
