@@ -824,6 +824,7 @@ interface PersistedDisplayConversionSettings {
   fps: number | null;
   quality: number | null;
   previewDisplayScalePercent: number;
+  outputFormat?: OutputFormat;
 }
 
 interface NormalizedCropRect {
@@ -1681,6 +1682,7 @@ const normalizePersistedDisplayConversionSettings = (
   const scaleModeValue = parsed.scaleMode;
   const fpsValue = parsePersistedNullableNumber(parsed.fps);
   const qualityValue = parsePersistedNullableNumber(parsed.quality);
+  const outputFormatValue = parsed.outputFormat;
   const previewDisplayScalePercentValue = parsed.previewDisplayScalePercent;
   const normalizedPreviewDisplayScalePercent =
     previewDisplayScalePercentValue === undefined
@@ -1704,6 +1706,7 @@ const normalizePersistedDisplayConversionSettings = (
     fps: fpsValue,
     quality: qualityValue,
     previewDisplayScalePercent: normalizedPreviewDisplayScalePercent,
+    outputFormat: isOutputFormat(outputFormatValue) ? outputFormatValue : undefined,
   };
 };
 
@@ -1770,6 +1773,9 @@ const applyDisplayConversionSettings = (settings: PersistedDisplayConversionSett
   previewDisplayScalePercent.value = clampPreviewDisplayScalePercent(
     settings.previewDisplayScalePercent
   );
+  if (settings.outputFormat && isOutputFormat(settings.outputFormat)) {
+    outputFormat.value = settings.outputFormat;
+  }
 };
 
 let suppressDisplaySettingsPersistence = false;
@@ -3292,7 +3298,7 @@ watch(outputFormat, () => {
 });
 
 watch(
-  [orientation, scaleMode, fps, quality, previewDisplayScalePercent],
+  [orientation, scaleMode, fps, quality, previewDisplayScalePercent, outputFormat],
   () => {
     if (suppressDisplaySettingsPersistence) {
       return;
@@ -3309,6 +3315,7 @@ watch(
       previewDisplayScalePercent: clampPreviewDisplayScalePercent(
         previewDisplayScalePercent.value
       ),
+      outputFormat: outputFormat.value,
     });
   },
   { flush: "sync" }
