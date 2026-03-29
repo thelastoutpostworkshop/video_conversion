@@ -33,6 +33,7 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^41.0.3",
+    "extract-zip": "^2.0.1",
     "sass": "^1.94.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.0",

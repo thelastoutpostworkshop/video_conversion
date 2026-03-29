@@ -6,7 +6,7 @@ Thanks for contributing to Video Conversion Studio.
 
 - Use Node.js 22 if possible
 - Install dependencies with `npm install` or `npm ci`
-- For Electron work, make sure `ffmpeg`, `ffprobe`, and `ffplay` are available on `PATH`
+- Electron development and packaging will reuse native `ffmpeg`, `ffprobe`, and `ffplay` from `PATH` when available, or download local copies automatically on first run if they are missing
 
 ## Development Setup
 
