@@ -40,3 +40,7 @@ Your files are processed locally. The app does not upload your media to a remote
 ## For Contributors
 
 If you want to contribute, read [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Manual Web Deployment
+
+GitHub Pages deployment is manual. To publish a new web version, open the repository on GitHub, go to the `Actions` tab, select `Deploy Web App to GitHub Pages`, and click `Run workflow`.
