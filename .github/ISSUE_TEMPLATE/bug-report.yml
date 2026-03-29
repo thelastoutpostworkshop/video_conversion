@@ -34,6 +34,20 @@ body:
       required: true
 
   - type: textarea
+    id: session_log
+    attributes:
+      label: Session log
+      description: Open the Session Log tab in the app, copy the relevant lines, and paste them here.
+      placeholder: |
+        Paste the relevant Session Log lines here.
+
+        Example:
+        [10:14:05 AM] [app] Loading source file...
+        [10:14:06 AM] [error] FFmpeg exited with code 1.
+    validations:
+      required: true
+
+  - type: textarea
     id: extra
     attributes:
       label: Extra details
