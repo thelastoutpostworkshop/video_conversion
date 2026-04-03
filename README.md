@@ -1,4 +1,8 @@
+[<img src="https://github.com/thelastoutpostworkshop/images/blob/main/Video%20Conversion_1.png">](https://youtu.be/bFq05qXqin0)
 # Video Conversion Studio
+<a href="https://www.buymeacoffee.com/thelastoutpostworkshop" target="_blank">
+<img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee">
+</a>
 
 Video Conversion Studio helps you convert video and audio for ESP32 small displays and embedded projects directly on your own machine.
 
