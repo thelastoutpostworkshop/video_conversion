@@ -106,7 +106,7 @@
                       :source-loading="sourceSelectionBusy"
                       :source-proxy-url="sourcePreviewProxyUrl"
                       :source-proxy-busy="sourcePreviewProxyBusy"
-                      :source-proxy-error="sourcePreviewProxyError"
+                      :source-proxy-error="visibleSourcePreviewProxyError"
                       :is-video-source="isVideoSource"
                       :is-video-output="isVideoOutput"
                       :prefer-native-source-picker="isElectronApp"
@@ -195,12 +195,12 @@
                         </v-alert>
 
                         <v-alert
-                          v-if="processingError"
+                          v-if="visibleProcessingError"
                           type="error"
                           variant="tonal"
                           class="mt-3"
                         >
-                          {{ processingError }}
+                          {{ visibleProcessingError }}
                         </v-alert>
                       </template>
                     </TrimVideoPlayer>
@@ -357,15 +357,6 @@
                           {{ aviCinepakValidationMessage }}
                         </v-alert>
 
-                        <v-alert
-                          v-if="webSourceFileLimitError"
-                          type="warning"
-                          variant="tonal"
-                          density="compact"
-                          class="mt-2"
-                        >
-                          {{ webSourceFileLimitError }}
-                        </v-alert>
                       </div>
 
                       <div class="workspace-preview-panel__preview mt-4">
@@ -497,11 +488,11 @@
                         </v-alert>
 
                         <v-alert
-                          v-if="previewMotionError && !motionPreviewDialogOpen"
+                          v-if="visiblePreviewMotionError && !motionPreviewDialogOpen"
                           type="warning"
                           variant="tonal"
                         >
-                          {{ previewMotionError }}
+                          {{ visiblePreviewMotionError }}
                         </v-alert>
 
                         <div class="workspace-preview-panel__footer">
@@ -675,12 +666,12 @@
           />
 
           <v-alert
-            v-if="previewMotionError"
+            v-if="visiblePreviewMotionError"
             type="warning"
             variant="tonal"
             class="mt-3"
           >
-            {{ previewMotionError }}
+            {{ visiblePreviewMotionError }}
           </v-alert>
         </v-card-text>
       </v-card>
@@ -780,6 +771,39 @@
         </v-card-actions>
         </v-card>
       </v-dialog>
+
+    <v-dialog v-model="desktopDownloadDialogOpen" max-width="540">
+      <v-card rounded="lg">
+        <v-card-title class="d-flex align-center ga-2">
+          <v-icon icon="mdi-laptop" color="primary" />
+          <span>Desktop Version Recommended</span>
+        </v-card-title>
+        <v-card-text>
+          <div class="text-body-2">
+            {{ desktopDownloadDialogMessage }}
+          </div>
+          <div class="text-caption text-medium-emphasis mt-2">
+            The desktop app handles larger files and converts much faster.
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="desktopDownloadDialogOpen = false">
+            Close
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            append-icon="mdi-open-in-new"
+            :href="desktopDownloadUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Get desktop version
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-snackbar
       :key="logCopyFeedbackKey"
@@ -1032,6 +1056,8 @@ const processingLastActivityAtMs = ref<number | null>(null);
 const processingUiTick = ref(0);
 const processingError = ref<string | null>(null);
 const downloadReadyDialogOpen = ref(false);
+const desktopDownloadDialogOpen = ref(false);
+const desktopDownloadDialogMessage = ref("");
 const logLines = ref<string[]>([]);
 
 let convertAbortController: AbortController | null = null;
@@ -1592,6 +1618,32 @@ const webSourceFileLimitError = computed(() => {
   return file ? getBrowserFfmpegSourceFileSizeError(file) : null;
 });
 
+const openDesktopDownloadDialog = (
+  message: string | null | undefined = webSourceFileLimitError.value
+) => {
+  if (!message) {
+    return false;
+  }
+  desktopDownloadDialogMessage.value = message;
+  desktopDownloadDialogOpen.value = true;
+  return true;
+};
+
+const hideLargeWebFileMessage = (message: string | null) =>
+  message && message === webSourceFileLimitError.value ? null : message;
+
+const visibleProcessingError = computed(() =>
+  hideLargeWebFileMessage(processingError.value)
+);
+
+const visiblePreviewMotionError = computed(() =>
+  hideLargeWebFileMessage(previewMotionError.value)
+);
+
+const visibleSourcePreviewProxyError = computed(() =>
+  hideLargeWebFileMessage(sourcePreviewProxyError.value)
+);
+
 const canConvert = computed(() => {
   if (!hasBoardSelection.value) {
     return false;
@@ -1621,6 +1673,15 @@ const canConvert = computed(() => {
     return false;
   }
   return true;
+});
+
+watch(webSourceFileLimitError, (message) => {
+  if (message) {
+    openDesktopDownloadDialog(message);
+    return;
+  }
+  desktopDownloadDialogOpen.value = false;
+  desktopDownloadDialogMessage.value = "";
 });
 
 const activeView = computed<AppView>(() => activeNavigation.value);
@@ -2565,7 +2626,9 @@ const activePreviewPanelHelper = computed(() => {
   return "Matches the trim playhead.";
 });
 
-const activePreviewPanelError = computed(() => previewFrameError.value);
+const activePreviewPanelError = computed(() =>
+  hideLargeWebFileMessage(previewFrameError.value)
+);
 
 const showFramePreviewAction = computed(() => hasPreviewSource.value);
 
@@ -2679,7 +2742,7 @@ const generateSourcePreviewProxy = async () => {
     return;
   }
   if (!isElectronApp.value && webSourceFileLimitError.value) {
-    sourcePreviewProxyError.value = webSourceFileLimitError.value;
+    openDesktopDownloadDialog(webSourceFileLimitError.value);
     return;
   }
 
@@ -2835,7 +2898,7 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
     return false;
   }
   if (!isElectronApp.value && webSourceFileLimitError.value) {
-    previewMotionError.value = webSourceFileLimitError.value;
+    openDesktopDownloadDialog(webSourceFileLimitError.value);
     return false;
   }
 
@@ -3046,7 +3109,7 @@ const runConversion = async () => {
     return;
   }
   if (webSourceFileLimitError.value) {
-    processingError.value = webSourceFileLimitError.value;
+    openDesktopDownloadDialog(webSourceFileLimitError.value);
     return;
   }
   const ready = await initializeFfmpeg();
