@@ -328,4 +328,22 @@ export const BOARD_PRESETS: BoardPreset[] = [
     outputFormat: "mjpeg",
     notes: "320x820 Pixels 262K Color, Micro SD Card reader, WiFi and Bluetooth 5.",
   },
+  {
+    id: "ESP32-S3-LCD-2.8",
+    name: "ESP32-S3 2.8″",
+    imagePath: "",
+    amazonUrl:
+      "https://amzn.to/4e3bzTB",
+    aliexpressUrl:
+      "https://s.click.aliexpress.com/e/_c454m9Ch",
+    width: 480,
+    height: 480,
+    roundDisplay: true,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    outputFormat: "mjpeg",
+    notes: "480×480, Acceleromete And Gyroscope Sensor, Micro SD card reader, Options For Touch Function",
+  },
 ];
