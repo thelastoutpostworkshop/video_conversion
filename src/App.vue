@@ -3609,6 +3609,13 @@ watch(sourceFile, (file) => {
 
   outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
 
+  const largeWebFileMessage = isElectronApp.value
+    ? null
+    : getBrowserFfmpegSourceFileSizeError(file);
+  if (largeWebFileMessage) {
+    openDesktopDownloadDialog(largeWebFileMessage);
+  }
+
   if (isVideoSource.value && isVideoOutput.value) {
     previewFrameSeconds.value = null;
     initializePreviewAtSelectionStartPending.value = true;
