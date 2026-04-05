@@ -890,7 +890,15 @@ const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string 
 const desktopDownloadUrl =
   "https://github.com/thelastoutpostworkshop/video_conversion/releases/latest";
 
-const resourceLinks: Array<{ title: string; icon: string; href: string; tooltip?: string }> = [
+type ResourceLink = {
+  title: string;
+  icon: string;
+  href: string;
+  tooltip?: string;
+  webOnly?: boolean;
+};
+
+const allResourceLinks: ResourceLink[] = [
   {
     title: "Tutorial",
     icon: "mdi-youtube",
@@ -911,8 +919,13 @@ const resourceLinks: Array<{ title: string; icon: string; href: string; tooltip?
     icon: "mdi-download-box-outline",
     href: desktopDownloadUrl,
     tooltip: "The desktop version allows for faster video conversion.",
+    webOnly: true,
   },
 ];
+
+const resourceLinks = computed(() =>
+  allResourceLinks.filter((resource) => !resource.webOnly || !isElectronApp.value)
+);
 
 const themeStorageKey = "video-conversion.theme.v1";
 const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
