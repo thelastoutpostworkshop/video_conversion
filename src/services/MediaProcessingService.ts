@@ -53,23 +53,12 @@ export interface MediaProgressInfo {
 export type MediaProgressCallback = (progress: MediaProgressInfo) => void;
 export type MediaLogCallback = (message: string) => void;
 
-const tryBlobURL = async (url: string, mimeType: string) => {
-  try {
-    return await toBlobURL(url, mimeType);
-  } catch (error) {
-    console.warn("[app] ffmpeg optional asset missing", url, error);
-    return null;
-  }
-};
-
 const buildCoreUrls = async (baseUrl: string) => {
   const coreJs = `${baseUrl}ffmpeg-core.js`;
   const coreWasm = `${baseUrl}ffmpeg-core.wasm`;
-  const coreWorker = `${baseUrl}ffmpeg-core.worker.js`;
   const coreURL = await toBlobURL(coreJs, "text/javascript");
   const wasmURL = await toBlobURL(coreWasm, "application/wasm");
-  const workerURL = await tryBlobURL(coreWorker, "text/javascript");
-  return workerURL ? { coreURL, wasmURL, workerURL } : { coreURL, wasmURL };
+  return { coreURL, wasmURL };
 };
 
 const resolveCoreUrls = async () => {

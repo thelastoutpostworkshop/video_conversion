@@ -30,7 +30,6 @@ const copyFile = (fileName, isOptional = false) => {
   const sourcePath = resolveSourcePath(fileName);
   if (!sourcePath) {
     if (isOptional) {
-      console.warn(`[ffmpeg] Optional core file not found: ${fileName}`);
       return;
     }
     throw new Error(`Missing ffmpeg core file: ${fileName}`);
