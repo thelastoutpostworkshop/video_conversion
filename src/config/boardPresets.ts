@@ -330,8 +330,8 @@ export const BOARD_PRESETS: BoardPreset[] = [
   },
   {
     id: "ESP32-S3-LCD-2.8",
-    name: "ESP32-S3 2.8″",
-    imagePath: "",
+    name: "Waveshare ESP32-S3 2.8″",
+    imagePath: "board-catalog/ESP32-S3-LCD-2.8/ESP32-S3-Touch-LCD-2.8.png",
     amazonUrl:
       "https://amzn.to/4e3bzTB",
     aliexpressUrl:
