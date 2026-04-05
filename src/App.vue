@@ -26,16 +26,31 @@
           <v-divider class="mb-4" />
           <div class="resources-title text-medium-emphasis mb-2">Resources</div>
           <v-list nav density="comfortable" class="resources-list">
-            <v-list-item
-              v-for="resource in resourceLinks"
-              :key="resource.title"
-              :prepend-icon="resource.icon"
-              :title="resource.title"
-              :href="resource.href"
-              target="_blank"
-              rel="noopener noreferrer"
-              rounded="lg"
-            />
+            <template v-for="resource in resourceLinks" :key="resource.title">
+              <v-tooltip v-if="resource.tooltip" location="top">
+                <template #activator="{ props }">
+                  <v-list-item
+                    v-bind="props"
+                    :prepend-icon="resource.icon"
+                    :title="resource.title"
+                    :href="resource.href"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    rounded="lg"
+                  />
+                </template>
+                <span>{{ resource.tooltip }}</span>
+              </v-tooltip>
+              <v-list-item
+                v-else
+                :prepend-icon="resource.icon"
+                :title="resource.title"
+                :href="resource.href"
+                target="_blank"
+                rel="noopener noreferrer"
+                rounded="lg"
+              />
+            </template>
           </v-list>
         </div>
       </template>
@@ -872,7 +887,10 @@ const navigationItems: Array<{ id: AppNavigationId; title: string; icon: string 
   { id: "about", title: "About", icon: "mdi-information-outline" },
 ];
 
-const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
+const desktopDownloadUrl =
+  "https://github.com/thelastoutpostworkshop/video_conversion/releases/latest";
+
+const resourceLinks: Array<{ title: string; icon: string; href: string; tooltip?: string }> = [
   {
     title: "Tutorial",
     icon: "mdi-youtube",
@@ -888,10 +906,13 @@ const resourceLinks: Array<{ title: string; icon: string; href: string }> = [
     icon: "mdi-lifebuoy",
     href: "https://github.com/thelastoutpostworkshop/video_conversion",
   },
+  {
+    title: "Desktop Version",
+    icon: "mdi-download-box-outline",
+    href: desktopDownloadUrl,
+    tooltip: "The desktop version allows for faster video conversion.",
+  },
 ];
-
-const desktopDownloadUrl =
-  "https://github.com/thelastoutpostworkshop/video_conversion/releases/latest";
 
 const themeStorageKey = "video-conversion.theme.v1";
 const conversionPreferencesStorageKey = "video-conversion.preferences.v1";
