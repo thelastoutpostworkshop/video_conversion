@@ -2,6 +2,7 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import type { VideoMetadataResult } from "@/services/MediaProcessingService";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 import { isElectronRuntime } from "@/services/runtimeEnvironment";
+import { getBrowserFfmpegSourceFileSizeError } from "@/services/webMediaLimits";
 
 const videoExtensions = [
   ".avi",
@@ -140,6 +141,10 @@ export const useSourceMedia = () => {
         } catch (browserError) {
           if (!isCurrentRequest()) {
             return;
+          }
+          const limitError = getBrowserFfmpegSourceFileSizeError(file);
+          if (limitError) {
+            throw new Error(limitError);
           }
           try {
             metadata = await mediaProcessingService.probeVideoMetadata(

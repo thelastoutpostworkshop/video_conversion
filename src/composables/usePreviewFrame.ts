@@ -7,6 +7,8 @@ import type {
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
+import { isElectronRuntime } from "@/services/runtimeEnvironment";
+import { getBrowserFfmpegSourceFileSizeError } from "@/services/webMediaLimits";
 
 type OutputSizeMode = "original" | "custom";
 
@@ -128,6 +130,14 @@ export const usePreviewFrame = ({
       }
       previewRefreshQueued = true;
       return;
+    }
+
+    if (!isElectronRuntime()) {
+      const limitError = getBrowserFfmpegSourceFileSizeError(file);
+      if (limitError) {
+        previewFrameError.value = limitError;
+        return;
+      }
     }
 
     const ready = await ensureFfmpegReady();

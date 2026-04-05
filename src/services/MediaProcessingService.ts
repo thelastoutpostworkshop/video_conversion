@@ -1,5 +1,7 @@
 ﻿import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
+import { isElectronRuntime } from "@/services/runtimeEnvironment";
+import { getBrowserFfmpegSourceFileSizeError } from "@/services/webMediaLimits";
 
 export interface VideoTranscodeOptions {
   width?: number;
@@ -390,6 +392,17 @@ const pickFailureLogLine = (logs: string[]): string | null => {
   return logs.length > 0 ? logs[logs.length - 1] ?? null : null;
 };
 
+const assertBrowserFfmpegFileSupported = (file: File) => {
+  if (isElectronRuntime()) {
+    return;
+  }
+
+  const limitError = getBrowserFfmpegSourceFileSizeError(file);
+  if (limitError) {
+    throw new Error(limitError);
+  }
+};
+
 const resolveTrimWindowArgs = (options?: VideoTranscodeOptions) => {
   const startSeconds = options?.startSeconds ?? null;
   const endSeconds = options?.endSeconds ?? null;
@@ -459,6 +472,7 @@ export class MediaProcessingService {
     signal?: AbortSignal,
     options: RunTranscodeOptions = {}
   ): Promise<MediaProcessingResult> {
+    assertBrowserFfmpegFileSupported(file);
     await this.ensureReady();
     if (!this.ffmpeg) {
       throw new Error("FFmpeg failed to initialize.");
@@ -646,6 +660,7 @@ export class MediaProcessingService {
     onLog?: MediaLogCallback,
     signal?: AbortSignal
   ): Promise<VideoMetadataResult> {
+    assertBrowserFfmpegFileSupported(file);
     await this.ensureReady();
     if (!this.ffmpeg) {
       throw new Error("FFmpeg failed to initialize.");

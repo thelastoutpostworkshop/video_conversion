@@ -356,6 +356,16 @@
                         >
                           {{ aviCinepakValidationMessage }}
                         </v-alert>
+
+                        <v-alert
+                          v-if="webSourceFileLimitError"
+                          type="warning"
+                          variant="tonal"
+                          density="compact"
+                          class="mt-2"
+                        >
+                          {{ webSourceFileLimitError }}
+                        </v-alert>
                       </div>
 
                       <div class="workspace-preview-panel__preview mt-4">
@@ -805,6 +815,7 @@ import type {
 import { getElectronFilePath, registerElectronFilePath } from "@/services/electronFileRegistry";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 import { getMediaBackendLabel, isElectronRuntime } from "@/services/runtimeEnvironment";
+import { getBrowserFfmpegSourceFileSizeError } from "@/services/webMediaLimits";
 import { usePreviewFrame } from "@/composables/usePreviewFrame";
 import { useSourceMedia } from "@/composables/useSourceMedia";
 import {
@@ -1573,6 +1584,14 @@ const aviCinepakValidationMessage = computed(() => {
   )}x${roundUpToMultiple(targetHeight, 4)}.`;
 });
 
+const webSourceFileLimitError = computed(() => {
+  if (isElectronApp.value) {
+    return null;
+  }
+  const file = sourceFile.value;
+  return file ? getBrowserFfmpegSourceFileSizeError(file) : null;
+});
+
 const canConvert = computed(() => {
   if (!hasBoardSelection.value) {
     return false;
@@ -1596,6 +1615,9 @@ const canConvert = computed(() => {
     return false;
   }
   if (aviCinepakValidationMessage.value) {
+    return false;
+  }
+  if (webSourceFileLimitError.value) {
     return false;
   }
   return true;
@@ -2656,6 +2678,10 @@ const generateSourcePreviewProxy = async () => {
   if (processing.value || previewFrameBusy.value || previewJobsBusy.value) {
     return;
   }
+  if (!isElectronApp.value && webSourceFileLimitError.value) {
+    sourcePreviewProxyError.value = webSourceFileLimitError.value;
+    return;
+  }
 
   const ready = await initializeFfmpeg();
   if (!ready) {
@@ -2806,6 +2832,10 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
   const previewWindow = resolveMotionPreviewWindow(seconds);
   if (!previewWindow) {
     previewMotionError.value = "Select at least 0.5 seconds in the trim range to preview motion.";
+    return false;
+  }
+  if (!isElectronApp.value && webSourceFileLimitError.value) {
+    previewMotionError.value = webSourceFileLimitError.value;
     return false;
   }
 
@@ -3013,6 +3043,10 @@ const runConversion = async () => {
   }
   if (aviCinepakValidationMessage.value) {
     processingError.value = aviCinepakValidationMessage.value;
+    return;
+  }
+  if (webSourceFileLimitError.value) {
+    processingError.value = webSourceFileLimitError.value;
     return;
   }
   const ready = await initializeFfmpeg();
