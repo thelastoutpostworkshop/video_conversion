@@ -232,6 +232,21 @@
                             />
                           </v-col>
 
+                          <v-col v-if="outputFormat === 'gif'" cols="12" md="4">
+                            <v-switch
+                              v-model="gifHeaderExportEnabled"
+                              color="primary"
+                              density="compact"
+                              inset
+                              hide-details
+                              label="Save GIF as .h file"
+                              :disabled="processing || previewFrameBusy || previewMotionBusy"
+                            />
+                            <div class="text-caption text-medium-emphasis">
+                              Packages the animated GIF bytes into a C header for Arduino and ESP32 builds.
+                            </div>
+                          </v-col>
+
                           <template v-if="isVideoOutput">
                             <v-col cols="12" sm="6" md="4">
                               <v-select
@@ -837,6 +852,7 @@ import type {
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
 import { getElectronFilePath, registerElectronFilePath } from "@/services/electronFileRegistry";
+import { convertGifToHeader } from "@/services/gifToHeader";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 import { getMediaBackendLabel, isElectronRuntime } from "@/services/runtimeEnvironment";
 import { getBrowserFfmpegSourceFileSizeError } from "@/services/webMediaLimits";
@@ -877,6 +893,7 @@ interface PersistedCustomBoardDraft {
 
 interface PersistedConversionPreferences {
   outputFormat: OutputFormat;
+  gifHeaderExportEnabled?: boolean;
 }
 
 interface PersistedDisplayConversionSettings {
@@ -886,6 +903,7 @@ interface PersistedDisplayConversionSettings {
   quality: number | null;
   previewDisplayScalePercent: number;
   outputFormat?: OutputFormat;
+  gifHeaderExportEnabled?: boolean;
 }
 
 interface NormalizedCropRect {
@@ -893,6 +911,11 @@ interface NormalizedCropRect {
   y: number;
   width: number;
   height: number;
+}
+
+interface SaveDialogFilter {
+  name: string;
+  extensions: string[];
 }
 
 const formatItems: Array<{ title: string; value: OutputFormat }> = [
@@ -982,12 +1005,19 @@ const outputMimeMap: Record<OutputFormat, string> = {
   mp3: "audio/mpeg",
 };
 
+const gifHeaderOutputExtension = "h";
+const gifHeaderOutputMime = "text/plain;charset=utf-8";
+const gifHeaderSaveFilters: SaveDialogFilter[] = [
+  { name: "C header files", extensions: [gifHeaderOutputExtension] },
+];
+
 const defaultDisplayConversionSettings: PersistedDisplayConversionSettings = {
   orientation: "none",
   scaleMode: "fit",
   fps: 20,
   quality: 5,
   previewDisplayScalePercent: 100,
+  gifHeaderExportEnabled: false,
 };
 
 const outputFileUrl = ref<string | null>(null);
@@ -998,6 +1028,7 @@ const logCopyFeedbackColor = ref<"success" | "error">("success");
 const logCopyFeedbackKey = ref(0);
 
 const outputFormat = ref<OutputFormat>("gif");
+const gifHeaderExportEnabled = ref(false);
 const outputFileName = ref("");
 const outputSizeMode = ref<OutputSizeMode>("custom");
 const width = ref<number | null>(null);
@@ -1167,7 +1198,18 @@ const currentDisplaySettingsKey = computed(() => {
 const hasOutput = computed(
   () => Boolean(outputFileUrl.value) || Boolean(outputSavedPath.value)
 );
-const outputFileExtension = computed(() => outputExtensionMap[outputFormat.value]);
+const isGifHeaderOutput = computed(
+  () => outputFormat.value === "gif" && gifHeaderExportEnabled.value
+);
+const outputFileExtension = computed(() =>
+  isGifHeaderOutput.value ? gifHeaderOutputExtension : outputExtensionMap[outputFormat.value]
+);
+const outputFileMime = computed(() =>
+  isGifHeaderOutput.value ? gifHeaderOutputMime : outputMimeMap[outputFormat.value]
+);
+const outputFileSaveFilters = computed<SaveDialogFilter[]>(() =>
+  isGifHeaderOutput.value ? gifHeaderSaveFilters : outputSaveFilters[outputFormat.value]
+);
 const outputReadyDialogTitle = computed(() =>
   outputSavedPath.value ? "Output saved" : "Output ready to download"
 );
@@ -1815,6 +1857,7 @@ const normalizePersistedDisplayConversionSettings = (
   const fpsValue = parsePersistedNullableNumber(parsed.fps);
   const qualityValue = parsePersistedNullableNumber(parsed.quality);
   const outputFormatValue = parsed.outputFormat;
+  const gifHeaderExportEnabledValue = parsed.gifHeaderExportEnabled;
   const previewDisplayScalePercentValue = parsed.previewDisplayScalePercent;
   const normalizedPreviewDisplayScalePercent =
     previewDisplayScalePercentValue === undefined
@@ -1823,12 +1866,19 @@ const normalizePersistedDisplayConversionSettings = (
           Number.isFinite(previewDisplayScalePercentValue)
         ? clampPreviewDisplayScalePercent(previewDisplayScalePercentValue)
         : null;
+  const normalizedGifHeaderExportEnabled =
+    gifHeaderExportEnabledValue === undefined
+      ? defaultDisplayConversionSettings.gifHeaderExportEnabled
+      : typeof gifHeaderExportEnabledValue === "boolean"
+        ? gifHeaderExportEnabledValue
+        : null;
   if (
     !isVideoOrientation(orientationValue) ||
     !isVideoScaleMode(scaleModeValue) ||
     fpsValue === "invalid" ||
     qualityValue === "invalid" ||
-    normalizedPreviewDisplayScalePercent === null
+    normalizedPreviewDisplayScalePercent === null ||
+    normalizedGifHeaderExportEnabled === null
   ) {
     return null;
   }
@@ -1839,6 +1889,7 @@ const normalizePersistedDisplayConversionSettings = (
     quality: qualityValue,
     previewDisplayScalePercent: normalizedPreviewDisplayScalePercent,
     outputFormat: isOutputFormat(outputFormatValue) ? outputFormatValue : undefined,
+    gifHeaderExportEnabled: normalizedGifHeaderExportEnabled,
   };
 };
 
@@ -1905,6 +1956,7 @@ const applyDisplayConversionSettings = (settings: PersistedDisplayConversionSett
   previewDisplayScalePercent.value = clampPreviewDisplayScalePercent(
     settings.previewDisplayScalePercent
   );
+  gifHeaderExportEnabled.value = settings.gifHeaderExportEnabled === true;
   if (settings.outputFormat && isOutputFormat(settings.outputFormat)) {
     outputFormat.value = settings.outputFormat;
   }
@@ -1927,6 +1979,7 @@ const persistConversionPreferences = () => {
   }
   const preferences: PersistedConversionPreferences = {
     outputFormat: outputFormat.value,
+    gifHeaderExportEnabled: gifHeaderExportEnabled.value,
   };
   try {
     window.localStorage.setItem(
@@ -1949,11 +2002,19 @@ const loadPersistedConversionPreferences = (): PersistedConversionPreferences | 
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const outputFormatValue = parsed.outputFormat;
+    const gifHeaderExportEnabledValue = parsed.gifHeaderExportEnabled;
     if (!isOutputFormat(outputFormatValue)) {
+      return null;
+    }
+    if (
+      gifHeaderExportEnabledValue !== undefined &&
+      typeof gifHeaderExportEnabledValue !== "boolean"
+    ) {
       return null;
     }
     return {
       outputFormat: outputFormatValue,
+      gifHeaderExportEnabled: gifHeaderExportEnabledValue === true,
     };
   } catch {
     return null;
@@ -2131,6 +2192,7 @@ const applySelectedBoardPreset = (
       return;
     }
     previewDisplayScalePercent.value = defaultDisplayConversionSettings.previewDisplayScalePercent;
+    gifHeaderExportEnabled.value = defaultDisplayConversionSettings.gifHeaderExportEnabled === true;
   });
 };
 
@@ -2445,20 +2507,20 @@ const extractOutputBaseName = (value: string) => {
   return fileBaseName(trimmed).trim();
 };
 
-const normalizeOutputBaseNameInput = (value: string, format: OutputFormat) => {
+const normalizeOutputBaseNameInput = (value: string, extension: string) => {
   const trimmed = value.trim();
   if (!trimmed) {
     return "";
   }
-  const requiredExtension = `.${outputExtensionMap[format]}`;
+  const requiredExtension = `.${extension}`;
   if (trimmed.toLowerCase().endsWith(requiredExtension)) {
     return trimmed.slice(0, trimmed.length - requiredExtension.length).trim();
   }
   return trimmed;
 };
 
-const buildOutputFileName = (baseName: string, format: OutputFormat) =>
-  `${normalizeOutputBaseNameInput(baseName, format) || "output"}.${outputExtensionMap[format]}`;
+const buildOutputFileName = (baseName: string, extension: string) =>
+  `${normalizeOutputBaseNameInput(baseName, extension) || "output"}.${extension}`;
 
 const createPreviewFileName = () => {
   const sourceName = sourceFile.value?.name ?? "preview";
@@ -2467,13 +2529,10 @@ const createPreviewFileName = () => {
   return `${fileBaseName(sourceName)}-preview-${secondsLabel}s.png`;
 };
 
-const buildDefaultOutputName = (name: string, format: OutputFormat) =>
-  buildOutputFileName(extractOutputBaseName(name), format);
+const buildDefaultOutputName = (name: string, extension: string) =>
+  buildOutputFileName(extractOutputBaseName(name), extension);
 
-const outputSaveFilters: Record<
-  OutputFormat,
-  Array<{ name: string; extensions: string[] }>
-> = {
+const outputSaveFilters: Record<OutputFormat, SaveDialogFilter[]> = {
   gif: [{ name: "GIF files", extensions: ["gif"] }],
   mjpeg: [{ name: "MJPEG files", extensions: ["mjpeg"] }],
   avi: [{ name: "AVI files", extensions: ["avi"] }],
@@ -2483,19 +2542,19 @@ const outputSaveFilters: Record<
 const ensureOutputFileName = (
   raw: string,
   sourceName: string,
-  format: OutputFormat
+  extension: string
 ) => {
-  const fallback = buildDefaultOutputName(sourceName, format);
-  const normalizedBaseName = normalizeOutputBaseNameInput(raw, format);
+  const fallback = buildDefaultOutputName(sourceName, extension);
+  const normalizedBaseName = normalizeOutputBaseNameInput(raw, extension);
   if (!normalizedBaseName) {
     return fallback;
   }
-  return buildOutputFileName(normalizedBaseName, format);
+  return buildOutputFileName(normalizedBaseName, extension);
 };
 
 const resolveElectronOutputSavePath = async (
   defaultFileName: string,
-  format: OutputFormat
+  filters: SaveDialogFilter[]
 ): Promise<string | null> => {
   const electronMedia = getElectronMediaApi();
   if (!electronMedia) {
@@ -2504,12 +2563,32 @@ const resolveElectronOutputSavePath = async (
   const result =
     (await electronMedia.pickSavePath({
       defaultPath: defaultFileName,
-      filters: outputSaveFilters[format],
+      filters,
     })) as ElectronPickSavePathResult;
   if (result.canceled || !result.path) {
     return null;
   }
   return result.path;
+};
+
+const writeElectronTextFile = async (targetPath: string, contents: string) => {
+  const electronMedia = getElectronMediaApi();
+  if (!electronMedia) {
+    throw new Error("Electron file bridge is not available.");
+  }
+  const result = await electronMedia.writeTextFile({ path: targetPath, contents });
+  if (!result.ok) {
+    throw new Error("Failed to save the generated header file.");
+  }
+  return result.path;
+};
+
+const buildGifHeaderOutput = (gifData: Uint8Array, outputName: string) => {
+  const baseName = extractOutputBaseName(outputName) || "output";
+  return convertGifToHeader(gifData, {
+    arrayName: baseName,
+    displayName: baseName,
+  });
 };
 
 const outputFileBaseName = computed({
@@ -2525,10 +2604,10 @@ const outputFileBaseName = computed({
   },
   set: (value: string) => {
     const fallbackBaseName = sourceFile.value ? fileBaseName(sourceFile.value.name) : "output";
-    const normalizedBaseName = normalizeOutputBaseNameInput(value, outputFormat.value);
+    const normalizedBaseName = normalizeOutputBaseNameInput(value, outputFileExtension.value);
     outputFileName.value = buildOutputFileName(
       normalizedBaseName || fallbackBaseName,
-      outputFormat.value
+      outputFileExtension.value
     );
   },
 });
@@ -3117,16 +3196,17 @@ const runConversion = async () => {
     return;
   }
 
+  const requestedOutputExtension = outputFileExtension.value;
   const requestedOutputFileName = ensureOutputFileName(
     outputFileName.value,
     file.name,
-    outputFormat.value
+    requestedOutputExtension
   );
   let electronOutputPath: string | null = null;
   if (isElectronApp.value) {
     electronOutputPath = await resolveElectronOutputSavePath(
       requestedOutputFileName,
-      outputFormat.value
+      outputFileSaveFilters.value
     );
     if (!electronOutputPath) {
       return;
@@ -3213,10 +3293,11 @@ const runConversion = async () => {
   try {
     const signal = convertAbortController.signal;
     let result: MediaProcessingResult;
+    const shouldPackageGifAsHeader = isGifHeaderOutput.value;
 
     if (outputFormat.value === "gif") {
       const options = buildVideoOptions();
-      if (electronOutputPath) {
+      if (electronOutputPath && !shouldPackageGifAsHeader) {
         options.outputPath = electronOutputPath;
       }
       result = await mediaProcessingService.transcodeVideoToGif(
@@ -3267,13 +3348,29 @@ const runConversion = async () => {
     processingPhase.value = "packaging";
     const finalName = result.savedPath
       ? fileNameFromPath(result.savedPath)
-      : ensureOutputFileName(outputFileName.value, file.name, outputFormat.value);
+      : electronOutputPath
+        ? fileNameFromPath(electronOutputPath)
+        : ensureOutputFileName(outputFileName.value, file.name, requestedOutputExtension);
     outputFileName.value = finalName;
-    if (result.savedPath) {
+    if (shouldPackageGifAsHeader) {
+      const headerContents = buildGifHeaderOutput(result.data, finalName);
+      appendLog(`[app] Packaged GIF output as C header: ${finalName}`);
+      if (electronOutputPath) {
+        const savedPath = await writeElectronTextFile(electronOutputPath, headerContents);
+        outputSavedPath.value = savedPath;
+        appendLog(`[app] Output saved: ${savedPath}`);
+      } else {
+        const outputBlob = new Blob([headerContents], { type: outputFileMime.value });
+        outputFileUrl.value = URL.createObjectURL(outputBlob);
+        appendLog(
+          `[app] Output ready: ${finalName} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB)`
+        );
+      }
+    } else if (result.savedPath) {
       outputSavedPath.value = result.savedPath;
       appendLog(`[app] Output saved: ${result.savedPath}`);
     } else {
-      const outputBlob = new Blob([result.data], { type: outputMimeMap[outputFormat.value] });
+      const outputBlob = new Blob([result.data], { type: outputFileMime.value });
       outputFileUrl.value = URL.createObjectURL(outputBlob);
       appendLog(
         `[app] Output ready: ${finalName} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB)`
@@ -3327,7 +3424,7 @@ const downloadOutput = () => {
   }
   const link = document.createElement("a");
   link.href = outputFileUrl.value;
-  link.download = outputFileName.value || `output.${outputExtensionMap[outputFormat.value]}`;
+  link.download = outputFileName.value || `output.${outputFileExtension.value}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -3456,12 +3553,20 @@ watch(
   { immediate: true }
 );
 
-watch(outputFormat, () => {
+watch([outputFormat, gifHeaderExportEnabled], () => {
   persistConversionPreferences();
 });
 
 watch(
-  [orientation, scaleMode, fps, quality, previewDisplayScalePercent, outputFormat],
+  [
+    orientation,
+    scaleMode,
+    fps,
+    quality,
+    previewDisplayScalePercent,
+    outputFormat,
+    gifHeaderExportEnabled,
+  ],
   () => {
     if (suppressDisplaySettingsPersistence) {
       return;
@@ -3479,6 +3584,7 @@ watch(
         previewDisplayScalePercent.value
       ),
       outputFormat: outputFormat.value,
+      gifHeaderExportEnabled: gifHeaderExportEnabled.value,
     });
   },
   { flush: "sync" }
@@ -3607,7 +3713,7 @@ watch(sourceFile, (file) => {
     return;
   }
 
-  outputFileName.value = buildDefaultOutputName(file.name, outputFormat.value);
+  outputFileName.value = buildDefaultOutputName(file.name, outputFileExtension.value);
 
   const largeWebFileMessage = isElectronApp.value
     ? null
@@ -3625,7 +3731,7 @@ watch(sourceFile, (file) => {
   }
 });
 
-watch(outputFormat, (format) => {
+watch(outputFormat, () => {
   clearOutput();
   if (!sourceFile.value) {
     outputFileName.value = "";
@@ -3633,7 +3739,23 @@ watch(outputFormat, (format) => {
   }
   const currentBaseName = extractOutputBaseName(outputFileName.value);
   const fallbackBaseName = fileBaseName(sourceFile.value.name);
-  outputFileName.value = buildOutputFileName(currentBaseName || fallbackBaseName, format);
+  outputFileName.value = buildOutputFileName(
+    currentBaseName || fallbackBaseName,
+    outputFileExtension.value
+  );
+});
+
+watch(gifHeaderExportEnabled, () => {
+  clearOutput();
+  if (outputFormat.value !== "gif" || !sourceFile.value) {
+    return;
+  }
+  const currentBaseName = extractOutputBaseName(outputFileName.value);
+  const fallbackBaseName = fileBaseName(sourceFile.value.name);
+  outputFileName.value = buildOutputFileName(
+    currentBaseName || fallbackBaseName,
+    outputFileExtension.value
+  );
 });
 
 watch(isVideoOutput, (isVideo) => {
@@ -3733,6 +3855,7 @@ onMounted(() => {
   const persistedPreferences = loadPersistedConversionPreferences();
   if (persistedPreferences && targetSetupMode.value !== "preset") {
     outputFormat.value = persistedPreferences.outputFormat;
+    gifHeaderExportEnabled.value = persistedPreferences.gifHeaderExportEnabled === true;
   }
   void initializeFfmpeg();
 });

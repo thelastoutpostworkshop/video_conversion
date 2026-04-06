@@ -38,6 +38,11 @@ interface ElectronPickSavePathResult {
   path: string | null;
 }
 
+interface ElectronWriteTextFileRequest {
+  path: string;
+  contents: string;
+}
+
 interface ElectronSerializedInputFile {
   name: string;
   type: string;
@@ -69,6 +74,7 @@ interface ElectronMediaBridge {
   cancelJob(jobId: string): Promise<{ ok: boolean }>;
   pickSourceFile(): Promise<ElectronPickSourceFileResult>;
   pickSavePath(request: ElectronPickSavePathRequest): Promise<ElectronPickSavePathResult>;
+  writeTextFile(request: ElectronWriteTextFileRequest): Promise<{ ok: boolean; path: string }>;
   getPathForFile(file: File): string | null;
   revealPath(targetPath: string): Promise<{ ok: boolean }>;
   playMotionPreview(request: ElectronPlayMotionPreviewRequest): Promise<{ ok: boolean }>;

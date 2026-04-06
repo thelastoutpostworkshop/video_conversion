@@ -12,6 +12,7 @@ import {
   mediaPlayMotionPreviewChannel,
   mediaPickSavePathChannel,
   mediaPickSourceFileChannel,
+  mediaWriteTextFileChannel,
   mediaRevealPathChannel,
   mediaRunJobChannel,
 } from "./mediaChannels.mjs";
@@ -1015,6 +1016,22 @@ export const registerMediaIpcHandlers = () => {
       canceled: result.canceled || !result.filePath,
       path: result.filePath ?? null,
     };
+  });
+
+  ipcMain.handle(mediaWriteTextFileChannel, async (_event, request) => {
+    if (
+      !request ||
+      typeof request.path !== "string" ||
+      request.path.trim().length === 0 ||
+      typeof request.contents !== "string"
+    ) {
+      throw toSerializableError(new Error("Invalid write-text-file request."));
+    }
+
+    const targetPath = request.path.trim();
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, request.contents, "utf8");
+    return { ok: true, path: targetPath };
   });
 
   ipcMain.handle(mediaRevealPathChannel, async (_event, payload) => {

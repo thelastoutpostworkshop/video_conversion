@@ -6,6 +6,7 @@ const mediaCancelJobChannel = "media:cancel-job";
 const mediaJobEventChannel = "media:job-event";
 const mediaPickSourceFileChannel = "media:pick-source-file";
 const mediaPickSavePathChannel = "media:pick-save-path";
+const mediaWriteTextFileChannel = "media:write-text-file";
 const mediaRevealPathChannel = "media:reveal-path";
 const mediaPlayMotionPreviewChannel = "media:play-motion-preview";
 
@@ -42,6 +43,7 @@ contextBridge.exposeInMainWorld("electronMedia", {
   cancelJob: (jobId) => ipcRenderer.invoke(mediaCancelJobChannel, { jobId }),
   pickSourceFile: () => ipcRenderer.invoke(mediaPickSourceFileChannel),
   pickSavePath: (request) => ipcRenderer.invoke(mediaPickSavePathChannel, request),
+  writeTextFile: (request) => ipcRenderer.invoke(mediaWriteTextFileChannel, request),
   getPathForFile: (file) => {
     try {
       const resolvedPath = webUtils.getPathForFile(file);
