@@ -327,6 +327,21 @@ export const BOARD_PRESETS: BoardPreset[] = [
     quality: 7,
     outputFormat: "mjpeg",
     notes: "320x820 Pixels 262K Color, Micro SD Card reader, WiFi and Bluetooth 5.",
+    projects: [
+      {
+        name: "Video Player",
+        description:
+          "Turns the Waveshare ESP32-S3 3.16\" with the ST7701 controller into a standalone SD-card video player. The sketch scans a /mjpeg folder on the SD card, loads Motion JPEG (.mjpeg) files, and plays them back full-screen on the built-in 320x820 display. It is designed for simple offline playback with minimal setup: copy converted MJPEG files to the card, power the board, and the videos play in sequence on a loop",
+        url: "https://github.com/thelastoutpostworkshop/ESP32-S3_3_16_ST7701_movie_player",
+        imagePath: "",
+        demos: [
+          {
+            label: "Tutorial",
+            url: "https://www.youtube.com/channel/UCnnU_HGvTr8ewpqvHe2llDw",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "ESP32-S3-LCD-2.8",
