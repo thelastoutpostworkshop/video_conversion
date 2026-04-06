@@ -153,6 +153,21 @@
                           </v-col>
                         </v-row>
 
+                        <div v-if="outputFormat === 'gif'" class="mt-1">
+                          <v-switch
+                            v-model="gifHeaderExportEnabled"
+                            color="primary"
+                            density="compact"
+                            inset
+                            hide-details
+                            label="Save GIF as .h file"
+                            :disabled="processing || previewFrameBusy || previewMotionBusy"
+                          />
+                          <div class="text-caption text-medium-emphasis">
+                            Packages the animated GIF bytes into a C header.
+                          </div>
+                        </div>
+
                         <div class="d-flex flex-wrap ga-2 mt-2">
                           <v-btn
                             color="primary"
@@ -230,21 +245,6 @@
                               hide-details="auto"
                               :disabled="processing || previewFrameBusy || previewMotionBusy"
                             />
-                          </v-col>
-
-                          <v-col v-if="outputFormat === 'gif'" cols="12" md="4">
-                            <v-switch
-                              v-model="gifHeaderExportEnabled"
-                              color="primary"
-                              density="compact"
-                              inset
-                              hide-details
-                              label="Save GIF as .h file"
-                              :disabled="processing || previewFrameBusy || previewMotionBusy"
-                            />
-                            <div class="text-caption text-medium-emphasis">
-                              Packages the animated GIF bytes into a C header for Arduino and ESP32 builds.
-                            </div>
                           </v-col>
 
                           <template v-if="isVideoOutput">
