@@ -177,7 +177,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "ESP32-S3-1.43-AMOLED",
     name: "Waveshare ESP32-S3 1.43\" AMOLED",
     imagePath: "board-catalog/esp32-s3-touch-amoled-1.43/esp32-s3-touch-amoled-1.43.png",
-    displayController: "SH8601/C05300",
+    displayController: "C05300",
     roundDisplay: true,
     amazonUrl: "https://amzn.to/41VszVi",
     aliexpressUrl:
