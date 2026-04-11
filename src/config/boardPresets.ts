@@ -33,6 +33,7 @@ export interface BoardPreset {
   id: string;
   name: string;
   imagePath: string;
+  displayController?: string;
   roundDisplay?: boolean;
   amazonUrl?: string;
   aliexpressUrl?: string;
@@ -55,6 +56,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "jc4827w543",
     name: "Guiton JC4827W543 4.3\" IPS",
     imagePath: "board-catalog/JC4827W543/JC4827W543.png",
+    displayController: "NV3041A",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oEHbBud",
     projects: [
@@ -128,6 +130,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "esp32-c6-lcd-1_47",
     name: "Waveshare ESP32-C6 LCD 1.47\"",
     imagePath: "board-catalog/esp32-c6-lcd-1_47/esp32-c6-lcd-1_47.png",
+    displayController: "ST7789",
     amazonUrl: "https://amzn.to/3ZzfcZr",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_okJAvee",
@@ -174,6 +177,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "ESP32-S3-1.43-AMOLED",
     name: "Waveshare ESP32-S3 1.43\" AMOLED",
     imagePath: "board-catalog/esp32-s3-touch-amoled-1.43/esp32-s3-touch-amoled-1.43.png",
+    displayController: "SH8601/C05300",
     roundDisplay: true,
     amazonUrl: "https://amzn.to/41VszVi",
     aliexpressUrl:
@@ -221,6 +225,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "ESP32-2432S028",
     name: "2.8\" Cheap Yellow Display ESP32-2432S028",
     imagePath: "board-catalog/ESP32-2432S028/ESP32-2432S028.png",
+    displayController: "ILI9341",
     amazonUrl: "https://amzn.to/4kAyDJh",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_oCVWMbC",
@@ -253,6 +258,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "GC9A01",
     name: "GC9A01 1.28\" Round Display",
     imagePath: "board-catalog/GC9A01/GC9A01.png",
+    displayController: "GC9A01",
     amazonUrl: "https://amzn.to/3CJjbHy",
     aliexpressUrl:
       "https://s.click.aliexpress.com/e/_c3cFGvxV",
@@ -315,6 +321,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "ESP32-S3-LCD-3.16",
     name: "Waveshare ESP32-S3 3.16\"",
     imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
+    displayController: "ST7701",
     amazonUrl:
       "https://amzn.to/4689Mbm",
     aliexpressUrl:
@@ -347,6 +354,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     id: "ESP32-S3-LCD-2.8",
     name: "Waveshare ESP32-S3 2.8″",
     imagePath: "board-catalog/ESP32-S3-LCD-2.8/ESP32-S3-Touch-LCD-2.8.png",
+    displayController: "ST7701",
     amazonUrl:
       "https://amzn.to/4e3bzTB",
     aliexpressUrl:

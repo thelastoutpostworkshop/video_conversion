@@ -76,6 +76,12 @@
                 {{ preset.width }}x{{ preset.height }}
               </div>
               <div
+                v-if="preset.displayController"
+                class="board-catalog-controller-overlay"
+              >
+                {{ preset.displayController }}
+              </div>
+              <div
                 v-if="isPresetSelected(preset.id)"
                 class="board-catalog-selected-overlay"
               >
@@ -293,6 +299,16 @@
                     <v-chip class="board-catalog-size-chip" variant="flat" color="primary">
                       <v-icon icon="mdi-aspect-ratio" size="15" class="me-1" />
                       Screen {{ imagePreviewPreset.width }}x{{ imagePreviewPreset.height }}
+                    </v-chip>
+                    <v-chip
+                      v-if="imagePreviewPreset.displayController"
+                      size="small"
+                      variant="tonal"
+                      color="info"
+                      class="board-catalog-controller-chip"
+                    >
+                      <v-icon icon="mdi-chip" size="14" class="me-1" />
+                      Controller {{ imagePreviewPreset.displayController }}
                     </v-chip>
                     <v-chip
                       v-if="previewProjects.length"
@@ -567,6 +583,7 @@ const filteredPresets = computed(() => {
       preset.id,
       preset.name,
       preset.notes,
+      preset.displayController,
       `${preset.width}x${preset.height}`,
       ...projectTokens,
     ]
@@ -812,6 +829,28 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
   pointer-events: none;
 }
 
+.board-catalog-controller-overlay {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  max-width: calc(100% - 112px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.18);
+  background: rgba(var(--v-theme-surface), 0.76);
+  backdrop-filter: blur(6px);
+  color: rgba(var(--v-theme-on-surface), 0.9);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .board-catalog-selected-overlay {
   position: absolute;
   top: 10px;
@@ -977,6 +1016,11 @@ const updateCustomBoardRoundDisplay = (value: boolean | null) => {
 .board-catalog-size-chip {
   font-weight: 800;
   letter-spacing: 0.01em;
+}
+
+.board-catalog-controller-chip {
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .board-catalog-preview-details {
