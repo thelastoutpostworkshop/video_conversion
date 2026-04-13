@@ -369,4 +369,30 @@ export const BOARD_PRESETS: BoardPreset[] = [
     outputFormat: "mjpeg",
     notes: "480×480, Acceleromete And Gyroscope Sensor, Micro SD card reader, Options For Touch Function",
   },
+  {
+    id: "ESP32-C6_1_3_240_240",
+    name: "Waveshare ESP32-C6 1.3″",
+    imagePath: "board-catalog/esp32-c6-1_3/Waveshare ESP32-C6 1.3.png",
+    displayController: "ST7789",
+    amazonUrl:
+      "https://amzn.to/3PYR1lw",
+    width: 240,
+    height: 240,
+    roundDisplay: false,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    outputFormat: "mjpeg",
+    notes: "160 MHz; Supports Wi Fi 6+BLE 5; TF card slot; Onboard QMI8658 six axis",
+    projects: [
+      {
+        name: "Video Player",
+        description:
+          "Turns the Waveshare ESP32-C6 1.3″ with the ST7789 controller into a standalone SD-card video player. The sketch scans a /mjpeg folder on the SD card, loads Motion JPEG (.mjpeg) files, and plays them back full-screen on the built-in 320x820 display. It is designed for simple offline playback with minimal setup: copy converted MJPEG files to the card, power the board, and the videos play in sequence on a loop",
+        url: "https://github.com/thelastoutpostworkshop/ESP32-C6-1_3_240x240_video_player",
+        imagePath: "",
+      },
+    ],
+  },
 ];
