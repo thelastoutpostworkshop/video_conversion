@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import arduinoMakerWorkshopThumbnail from "@/assets/tool-thumbnails/arduino-maker-workshop.jpg";
 import espBoardVaultThumbnail from "@/assets/tool-thumbnails/esp-board-vault.jpg";
+import espConnectThumbnail from "@/assets/tool-thumbnails/espconnect.jpg";
 import gpioViewerThumbnail from "@/assets/tool-thumbnails/gpio-viewer.jpg";
 import partitionBuilderThumbnail from "@/assets/tool-thumbnails/partition-builder.jpg";
-import videoConversionThumbnail from "@/assets/tool-thumbnails/video-conversion.jpg";
 
 interface ToolItem {
   key: string;
@@ -51,16 +51,16 @@ const toolItems: ToolItem[] = [
     tutorialUrl: "https://www.youtube.com/watch?v=EuHxodrye6E",
   },
   {
-    key: "video-conversion",
-    title: "Video Conversion Studio",
-    icon: "mdi-movie-cog-outline",
-    url: "https://thelastoutpostworkshop.github.io/video_conversion/",
+    key: "espconnect",
+    title: "ESPConnect",
+    icon: "mdi-connection",
+    url: "https://thelastoutpostworkshop.github.io/ESPConnect/",
     description:
-      "Convert video and audio files into output that fits ESP32 display projects, including board-oriented media formats.",
-    thumbnailSrc: videoConversionThumbnail,
-    sourceUrl: "https://github.com/thelastoutpostworkshop/video_conversion",
-    sourceLabel: "thelastoutpostworkshop/video_conversion",
-    tutorialUrl: "https://www.youtube.com/watch?v=bFq05qXqin0",
+      "A browser-based utility for working with ESP devices. It runs inside a modern Chromium browser so you can inspect hardware details, manage SPIFFS, FAT, and LittleFS files, back up flash, and deploy firmware.",
+    thumbnailSrc: espConnectThumbnail,
+    sourceUrl: "https://github.com/thelastoutpostworkshop/ESPConnect",
+    sourceLabel: "thelastoutpostworkshop/ESPConnect",
+    tutorialUrl: "https://www.youtube.com/watch?v=-nhDKzBxHiI",
   },
   {
     key: "gpio-viewer",
@@ -155,8 +155,8 @@ function normalizeYoutubeVideoId(value: string | null | undefined): string | nul
       <div class="maker-tools__support-copy">
         <div class="maker-tools__support-title">Support the project</div>
         <p>
-          These maker utilities and Video Conversion Studio are free to use. If they help at
-          your bench, a coffee supports ongoing development.
+          These maker utilities are free to use. If they help at your bench, a coffee
+          supports ongoing development.
         </p>
       </div>
       <v-btn
