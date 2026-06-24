@@ -52,7 +52,16 @@ jobs:
 
       - name: Install FFmpeg on macOS
         if: runner.os == 'macOS'
-        run: brew install ffmpeg
+        shell: bash
+        run: |
+          for homebrew_repo in "${HOMEBREW_REPOSITORY:-}" /opt/homebrew /usr/local/Homebrew; do
+            if [ -d "$homebrew_repo/Library/Taps" ]; then
+              rm -rf \
+                "$homebrew_repo/Library/Taps/aws/homebrew-tap" \
+                "$homebrew_repo/Library/Taps/azure/homebrew-bicep"
+            fi
+          done
+          brew install ffmpeg
 
       - name: Install FFmpeg on Windows
         if: runner.os == 'Windows'
