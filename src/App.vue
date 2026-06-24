@@ -27,7 +27,16 @@
           <div class="resources-title text-medium-emphasis mb-2">Resources</div>
           <v-list nav density="comfortable" class="resources-list">
             <template v-for="resource in resourceLinks" :key="resource.title">
-              <v-tooltip v-if="resource.tooltip" location="top">
+              <v-list-item
+                v-if="resource.viewId"
+                :prepend-icon="resource.icon"
+                :title="resource.title"
+                :active="activeNavigation === resource.viewId"
+                color="primary"
+                rounded="lg"
+                @click="navigateToView(resource.viewId)"
+              />
+              <v-tooltip v-else-if="resource.tooltip" location="top">
                 <template #activator="{ props }">
                   <v-list-item
                     v-bind="props"
@@ -629,6 +638,7 @@
                 />
               </v-card-text>
             </v-card>
+            <MakerToolsView v-else-if="activeView === 'makerTools'" />
             <AboutView v-else :app-version="appVersion" />
           </v-col>
         </v-row>
@@ -838,6 +848,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTheme } from "vuetify";
 import AboutView from "@/components/AboutView.vue";
 import BoardCatalog from "@/components/BoardCatalog.vue";
+import MakerToolsView from "@/components/MakerToolsView.vue";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
 import PreviewMotionSurface from "@/components/PreviewMotionSurface.vue";
 import TrimVideoPlayer from "@/components/TrimVideoPlayer.vue";
@@ -868,7 +879,7 @@ type OutputFormat = VideoOutputFormat | "mp3";
 type OutputSizeMode = "original" | "custom";
 type FfmpegStatus = "idle" | "loading" | "ready" | "error";
 type TargetSetupMode = "preset" | "custom";
-type AppNavigationId = "boards" | "workspace" | "logs" | "about";
+type AppNavigationId = "boards" | "workspace" | "logs" | "about" | "makerTools";
 
 const isElectronApp = ref(isElectronRuntime());
 const appVersion = __APP_VERSION__;
@@ -951,7 +962,8 @@ const desktopDownloadUrl =
 type ResourceLink = {
   title: string;
   icon: string;
-  href: string;
+  href?: string;
+  viewId?: AppNavigationId;
   tooltip?: string;
   webOnly?: boolean;
 };
@@ -971,6 +983,11 @@ const allResourceLinks: ResourceLink[] = [
     title: "Get Help",
     icon: "mdi-lifebuoy",
     href: "https://github.com/thelastoutpostworkshop/video_conversion",
+  },
+  {
+    title: "Maker Tools",
+    icon: "mdi-tools",
+    viewId: "makerTools",
   },
   {
     title: "Desktop Version",
