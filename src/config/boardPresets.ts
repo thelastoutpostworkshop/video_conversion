@@ -370,6 +370,25 @@ export const BOARD_PRESETS: BoardPreset[] = [
     notes: "480×480, Acceleromete And Gyroscope Sensor, Micro SD card reader, Options For Touch Function",
   },
   {
+    id: "esp32-s3-touch-lcd-2.1b",
+    name: "Waveshare ESP32-S3-Touch-LCD-2.1B",
+    imagePath:
+      "board-catalog/esp32-s3-touch-lcd-2.1b/esp32-s3-touch-lcd-2.1b.webp",
+    roundDisplay: true,
+    amazonUrl: "https://amzn.to/4oZzrv9",
+    aliexpressUrl:
+      "https://s.click.aliexpress.com/e/_c3rDigbJ",
+    width: 480,
+    height: 480,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    outputFormat: "mjpeg",
+    notes:
+      "ESP32-S3-Touch-LCD-2.1B with a 2.5D curved 2.1\" capacitive round IPS touch display, 480x480 resolution, 262K colors, WiFi and Bluetooth, and a 32-bit LX7 dual-core processor.",
+  },
+  {
     id: "ESP32-C6_1_3_240_240",
     name: "Waveshare ESP32-C6 1.3″",
     imagePath: "board-catalog/esp32-c6-1_3/Waveshare ESP32-C6 1.3.png",
