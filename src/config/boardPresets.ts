@@ -374,6 +374,7 @@ export const BOARD_PRESETS: BoardPreset[] = [
     name: "Waveshare ESP32-S3-Touch-LCD-2.1B",
     imagePath:
       "board-catalog/esp32-s3-touch-lcd-2.1b/esp32-s3-touch-lcd-2.1b.webp",
+    displayController: "ST7701",
     roundDisplay: true,
     amazonUrl: "https://amzn.to/4oZzrv9",
     aliexpressUrl:
