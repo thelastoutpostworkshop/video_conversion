@@ -390,6 +390,25 @@ export const BOARD_PRESETS: BoardPreset[] = [
       "ESP32-S3-Touch-LCD-2.1B with a 2.5D curved 2.1\" capacitive round IPS touch display, 480x480 resolution, 262K colors, WiFi and Bluetooth, and a 32-bit LX7 dual-core processor.",
   },
   {
+    id: "esp32-s3-touch-lcd-2",
+    name: "Waveshare ESP32-S3-Touch-LCD-2",
+    imagePath:
+      "board-catalog/esp32-s3-touch-lcd-2/esp32-s3-touch-lcd-2.jpg",
+    displayController: "ST7789T3",
+    amazonUrl: "https://amzn.to/4eMtvAM",
+    aliexpressUrl:
+      "https://s.click.aliexpress.com/e/_c4rGhL45",
+    width: 240,
+    height: 320,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    outputFormat: "mjpeg",
+    notes:
+      "ESP32-S3R8 board with a 2\" capacitive IPS touch display, 240x320 resolution, 262K colors, ST7789T3 display driver, CST816D touch controller, WiFi, Bluetooth, IMU, camera interface, and microSD support.",
+  },
+  {
     id: "ESP32-C6_1_3_240_240",
     name: "Waveshare ESP32-C6 1.3″",
     imagePath: "board-catalog/esp32-c6-1_3/Waveshare ESP32-C6 1.3.png",

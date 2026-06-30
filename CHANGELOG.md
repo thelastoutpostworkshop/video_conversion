@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.3.4
+- Added Waveshare ESP32-S3-Touch-LCD-2 to the board catalog.
 - Added Waveshare ESP32-S3-Touch-LCD-2.1B to the board catalog.
 
 ## 1.3.3
