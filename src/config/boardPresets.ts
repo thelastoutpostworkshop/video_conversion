@@ -318,6 +318,25 @@ export const BOARD_PRESETS: BoardPreset[] = [
     notes: "1.28\" Round LCD IPS Module 240x240, 65K RGB Colors, SPI Interface",
   },
   {
+    id: "esp32-s3-touch-lcd-3.5",
+    name: "Waveshare ESP32-S3-Touch-LCD-3.5",
+    imagePath:
+      "board-catalog/esp32-s3-touch-lcd-3.5/esp32-s3-touch-lcd-3.5.png",
+    displayController: "ST7796",
+    amazonUrl: "https://amzn.to/4wiTBlU",
+    aliexpressUrl:
+      "https://s.click.aliexpress.com/e/_c3hxpCsd",
+    width: 320,
+    height: 480,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    outputFormat: "mjpeg",
+    notes:
+      "ESP32-S3R8 board with a 3.5\" capacitive IPS touch display, 320x480 resolution, 262K colors, ST7796 display driver, FT6336 touch controller, WiFi, Bluetooth, QMI8658 IMU, RTC, audio codec, camera interface, and microSD support.",
+  },
+  {
     id: "ESP32-S3-LCD-3.16",
     name: "Waveshare ESP32-S3 3.16\"",
     imagePath: "board-catalog/esp32-s3-lcd-3.16-1.png",
