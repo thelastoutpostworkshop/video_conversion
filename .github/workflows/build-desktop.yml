@@ -50,19 +50,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      - name: Install FFmpeg on macOS
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          for homebrew_repo in "${HOMEBREW_REPOSITORY:-}" /opt/homebrew /usr/local/Homebrew; do
-            if [ -d "$homebrew_repo/Library/Taps" ]; then
-              rm -rf \
-                "$homebrew_repo/Library/Taps/aws/homebrew-tap" \
-                "$homebrew_repo/Library/Taps/azure/homebrew-bicep"
-            fi
-          done
-          brew install ffmpeg
-
       - name: Install FFmpeg on Windows
         if: runner.os == 'Windows'
         shell: powershell
@@ -83,6 +70,7 @@ jobs:
           }
 
       - name: Verify bundled tool prerequisites
+        if: runner.os != 'macOS'
         shell: bash
         run: |
           ffmpeg -version
@@ -93,6 +81,8 @@ jobs:
         run: npm ci
 
       - name: Build Electron app
+        env:
+          VIDEO_CONVERSION_FFMPEG_FORCE_DOWNLOAD: ${{ runner.os == 'macOS' && '1' || '' }}
         run: npm run electron:build
 
       - name: Archive packaged app on Windows

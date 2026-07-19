@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.7
+- Package standalone FFmpeg tools for macOS desktop builds instead of Homebrew-linked executables.
+
 ## 1.3.6
 - Added Waveshare ESP32-S3-Touch-LCD-3.5 to the board catalog.
 

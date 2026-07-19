@@ -19,6 +19,12 @@ const executableSuffix = process.platform === "win32" ? ".exe" : "";
 const pathResolverCommand = process.platform === "win32" ? "where.exe" : "which";
 const platformKey = `${process.platform}-${process.arch}`;
 const forceDownload = process.env.VIDEO_CONVERSION_FFMPEG_FORCE_DOWNLOAD === "1";
+const usePathTools = process.env.VIDEO_CONVERSION_FFMPEG_USE_PATH === "1";
+// Homebrew's macOS binaries link to versioned libraries in its Cellar. Copying
+// just those executables into an app bundle makes the shipped app depend on
+// the builder's Homebrew installation. Prefer the standalone release archives
+// on macOS; developers can opt into PATH tools for local development.
+const preferDownload = forceDownload || (process.platform === "darwin" && !usePathTools);
 
 const downloadSourcesByPlatform = {
   "win32-x64": {
@@ -327,6 +333,17 @@ const bundleToolSet = async ({ sourceType, sourceDetails, toolPaths, extraFiles 
     }
   }
 
+  for (const toolName of toolNames) {
+    try {
+      execFileSync(bundledToolPaths[toolName], ["-version"], {
+        stdio: "ignore",
+      });
+    } catch (error) {
+      const details = error instanceof Error && error.message ? ` ${error.message}` : "";
+      throw new Error(`Bundled ${toolName}${executableSuffix} could not start.${details}`);
+    }
+  }
+
   const manifestPath = path.join(bundlePlatformDir, "manifest.json");
   await fs.writeFile(
     manifestPath,
@@ -354,7 +371,7 @@ const bundleToolSet = async ({ sourceType, sourceDetails, toolPaths, extraFiles 
 };
 
 const bundleFfmpegTools = async () => {
-  if (!forceDownload) {
+  if (!preferDownload) {
     try {
       const resolvedToolPaths = Object.fromEntries(
         toolNames.map((toolName) => [toolName, resolveExecutablePath(toolName)])
@@ -375,7 +392,7 @@ const bundleFfmpegTools = async () => {
     }
   }
 
-  if (!forceDownload) {
+  if (!preferDownload) {
     const existingBundledToolPaths = getExistingBundledToolPaths();
     if (existingBundledToolPaths) {
       console.log(`[bundle] Reusing existing bundled FFmpeg tools from ${bundlePlatformDir}`);

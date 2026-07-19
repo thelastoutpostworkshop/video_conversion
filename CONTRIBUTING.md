@@ -6,7 +6,7 @@ Thanks for contributing to Video Conversion Studio.
 
 - Use Node.js 22 if possible
 - Install dependencies with `npm install` or `npm ci`
-- Electron development and packaging will reuse native `ffmpeg`, `ffprobe`, and `ffplay` from `PATH` when available, or download local copies automatically on first run if they are missing
+- Electron development and packaging reuse native `ffmpeg`, `ffprobe`, and `ffplay` from `PATH` when available. On macOS, packaging downloads standalone tools by default so releases do not depend on Homebrew libraries. Set `VIDEO_CONVERSION_FFMPEG_USE_PATH=1` to use local macOS tools during development.
 
 ## Development Setup
 
