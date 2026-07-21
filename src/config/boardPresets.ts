@@ -389,6 +389,21 @@ export const BOARD_PRESETS: BoardPreset[] = [
     notes: "480×480, Acceleromete And Gyroscope Sensor, Micro SD card reader, Options For Touch Function",
   },
   {
+    id: "esp32-4848s040c_i",
+    name: "Guition ESP32-S3-4848S040 4.0\"",
+    imagePath: "board-catalog/esp32-4848s040c_i.png",
+    displayController: "ST7701",
+    width: 480,
+    height: 480,
+    orientation: "none",
+    scaleMode: "fit",
+    fps: 15,
+    quality: 7,
+    outputFormat: "mjpeg",
+    notes:
+      "ESP32-S3 board with a 4.0-inch 480x480 capacitive-touch TFT display, ST7701 display driver, 8MB PSRAM, 16MB flash, WiFi, Bluetooth, and a microSD card interface.",
+  },
+  {
     id: "esp32-s3-touch-lcd-2.1b",
     name: "Waveshare ESP32-S3-Touch-LCD-2.1B",
     imagePath:

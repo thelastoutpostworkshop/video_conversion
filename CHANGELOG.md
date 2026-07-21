@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.8
+- Added the Guition ESP32-S3-4848S040 4.0-inch board to the catalog ([#8](https://github.com/thelastoutpostworkshop/video_conversion/issues/8)).
+
 ## 1.3.7
 - Package standalone FFmpeg tools for macOS desktop builds instead of Homebrew-linked executables.
 
