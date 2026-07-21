@@ -2,6 +2,9 @@ name: Deploy Web App to GitHub Pages
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "*"
 
 permissions:
   contents: read
