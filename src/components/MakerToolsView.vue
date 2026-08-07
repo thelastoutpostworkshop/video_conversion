@@ -192,12 +192,6 @@ function normalizeYoutubeVideoId(value: string | null | undefined): string | nul
                 :alt="`${tool.title} tutorial thumbnail`"
                 loading="lazy"
               />
-              <span class="maker-tools__thumbnail-icon" aria-hidden="true">
-                <v-icon :icon="tool.icon" size="18" />
-              </span>
-              <span class="maker-tools__play-badge" aria-hidden="true">
-                <v-icon icon="mdi-play" size="24" />
-              </span>
             </a>
             <div v-else class="maker-tools__icon" aria-hidden="true">
               <v-icon :icon="tool.icon" size="28" />
@@ -363,7 +357,7 @@ function normalizeYoutubeVideoId(value: string | null | undefined): string | nul
 .maker-tools__card-body {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr);
+  grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
   align-items: start;
   gap: 18px;
   padding: 16px;
@@ -415,35 +409,6 @@ function normalizeYoutubeVideoId(value: string | null | undefined): string | nul
 .maker-tools__thumbnail:focus-visible {
   outline: 2px solid rgb(var(--v-theme-primary));
   outline-offset: 3px;
-}
-
-.maker-tools__thumbnail-icon,
-.maker-tools__play-badge {
-  position: absolute;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  box-shadow: 0 10px 24px rgba(3, 13, 10, 0.22);
-}
-
-.maker-tools__thumbnail-icon {
-  top: 8px;
-  left: 8px;
-  width: 30px;
-  height: 30px;
-  background: rgba(5, 20, 18, 0.62);
-}
-
-.maker-tools__play-badge {
-  top: 50%;
-  left: 50%;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  background: rgba(var(--v-theme-primary), 0.92);
-  color: rgb(var(--v-theme-on-primary));
-  transform: translate(-50%, -50%);
 }
 
 .maker-tools__icon {
