@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.9
+- Added ESP Pinout Explorer to Maker Tools.
+
 ## 1.3.8
 - Added the Guition ESP32-S3-4848S040 4.0-inch board to the catalog ([#8](https://github.com/thelastoutpostworkshop/video_conversion/issues/8)).
 
