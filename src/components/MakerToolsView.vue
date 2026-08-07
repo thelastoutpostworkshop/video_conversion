@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import arduinoMakerWorkshopThumbnail from "@/assets/tool-thumbnails/arduino-maker-workshop.jpg";
+import espPinoutExplorerThumbnail from "@/assets/tool-thumbnails/esp-pinout-explorer.png";
 import espBoardVaultThumbnail from "@/assets/tool-thumbnails/esp-board-vault.jpg";
 import espConnectThumbnail from "@/assets/tool-thumbnails/espconnect.jpg";
 import gpioViewerThumbnail from "@/assets/tool-thumbnails/gpio-viewer.jpg";
@@ -27,6 +28,18 @@ interface ToolCardItem extends ToolItem {
 const coffeeUrl = "https://buymeacoffee.com/thelastoutpostworkshop";
 
 const toolItems: ToolItem[] = [
+  {
+    key: "esp-pinout-explorer",
+    title: "ESP Pinout Explorer",
+    icon: "mdi-chip",
+    url: "https://thelastoutpostworkshop.github.io/esp-pinout-explorer/",
+    description:
+      "An interactive reference for ESP chips, modules, packages, and development boards, with searchable pins, function filters, and maker-friendly warnings.",
+    thumbnailSrc: espPinoutExplorerThumbnail,
+    sourceUrl: "https://github.com/thelastoutpostworkshop/esp-pinout-explorer",
+    sourceLabel: "thelastoutpostworkshop/esp-pinout-explorer",
+    tutorialUrl: "https://youtu.be/l357x8bTJg0",
+  },
   {
     key: "esp-board-vault",
     title: "ESP Board Vault",
