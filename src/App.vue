@@ -972,7 +972,7 @@ const allResourceLinks: ResourceLink[] = [
   {
     title: "Tutorial",
     icon: "mdi-youtube",
-    href: "https://www.youtube.com/results?search_query=ffmpeg+video+conversion+tutorial",
+    href: "https://youtu.be/bFq05qXqin0",
   },
   {
     title: "Buy Me a Coffee",

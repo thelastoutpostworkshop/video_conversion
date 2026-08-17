@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.10
+- fixed tutorial link.
+
 ## 1.3.9
 - Added ESP Pinout Explorer to Maker Tools.
 
