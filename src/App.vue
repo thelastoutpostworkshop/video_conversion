@@ -980,6 +980,11 @@ const allResourceLinks: ResourceLink[] = [
     href: "https://buymeacoffee.com/thelastoutpostworkshop",
   },
   {
+    title: "Donate via PayPal",
+    icon: "mdi-cash",
+    href: "https://www.paypal.com/donate/?hosted_button_id=GF3QFYJ2BX9SA",
+  },
+  {
     title: "Get Help",
     icon: "mdi-lifebuoy",
     href: "https://github.com/thelastoutpostworkshop/video_conversion",

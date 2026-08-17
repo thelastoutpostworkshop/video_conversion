@@ -2,6 +2,7 @@
 
 ## 1.3.10
 - fixed tutorial link.
+- Added a PayPal donation link to Resources.
 
 ## 1.3.9
 - Added ESP Pinout Explorer to Maker Tools.
