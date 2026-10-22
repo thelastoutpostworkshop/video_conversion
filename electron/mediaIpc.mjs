@@ -500,6 +500,7 @@ const buildJobDefinition = (action, options = {}) => {
     const filter = buildVideoFilter(options);
     if (filter) filterParts.push(filter);
     if (filterParts.length > 0) args.push("-vf", filterParts.join(","));
+    // Preserve the mono mix on both channels for ESP32 players with stereo I2S output.
     args.push(
       ...trim.postInputArgs,
       "-c:v",
@@ -508,10 +509,14 @@ const buildJobDefinition = (action, options = {}) => {
       `${options.quality ?? 10}`,
       "-c:a",
       "libmp3lame",
+      "-af",
+      "aformat=channel_layouts=mono,pan=stereo|c0=c0|c1=c0",
       "-ac",
-      "1",
+      "2",
       "-ar",
-      "22050"
+      "22050",
+      "-b:a",
+      "32k"
     );
     return { kind: "ffmpeg", outputExt: "avi", args, preInputArgs: trim.preInputArgs, suppressedLogPatterns: [] };
   }

@@ -893,6 +893,7 @@ export class MediaProcessingService {
     }
     args.push(...postInputArgs);
     const quality = options?.quality ?? 10;
+    // Preserve the mono mix on both channels for ESP32 players with stereo I2S output.
     args.push(
       "-c:v",
       "cinepak",
@@ -900,10 +901,14 @@ export class MediaProcessingService {
       `${quality}`,
       "-c:a",
       "libmp3lame",
+      "-af",
+      "aformat=channel_layouts=mono,pan=stereo|c0=c0|c1=c0",
       "-ac",
-      "1",
+      "2",
       "-ar",
-      "22050"
+      "22050",
+      "-b:a",
+      "32k"
     );
     return this.runTranscode(file, "avi", args, onProgress, onLog, signal, {
       preInputArgs,

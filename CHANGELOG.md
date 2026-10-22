@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.11
+- Fixed AVI audio playing too fast on the JC4827W543 player by exporting the mono mix on both stereo channels in web and desktop conversions ([#13](https://github.com/thelastoutpostworkshop/video_conversion/issues/13)).
+
 ## 1.3.10
 - fixed tutorial link.
 - Added a PayPal donation link to Resources.
