@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.11
+## 1.3.12
 - Fixed AVI audio playing too fast on the JC4827W543 player by exporting the mono mix on both stereo channels in web and desktop conversions ([#13](https://github.com/thelastoutpostworkshop/video_conversion/issues/13)).
 - Updated dependencies while keeping TypeScript at 6.0.3. The Electron 45 desktop build requires macOS 13 or newer.
 - Removed the unused `latest` dependency and corrected typechecking to check both the app and Vite configuration.
