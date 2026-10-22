@@ -22,7 +22,7 @@ jobs:
             artifact_name: video-conversion-studio-windows-x64
             archive_name: video-conversion-studio-windows-x64.zip
           - name: Linux x64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             artifact_name: video-conversion-studio-linux-x64
             archive_name: video-conversion-studio-linux-x64.tar.gz
           - name: macOS Intel
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -118,7 +118,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     permissions:

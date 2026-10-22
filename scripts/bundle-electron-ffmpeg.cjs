@@ -52,11 +52,11 @@ const downloadSourcesByPlatform = {
   },
   "darwin-x64": {
     type: "per-tool",
-    description: "evermeet macOS Intel release ZIPs",
+    description: "Martin Riedl macOS amd64 release ZIPs",
     tools: {
-      ffmpeg: "https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip",
-      ffprobe: "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip",
-      ffplay: "https://evermeet.cx/ffmpeg/getrelease/ffplay/zip",
+      ffmpeg: "https://ffmpeg.martin-riedl.de/redirect/latest/macos/amd64/release/ffmpeg.zip",
+      ffprobe: "https://ffmpeg.martin-riedl.de/redirect/latest/macos/amd64/release/ffprobe.zip",
+      ffplay: "https://ffmpeg.martin-riedl.de/redirect/latest/macos/amd64/release/ffplay.zip",
     },
   },
   "darwin-arm64": {
