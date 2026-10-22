@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import type { CSSProperties } from "vue";
 
 const props = defineProps<{
   previewMotionUrl: string | null;
@@ -62,7 +63,7 @@ const toPositiveScale = (value: number | undefined): number => {
   return Math.max(0.1, value);
 };
 
-const previewSurfaceStyle = computed<Record<string, string>>(() => {
+const previewSurfaceStyle = computed<CSSProperties>(() => {
   const width = toPositivePixelDimension(props.targetWidth);
   const height = toPositivePixelDimension(props.targetHeight);
   const scale = toPositiveScale(props.displayScale);

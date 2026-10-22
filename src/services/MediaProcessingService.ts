@@ -161,16 +161,6 @@ const parseDurationToSeconds = (line: string): number | null => {
   return hours * 3600 + minutes * 60 + seconds;
 };
 
-const parseDurationFromLogs = (logs: string[]): number | null => {
-  for (const line of logs) {
-    const duration = parseDurationToSeconds(line);
-    if (duration !== null) {
-      return duration;
-    }
-  }
-  return null;
-};
-
 const parseVideoResolution = (
   line: string
 ): { width: number; height: number } | null => {

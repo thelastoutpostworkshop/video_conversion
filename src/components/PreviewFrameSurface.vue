@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import type { CSSProperties } from "vue";
 
 interface NormalizedCropRect {
   x: number;
@@ -186,7 +187,7 @@ const isCropRectEqual = (a: NormalizedCropRect, b: NormalizedCropRect) =>
   Math.abs(a.width - b.width) < 0.00001 &&
   Math.abs(a.height - b.height) < 0.00001;
 
-const previewSurfaceStyle = computed<Record<string, string>>(() => {
+const previewSurfaceStyle = computed<CSSProperties>(() => {
   const width = toPositivePixelDimension(props.targetWidth);
   const height = toPositivePixelDimension(props.targetHeight);
   const scale = toPositiveScale(props.displayScale);
@@ -235,7 +236,7 @@ const showCroppedMainPreview = computed(
 
 const showCropPreviewActions = computed(() => canShowCropPreview.value);
 
-const previewFrameImageStyle = computed<Record<string, string>>(() => {
+const previewFrameImageStyle = computed<CSSProperties>(() => {
   if (!showCroppedMainPreview.value) {
     return {};
   }
@@ -283,7 +284,7 @@ const enterCropEditMode = async () => {
   updateImageLayout();
 };
 
-const cropOverlayStyle = computed<Record<string, string>>(() => {
+const cropOverlayStyle = computed<CSSProperties>(() => {
   const layout = imageLayout.value;
   if (!layout) {
     return { display: "none" };
@@ -296,7 +297,7 @@ const cropOverlayStyle = computed<Record<string, string>>(() => {
   };
 });
 
-const cropBoxStyle = computed<Record<string, string>>(() => {
+const cropBoxStyle = computed<CSSProperties>(() => {
   const rect = props.cropRect;
   if (!rect) {
     return {

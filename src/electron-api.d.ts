@@ -43,7 +43,7 @@ interface ElectronWriteTextFileRequest {
   contents: string;
 }
 
-interface ElectronSerializedInputFile {
+export interface ElectronSerializedInputFile {
   name: string;
   type: string;
   lastModified: number;

@@ -852,6 +852,7 @@ import MakerToolsView from "@/components/MakerToolsView.vue";
 import PreviewFrameSurface from "@/components/PreviewFrameSurface.vue";
 import PreviewMotionSurface from "@/components/PreviewMotionSurface.vue";
 import TrimVideoPlayer from "@/components/TrimVideoPlayer.vue";
+import type { ElectronSerializedInputFile } from "@/electron-api";
 import type {
   AudioTranscodeOptions,
   MediaLogCallback,
@@ -862,6 +863,7 @@ import type {
   VideoScaleMode,
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
+import { toBlobBytes } from "@/services/blobBytes";
 import { getElectronFilePath, registerElectronFilePath } from "@/services/electronFileRegistry";
 import { convertGifToHeader } from "@/services/gifToHeader";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
@@ -1412,7 +1414,7 @@ const trimRangeMax = computed(
 );
 
 const trimRangeModel = computed<[number, number]>({
-  get: () => {
+  get: (): [number, number] => {
     const max = trimRangeMax.value;
     const startCandidate =
       typeof parsedStartTimeSeconds.value === "number"
@@ -1576,31 +1578,6 @@ const createCenteredCropRect = (
     width: cropWidth,
     height: cropHeight,
   });
-};
-
-const toPixelCropRegion = (
-  rect: NormalizedCropRect,
-  dimensions: { width: number; height: number }
-): VideoCropRegion => {
-  const sourceWidth = Math.max(1, Math.round(dimensions.width));
-  const sourceHeight = Math.max(1, Math.round(dimensions.height));
-  const normalized = normalizeCropRect(rect);
-  const cropWidth = Math.max(1, Math.min(sourceWidth, Math.round(normalized.width * sourceWidth)));
-  const cropHeight = Math.max(
-    1,
-    Math.min(sourceHeight, Math.round(normalized.height * sourceHeight))
-  );
-  const cropX = Math.max(0, Math.min(sourceWidth - cropWidth, Math.round(normalized.x * sourceWidth)));
-  const cropY = Math.max(
-    0,
-    Math.min(sourceHeight - cropHeight, Math.round(normalized.y * sourceHeight))
-  );
-  return {
-    x: cropX,
-    y: cropY,
-    width: cropWidth,
-    height: cropHeight,
-  };
 };
 
 const resetCustomCropRect = () => {
@@ -1821,7 +1798,7 @@ const requestNativeSourceFile = async () => {
       return;
     }
     const pickedFile = result.file;
-    const file = new File([pickedFile.data], pickedFile.name, {
+    const file = new File([toBlobBytes(pickedFile.data)], pickedFile.name, {
       type: pickedFile.type,
       lastModified: pickedFile.lastModified,
     });
@@ -2582,11 +2559,10 @@ const resolveElectronOutputSavePath = async (
   if (!electronMedia) {
     return null;
   }
-  const result =
-    (await electronMedia.pickSavePath({
-      defaultPath: defaultFileName,
-      filters,
-    })) as ElectronPickSavePathResult;
+  const result = await electronMedia.pickSavePath({
+    defaultPath: defaultFileName,
+    filters,
+  });
   if (result.canceled || !result.path) {
     return null;
   }
@@ -2870,7 +2846,7 @@ const generateSourcePreviewProxy = async () => {
       return;
     }
 
-    const proxyBlob = new Blob([result.data], { type: "video/webm" });
+    const proxyBlob = new Blob([toBlobBytes(result.data)], { type: "video/webm" });
     const nextProxyUrl = URL.createObjectURL(proxyBlob);
     revokeSourcePreviewProxyUrl();
     sourcePreviewProxyUrl.value = nextProxyUrl;
@@ -3032,7 +3008,7 @@ const generateMotionPreviewFromPlayer = async (seconds: number) => {
       return;
     }
 
-    const previewBlob = new Blob([result.data], { type: "image/gif" });
+    const previewBlob = new Blob([toBlobBytes(result.data)], { type: "image/gif" });
     const nextPreviewUrl = URL.createObjectURL(previewBlob);
     revokePreviewMotionUrl();
     previewMotionUrl.value = nextPreviewUrl;
@@ -3392,7 +3368,7 @@ const runConversion = async () => {
       outputSavedPath.value = result.savedPath;
       appendLog(`[app] Output saved: ${result.savedPath}`);
     } else {
-      const outputBlob = new Blob([result.data], { type: outputFileMime.value });
+      const outputBlob = new Blob([toBlobBytes(result.data)], { type: outputFileMime.value });
       outputFileUrl.value = URL.createObjectURL(outputBlob);
       appendLog(
         `[app] Output ready: ${finalName} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB)`

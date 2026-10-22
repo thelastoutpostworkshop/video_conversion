@@ -11,6 +11,8 @@ Video Conversion Studio helps you convert video and audio for ESP32 small displa
 - Web app: [Video Conversion Studio on GitHub Pages](https://thelastoutpostworkshop.github.io/video_conversion/)
 - Desktop downloads: [Latest desktop release](https://github.com/thelastoutpostworkshop/video_conversion/releases/latest)
 
+The macOS desktop app requires macOS 13 or newer.
+
 ## Features
 
 - Convert video to `MJPEG`, `AVI`, and `GIF`

@@ -464,8 +464,8 @@ const selectionDurationSeconds = computed(() =>
 );
 
 const trimRangeModel = computed<[number, number]>({
-  get: () => [selectionStartSeconds.value, selectionEndSeconds.value],
-  set: (value) => {
+  get: (): [number, number] => [selectionStartSeconds.value, selectionEndSeconds.value],
+  set: (value: [number, number]) => {
     const [rawStart, rawEnd] = value;
     const nextStart = clampSeconds(Number(rawStart) || 0);
     const nextEnd = Math.max(nextStart, clampSeconds(Number(rawEnd) || nextStart));

@@ -6,7 +6,7 @@
   "main": "electron/main.mjs",
   "scripts": {
     "dev": "npx vite",
-    "typecheck": "npx vue-tsc --noEmit",
+    "typecheck": "npx vue-tsc --noEmit -p tsconfig.app.json && npx tsc --noEmit -p tsconfig.node.json",
     "build": "npm run typecheck && npx vite build",
     "preview": "npx vite preview",
     "ffmpeg:bundle:electron": "node scripts/bundle-electron-ffmpeg.cjs",
@@ -18,27 +18,26 @@
     "postinstall": "node scripts/copy-ffmpeg-core.cjs"
   },
   "dependencies": {
-    "@ffmpeg/core": "^0.12.2",
-    "@ffmpeg/ffmpeg": "^0.12.2",
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@mdi/font": "^7.4.47",
-    "latest": "^0.2.0",
-    "vue": "^3.5.25",
-    "vuetify": "^4.0.2"
+    "vue": "^3.5.44",
+    "vuetify": "^4.3.0"
   },
   "devDependencies": {
-    "@electron/packager": "^20.0.1",
-    "@types/node": "^26.0.0",
-    "@vitejs/plugin-vue": "^6.0.2",
-    "@vue/tsconfig": "^0.9.0",
-    "concurrently": "^10.0.3",
+    "@electron/packager": "^20.3.0",
+    "@types/node": "^26.6.5",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/tsconfig": "^0.9.1",
+    "concurrently": "^10.0.6",
     "cross-env": "^10.1.0",
-    "electron": "^43.0.0",
+    "electron": "^45.0.0",
     "extract-zip": "^2.0.1",
-    "sass": "^1.94.0",
+    "sass": "^1.106.1",
     "typescript": "~6.0.3",
-    "vite": "^8.0.0",
-    "vue-tsc": "^3.1.5",
-    "wait-on": "^9.0.1"
+    "vite": "^8.3.5",
+    "vue-tsc": "^3.3.13",
+    "wait-on": "^9.5.1"
   }
 }

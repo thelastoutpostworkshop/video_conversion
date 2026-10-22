@@ -6,6 +6,7 @@ import type {
   VideoScaleMode,
   VideoTranscodeOptions,
 } from "@/services/MediaProcessingService";
+import { toBlobBytes } from "@/services/blobBytes";
 import { mediaProcessingService } from "@/services/mediaProcessingServiceInstance";
 import { isElectronRuntime } from "@/services/runtimeEnvironment";
 import { getBrowserFfmpegSourceFileSizeError } from "@/services/webMediaLimits";
@@ -173,7 +174,7 @@ export const usePreviewFrame = ({
         options,
         onLog
       );
-      const previewBlob = new Blob([result.data], { type: "image/png" });
+      const previewBlob = new Blob([toBlobBytes(result.data)], { type: "image/png" });
       const nextPreviewUrl = URL.createObjectURL(previewBlob);
       if (previewFrameUrl.value) {
         URL.revokeObjectURL(previewFrameUrl.value);
