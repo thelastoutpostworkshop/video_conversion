@@ -30,7 +30,7 @@ jobs:
             artifact_name: video-conversion-studio-macos-x64
             archive_name: video-conversion-studio-macos-x64.tar.gz
           - name: macOS Apple Silicon
-            runner: macos-14
+            runner: macos-15
             artifact_name: video-conversion-studio-macos-arm64
             archive_name: video-conversion-studio-macos-arm64.tar.gz
 
