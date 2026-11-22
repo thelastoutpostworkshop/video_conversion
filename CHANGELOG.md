@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.3.13
+- Added ESPImageServer to Maker Tools with a preview image, a link to its GitHub repository, and a video tutorial.
 - Updated the desktop runtime to Electron 45.4.1.
 - Updated the web app to Vue 3.5.46 and Vuetify 4.3.4.
 - Updated Vite to 8.3.8, along with its Vue plugin, Sass, concurrently, vue-tsc, and the Node.js type definitions. TypeScript remains at 6.0.3.

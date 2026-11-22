@@ -3,6 +3,7 @@ import arduinoMakerWorkshopThumbnail from "@/assets/tool-thumbnails/arduino-make
 import espPinoutExplorerThumbnail from "@/assets/tool-thumbnails/esp-pinout-explorer.png";
 import espBoardVaultThumbnail from "@/assets/tool-thumbnails/esp-board-vault.jpg";
 import espConnectThumbnail from "@/assets/tool-thumbnails/espconnect.jpg";
+import espImageServerThumbnail from "@/assets/tool-thumbnails/esp-image-server.png";
 import gpioViewerThumbnail from "@/assets/tool-thumbnails/gpio-viewer.jpg";
 import partitionBuilderThumbnail from "@/assets/tool-thumbnails/partition-builder.jpg";
 
@@ -28,6 +29,17 @@ interface ToolCardItem extends ToolItem {
 const coffeeUrl = "https://buymeacoffee.com/thelastoutpostworkshop";
 
 const toolItems: ToolItem[] = [
+  {
+    key: "esp-image-server",
+    title: "ESPImageServer",
+    icon: "mdi-image-multiple-outline",
+    description:
+      "A free app to generate AI images and videos locally on your PC. Create from text prompts, animate images, and play your creations on many ESP32 displays.",
+    thumbnailSrc: espImageServerThumbnail,
+    sourceUrl: "https://github.com/thelastoutpostworkshop/ESPImageServer",
+    sourceLabel: "thelastoutpostworkshop/ESPImageServer",
+    tutorialUrl: "https://youtu.be/4_eT38NmxBw",
+  },
   {
     key: "esp-pinout-explorer",
     title: "ESP Pinout Explorer",
