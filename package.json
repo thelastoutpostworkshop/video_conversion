@@ -22,22 +22,22 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@mdi/font": "^7.4.47",
-    "vue": "^3.5.44",
-    "vuetify": "^4.3.0"
+    "vue": "^3.5.46",
+    "vuetify": "^4.3.4"
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",
-    "@types/node": "^26.6.5",
-    "@vitejs/plugin-vue": "^6.0.10",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.11",
     "@vue/tsconfig": "^0.9.1",
-    "concurrently": "^10.0.6",
+    "concurrently": "^10.0.7",
     "cross-env": "^10.1.0",
-    "electron": "^45.0.0",
+    "electron": "^45.4.1",
     "extract-zip": "^2.0.1",
-    "sass": "^1.106.1",
+    "sass": "^1.108.2",
     "typescript": "~6.0.3",
-    "vite": "^8.3.5",
-    "vue-tsc": "^3.3.13",
+    "vite": "^8.3.8",
+    "vue-tsc": "^3.3.14",
     "wait-on": "^9.5.1"
   }
 }
